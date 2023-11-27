@@ -1,12 +1,15 @@
 import InputRetrieval ( retrieveInput )
-import Data.List ( sortBy )
 import Data.List.Split ( splitOn)
+import System.Directory ( getCurrentDirectory )
 import System.Environment ( getArgs )
 
+import Data.List ( sortBy )
 
 main = do
         args <- getArgs
-        input <- retrieveInput 2022 1 args 
+        directory <- getCurrentDirectory
+        let year = read . last . splitOn "/" $ directory
+        input <- retrieveInput year 1 args 
         let calories = map (sum . map read . filter (not . null) . splitOn "\n") . splitOn "\n\n" $ input 
         putStrLn "part 1"
         print . maximum $ calories
