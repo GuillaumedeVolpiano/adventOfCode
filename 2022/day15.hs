@@ -3,7 +3,7 @@ import           InputRetrieval     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs)
 
-import           Data.List          (nub, sortBy)
+import           Data.List          as L (filter, nub, sortBy)
 import           Data.Map           as M (Map, elems, filter, fromList,
                                           mapWithKey)
 import           Data.Maybe         (Maybe (Just, Nothing), catMaybes)
@@ -41,6 +41,7 @@ merge [a] = [a]
 merge ((fi, fe):(si, se):xs)
   | compareAbs fe se /= LT = merge ((fi, fe) : xs)
   | compareAbs fe si /= LT = merge ((fi, se) : xs)
+  | si - fe == V2 1 0 = merge ((fi, se) : xs)
   | otherwise = (fi, fe) : merge ((si, se) : xs)
 
 rowSize :: [(Pos, Pos)] -> Int
@@ -58,6 +59,15 @@ parseLine s = (V2 x y, V2 a b)
 sensorsOnRow :: Int -> Plan -> Int
 sensorsOnRow row = length . nub . elems . M.filter (\(V2 _ y) -> y == row)
 
+sensorSort :: (Pos, Pos) -> (Pos, Pos) -> Ordering
+sensorSort (a, _) (b, _) = compareAbs a b
+
+inRange :: Int -> (Pos, Pos) -> Bool
+inRange maxRow (V2 a _, V2 b _) = b >= 0 && a <= maxRow
+
+tuningFreq :: [(Pos, Pos)] -> Int
+tuningFreq ((_, V2 x y):_) = 4000000 * (x + 1) + y
+
 main = do
   args <- getArgs
   directory <- getCurrentDirectory
@@ -67,12 +77,20 @@ main = do
         case args of
           [] -> 2000000
           a  -> 10
+      maxRow =
+        case args of
+          [] -> 4000000
+          a  -> 20
       plan = fromList . map parseLine . lines $ input
+      filledRows =
+        map
+          (\x ->
+             merge . sortBy sensorSort . L.filter (inRange maxRow) $
+             noSensorOnRow x plan)
+          [0 .. maxRow]
   putStrLn "part 1"
   print $
-    (rowSize .
-     merge .
-     sortBy (\(a, _) (b, _) -> compareAbs a b) . merge . noSensorOnRow row $
-     plan) -
+    (rowSize . merge . sortBy sensorSort . noSensorOnRow row $ plan) -
     sensorsOnRow row plan
   putStrLn "part 2"
+  print . head . map tuningFreq . L.filter (\x -> length x > 1) $ filledRows
