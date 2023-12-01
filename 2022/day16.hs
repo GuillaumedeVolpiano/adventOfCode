@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 import           InputRetrieval     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
@@ -5,12 +7,13 @@ import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
 import           Data.Graph         (Edge, Graph, Vertex, edges, graphFromEdges,
                                      vertices)
-import           Data.List          as L (map, tails)
+import           Data.List          as L (map, null, tails)
 import           Data.Map           as M (Map, alter, assocs, empty, map, (!))
 import           Data.Maybe         (Maybe (Just, Nothing), fromJust)
 import           Data.Sequence      as Sq (Seq ((:<|), (:|>)), null, singleton,
                                            (><))
-import           Data.Set           as St (Set, insert, notMember, singleton)
+import           Data.Set           as St (Set, disjoint, empty, insert,
+                                           notMember, singleton)
 import           Search             (NodeFromVertex, VertexFromKey,
                                      floydWarshall)
 
@@ -57,10 +60,10 @@ open state (vertex, dist) =
     (pressure, valve, _) = nodeFromVertex vertex
     newReleasedPressure = curReleasedPressure + newTime * pressure
 
-explore :: Int -> Seq State -> Int
-explore best seq
-  | Sq.null seq = best
-  | otherwise = explore (max best curScore) toSee
+explore :: [State] -> Seq State -> [State]
+explore done seq
+  | Sq.null seq = done
+  | otherwise = explore newDone toSee
   where
     (cur :<| next) = seq
     curScore = releasedPressure cur
@@ -72,6 +75,7 @@ explore best seq
       filter (\(a, b) -> notMember a (opened cur) && (b < remTime - 2)) $
       shortestPaths cur ! vertex
     toSee = foldl (\a b -> open cur b :<| a) next possDest
+    newDone = cur : done
 
 main = do
   args <- getArgs
@@ -86,14 +90,17 @@ main = do
         M.map (filter (\(b, _) -> (pressure . nodeFromVertex) b /= 0)) .
         reorg . floydWarshall $
         graph
-      initialState =
-        State
-          graph
-          shortPaths
-          "AA"
-          (St.singleton . fromJust $ vertexFromKey "AA")
-          30
-          0
+      initialState1 = State graph shortPaths "AA" St.empty 30 0
+      initialState2 = initialState1 {time = 26}
+      explo1 = explore [] . Sq.singleton $ initialState1
+      result1 = maximum . L.map releasedPressure $ explo1
+      explo2 = explore [] . Sq.singleton $ initialState2
+      exploElephant =
+        concatMap
+          (\a -> explore [] . Sq.singleton $ a {curPos = "AA", time = 26}) .
+        filter (\a -> releasedPressure a > div result1 2 + 1) $
+        explo2
   putStrLn "part 1"
-  print . explore 0 $ Sq.singleton initialState
+  print . maximum . L.map releasedPressure $ explo1
   putStrLn "part 2"
+  print . maximum . L.map releasedPressure $ exploElephant
