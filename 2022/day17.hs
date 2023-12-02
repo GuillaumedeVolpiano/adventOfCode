@@ -26,6 +26,7 @@ data State =
     , jets   :: Jets
     , rocks  :: Rocks
     }
+  deriving (Show, Eq)
 
 initialRocks =
   cycle
@@ -35,6 +36,8 @@ initialRocks =
     , [V2 0 y | y <- [0 .. 3]]
     , [V2 x y | x <- [0, 1], y <- [0, 1]]
     ]
+
+lottaRocks = 1000000000000
 
 fallRock :: State -> State
 fallRock state = State newCave newHeight newJets rs
@@ -67,6 +70,33 @@ fallRock state = State newCave newHeight newJets rs
           all (\p -> isNothing . M.lookup p $ curCave) fell &&
           all (\(V2 _ y) -> y >= 0) fell
 
+findPattern :: [State] -> Int -> Int
+findPattern states jetLength = length potPattern + 1
+  where
+    pruned = drop 1000 states
+    testRock = head . rocks . head $ pruned
+    testJets = take jetLength . jets . head $ pruned
+    potPattern =
+      takeWhile
+        (\x ->
+           (head . rocks $ x) /= testRock || take jetLength (jets x) /= testJets) .
+      tail $
+      pruned
+
+patternHeight :: [State] -> Int -> Int
+patternHeight states patLength =
+  height (states !! (1000 + patLength)) - height (states !! 1000)
+
+predictHeight :: [State] -> Int -> Int -> Int
+predictHeight states jetLength numRocks = prediction
+  where
+    patL = findPattern states jetLength
+    patH = patternHeight states patL
+    toFall = numRocks - 1000
+    (times, remainder) = divMod toFall patL
+    supp = height (states !! (1000 + remainder))
+    prediction = times * patH + supp
+
 main = do
   args <- getArgs
   directory <- getCurrentDirectory
@@ -82,8 +112,12 @@ main = do
                then V2 (-1) 0
                else V2 1 0) $
         (input =~ "[<>]+")
+      jetCycle = length (input =~ "[<>]+" :: String)
       initialState = State empty 0 jets initialRocks
       twentytwentytwo = take 2023 . iterate fallRock $ initialState
+      afew = take 2 . iterate fallRock $ initialState
+      alot = take 10000 . iterate fallRock $ initialState
   putStrLn "part 1"
   print . height . last $ twentytwentytwo
   putStrLn "part 2"
+  print $ predictHeight alot jetCycle lottaRocks
