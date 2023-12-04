@@ -1,7 +1,7 @@
 import           InputRetrieval     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
-import           Text.Regex.TDFA    ((=~))
+import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
 main = do
   args <- getArgs
