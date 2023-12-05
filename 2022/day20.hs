@@ -9,9 +9,6 @@ import           Data.CircularList  (CList, focus, fromList, insertR, removeR,
                                      toList)
 import           Data.Maybe         (fromJust)
 
-import           Data.List
-import           Debug.Trace
-
 decryptionKey = 811589153
 
 index1 = 1000
