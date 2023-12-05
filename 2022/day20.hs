@@ -4,11 +4,12 @@ import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
-import           Data.List          as L (take)
-import           Data.Sequence      as Sq (Seq ((:<|), (:|>)), cycleTaking,
-                                           drop, elemIndexL, fromList, index,
-                                           length, null, spanl, take, (><))
+import           Data.CircularList  (CList, focus, fromList, insertR, removeR,
+                                     rightElements, rotN, rotR, rotateTo, size,
+                                     toList)
+import           Data.Maybe         (fromJust)
 
+import           Data.List
 import           Debug.Trace
 
 decryptionKey = 811589153
@@ -19,46 +20,31 @@ index2 = 2000
 
 index3 = 3000
 
-parseInput :: [String] -> Seq Int
-parseInput = fromList . map read
+parseInput :: [String] -> [(Int, Int)]
+parseInput = zip [1 ..] . map read
 
--- move number i by i positions in the list
-move :: Seq Int -> Seq Int
-move (a :<| rs) = (Sq.take newIndex rs :|> a) >< Sq.drop newIndex rs
+move :: (Int, Int) -> CList (Int, Int) -> CList (Int, Int)
+move pair@(_, number) clist =
+  insertR pair . rotN modded . removeR . fromJust . rotateTo pair $ clist
   where
-    size = Sq.length rs
-    newIndex = mod a size
+    modded = mod number (size clist - 1)
 
--- mix the numbers once. We need to call the sequence twice, once as the
--- decreasing sequence for the recurrence, the other as the referrence being
--- mixed.
-mix :: Seq Int -> Seq Int
-mix numbers = mixed numbers numbers
+mix :: CList (Int, Int) -> [(Int, Int)] -> CList (Int, Int)
+mix = foldl (flip move)
 
--- the actual mixing mechanic. We move each number in the sequence in the order
--- they appear in the initial sequence.
-mixed :: Seq Int -> Seq Int -> Seq Int
-mixed remainingNumbers mixedSequence
-  | Sq.null remainingNumbers = mixedSequence
-  | otherwise = mixed rest . move $ rotateTo f mixedSequence
+remix :: [(Int, Int)] -> CList (Int, Int) -> CList (Int, Int)
+remix = flip mix
+
+score :: (Int, Int) -> CList (Int, Int) -> Int
+score zero clist = score1 + score2 + score3
   where
-    (f :<| rest) = remainingNumbers
+    zlist = fromJust . rotateTo zero $ clist
+    score1 = snd . fromJust . focus . rotN index1 $ zlist
+    score2 = snd . fromJust . focus . rotN index2 $ zlist
+    score3 = snd . fromJust . focus . rotN index3 $ zlist
 
--- cycle the sequence until f is at index 0
-rotateTo :: Int -> Seq Int -> Seq Int
-rotateTo f s
-  | elemIndexL f s == Just 0 = s
-  | otherwise = after >< before
-  where
-    (before, after) = spanl (/= f) s
-
--- calculate the score of the sequence as the sum of the elements at the
--- relevant indexes.
-score :: Seq Int -> Int
-score s = index r index1 + index r index2 + index r index3
-  where
-    size = Sq.length s
-    r = cycleTaking (index3 + 1) . rotateTo 0 $ s
+decrypt :: (Int, Int) -> (Int, Int)
+decrypt (a, b) = (a, decryptionKey * b)
 
 main = do
   args <- getArgs
@@ -67,10 +53,14 @@ main = do
   let year = read $ directory =~ "[0-9]+"
       day = read $ prog =~ "[0-9]+"
   input <- retrieveInput year day args
-  let file = parseInput . lines $ input
-      decryptedFile = fmap (decryptionKey *) file
+  let indices = parseInput . lines $ input
+      file = fromList indices
+      zero = head . filter (\x -> snd x == 0) $ indices
+      decryptedFile = fmap decrypt file
+      decryptedIndices = map decrypt indices
   putStrLn "part 1"
-  preciseTimeIt 3 . print . score . mix $ file
+  preciseTimeIt 3 . print . score zero . mix file $ indices
   putStrLn "part 2"
-  preciseTimeIt 3 . print . score . last . L.take 11 $
-    iterate (mixed decryptedFile) decryptedFile
+  preciseTimeIt 3 .
+    print . score zero . last . take 11 . iterate (remix decryptedIndices) $
+    decryptedFile
