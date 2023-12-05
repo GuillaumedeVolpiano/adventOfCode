@@ -1,7 +1,7 @@
+import           General            (preciseTimeIt)
 import           InputRetrieval     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
-import           System.TimeIt      (timeIt)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
 main = do
@@ -12,6 +12,6 @@ main = do
       day = read $ prog =~ "[0-9]+"
   input <- retrieveInput year day args
   putStrLn "part 1"
-  timeIt . print $ "solution 1"
+  preciseTimeIt 3 . print $ "solution 1"
   putStrLn "part 2"
-  timeIt . print $ "solution 2"
+  preciseTimeIt 3 . print $ "solution 2"
