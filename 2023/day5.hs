@@ -1,8 +1,8 @@
 import           InputRetrieval     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
-import           System.TimeIt      (timeIt)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
+import General (preciseTimeIt)
 
 import           Data.List          (minimumBy)
 import           Data.List.Split    (chunksOf, splitWhen)
@@ -51,9 +51,9 @@ main = do
   input <- retrieveInput year day args
   let (seeds, mapping) = parseInput . lines $ input
   putStrLn "part 1"
-  timeIt . print . minimum . map mapping $ seeds
+  preciseTimeIt 3 . print . minimum . map mapping $ seeds
   putStrLn "part 2"
-  timeIt .
+  preciseTimeIt 3 .
     print .
     minimum .
     map (\(a, _) -> mapping a) . concatMap (continuityRanges mapping) . ranges $
