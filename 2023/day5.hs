@@ -1,11 +1,9 @@
-import           InputRetrieval     (retrieveInput)
+import           Data.List          (minimumBy)
+import           Data.List.Split    (chunksOf, splitWhen)
+import           General            (preciseTimeIt, retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
-import General (preciseTimeIt)
-
-import           Data.List          (minimumBy)
-import           Data.List.Split    (chunksOf, splitWhen)
 
 parseInput :: [String] -> ([Int], Int -> Int)
 parseInput i = (map read . getNumbers . head $ i, getMaps i)

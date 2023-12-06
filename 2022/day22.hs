@@ -3,6 +3,14 @@ import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
+import Data.Array.Unboxed (UArray, array, bounds, inRange, (!))
+import Linear.V2 (V2(..))
+
+data State = State Board Pos Dir Instructions deriving (Show)
+
+type Board = UArray Pos Char
+type Pos = 
+
 main = do
   args <- getArgs
   directory <- getCurrentDirectory

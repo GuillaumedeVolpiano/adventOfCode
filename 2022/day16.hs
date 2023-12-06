@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 
-import           InputRetrieval     (retrieveInput)
+import           General     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))

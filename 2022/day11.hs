@@ -1,5 +1,5 @@
 import           Data.List.Split    (chunksOf, splitOn)
-import           InputRetrieval     (retrieveInput)
+import           General     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs)
 
