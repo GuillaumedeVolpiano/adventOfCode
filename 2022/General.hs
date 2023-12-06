@@ -1,15 +1,16 @@
 module General
-  ( preciseTimeIt, retrieveInput
+  ( preciseTimeIt
+  , retrieveInput
   ) where
 
 import           Control.Monad.IO.Class (MonadIO (liftIO))
 import           System.TimeIt          (timeItT)
 import           Text.Printf            (printf)
 
-import           Data.List.Split  (splitOn)
-import           Network.Curl     (CurlOption (CurlCookie, CurlProxy),
-                                   curlGetString)
-import           System.Directory (getHomeDirectory)
+import           Data.List.Split        (splitOn)
+import           Network.Curl           (CurlOption (CurlCookie, CurlProxy),
+                                         curlGetString)
+import           System.Directory       (getHomeDirectory)
 
 cookiePath = "/adventOfCode/cookies.json"
 
@@ -48,6 +49,6 @@ remoteInput year day = do
   home <- getHomeDirectory
   cookie <- parseCookie $ home ++ cookiePath
   proxy <- readFile (home ++ proxyPath)
-  (code, rsp) <- curlGetString url [CurlProxy (init proxy), CurlCookie cookie]
---  (code, rsp) <- curlGetString url [CurlCookie cookie]
+--  (code, rsp) <- curlGetString url [CurlProxy (init proxy), CurlCookie cookie]
+  (code, rsp) <- curlGetString url [CurlCookie cookie]
   return rsp
