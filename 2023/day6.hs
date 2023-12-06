@@ -1,5 +1,4 @@
-import           General            (preciseTimeIt)
-import           InputRetrieval     (retrieveInput)
+import           General            (preciseTimeIt, retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))

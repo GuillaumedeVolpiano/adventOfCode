@@ -2,7 +2,7 @@ import           Data.Maybe         (fromJust)
 import           Data.Sequence      as Sq (Seq ((:<|), (:|>)), adjust,
                                            replicate, splitAt, (!?), (><))
 import           Data.Set           as St (Set, fromList, intersection, size)
-import           InputRetrieval     (retrieveInput)
+import           General     (retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))

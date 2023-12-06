@@ -1,6 +1,6 @@
 {-# LANGUAGE PackageImports #-}
 
-import           InputRetrieval               (retrieveInput)
+import           General               (retrieveInput)
 import           System.Directory             (getCurrentDirectory)
 import           System.Environment           (getArgs, getProgName)
 import           "regex-pcre" Text.Regex.PCRE (getAllTextMatches, (=~))
