@@ -45,11 +45,7 @@ main = do
       day = read $ prog =~ "[0-9]+"
   input <- retrieveInput year day args
   putStrLn "part 1"
-  -- let's compare timing between the two versions of bestOutcomes in both
-  -- situtations, because why not?
-  preciseTimeIt 4 . print . product . map bestOutcomes . parseLines $ input
   preciseTimeIt 5 . print . product . map quadraticSolution . parseLines $ input
   putStrLn "part 2"
-  preciseTimeIt 4 . print . bestOutcomes . kern . map parseLine . lines $ input
   preciseTimeIt 5 . print . quadraticSolution . kern . map parseLine . lines $
     input
