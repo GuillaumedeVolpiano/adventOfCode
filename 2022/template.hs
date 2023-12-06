@@ -9,6 +9,7 @@ main = do
   prog <- getProgName
   let year = read $ directory =~ "[0-9]+"
       day = read $ prog =~ "[0-9]+"
+      isTest = not . null $ args
   input <- retrieveInput year day args
   putStrLn "part 1"
   preciseTimeIt 3 . print $ "solution 1"
