@@ -48,6 +48,6 @@ remoteInput year day = do
   home <- getHomeDirectory
   cookie <- parseCookie $ home ++ cookiePath
   proxy <- readFile (home ++ proxyPath)
-  (code, rsp) <- curlGetString url [CurlProxy (init proxy), CurlCookie cookie]
---  (code, rsp) <- curlGetString url [CurlCookie cookie]
+--  (code, rsp) <- curlGetString url [CurlProxy (init proxy), CurlCookie cookie]
+  (code, rsp) <- curlGetString url [CurlCookie cookie]
   return rsp

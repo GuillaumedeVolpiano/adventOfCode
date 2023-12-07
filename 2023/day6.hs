@@ -3,38 +3,26 @@ import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
-parseLines :: String -> [(Int, Int)]
+parseLines :: String -> [(Double, Double)]
 parseLines = toPairs . map parseLine . lines
   where
     toPairs (a:b:_) = zip a b
 
-parseLine :: String -> [Int]
+parseLine :: String -> [Double]
 parseLine l = map read $ getAllTextMatches (l =~ "[0-9]+")
 
-kern :: [[Int]] -> (Int, Int)
-kern = toPair . map (read . concatMap show)
+parseOne :: String -> (Double, Double)
+parseOne = toPair . map (read . (=~ "[0-9]+")) . lines
   where
     toPair (a:b:_) = (a, b)
 
-loseFrom :: (Int, Int) -> [Int] -> Int
-loseFrom (time, record) =
-  length . takeWhile (<= record) . map (\x -> (time - x) * x)
-
-bestOutcomes :: (Int, Int) -> Int
-bestOutcomes race@(time, _) = time + 1 - loseFromLeft - loseFromRight
-  where
-    loseFromLeft = loseFrom race [0 .. time]
-    loseFromRight = loseFrom race [time - x | x <- [0 .. time]]
-
 -- The problem boils down to x(t - x) > r, that is x² - tx + r < 0,
 -- that is any integer between the roots of x^2 - tx + r
-quadraticSolution :: (Int, Int) -> Int
-quadraticSolution (time, record) = maxX - minX + 1
+quadraticSolution :: (Double, Double) -> Int
+quadraticSolution (t, r) = maxX - minX + 1
   where
-    t = fromIntegral time :: Double
-    r = fromIntegral record :: Double
-    minX = ceiling $ (t - sqrt (t ^ 2 - 4 * r)) / 2
-    maxX = floor $ (t + sqrt (t ^ 2 - 4 * r)) / 2
+    minX = ceiling ((t - sqrt (t ^ 2 - 4 * r)) / 2)
+    maxX = floor ((t + sqrt (t ^ 2 - 4 * r)) / 2)
 
 main = do
   args <- getArgs
@@ -46,5 +34,5 @@ main = do
   putStrLn "part 1"
   preciseTimeIt 5 . print . product . map quadraticSolution . parseLines $ input
   putStrLn "part 2"
-  preciseTimeIt 5 . print . quadraticSolution . kern . map parseLine . lines $
+  preciseTimeIt 6 . print . quadraticSolution . parseOne . filter (/= ' ') $
     input
