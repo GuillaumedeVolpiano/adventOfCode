@@ -6,3 +6,4 @@ PythonHelpers_for_Quitterie
 *.o
 !*.hs
 !*/*.hs
+!*/*/*.hs
