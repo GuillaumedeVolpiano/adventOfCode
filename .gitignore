@@ -2,6 +2,7 @@ cookies.*
 proxy
 PythonHelpers_for_Quitterie
 */*
-*
+*.hi
+*.o
 !*.hs
 !*/*.hs
