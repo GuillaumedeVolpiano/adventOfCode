@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               adventOfCode
-version:            0.1.0.0
+version:            2023 
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -14,7 +14,7 @@ version:            0.1.0.0
 -- The license under which the package is released.
 -- license:
 author:             GuillaumedeVolpiano
-maintainer:         xavier.dectot@gmail.com
+maintainer:         guillaumedevolpiano@gmail.com
 
 -- A copyright notice.
 -- copyright:
@@ -24,15 +24,31 @@ extra-source-files:
     README.md
 
 
-executable adventOfCode
+executable aoc2022
     main-is:          Main.hs
-
-    -- Modules included in this executable, other than Main.
-    other-modules: General
+    hs-source-dirs: 2022, 2022/days, helpers
+    other-modules: General, Search, Day1, Day2, Day3, Day4, Day5, Day6, Day7, 
+                    Day8, Day9, Day10, Day11, Day12, Day13, Day14, Day15, Day16,
+                    Day17, Day18, Day19, Day20, Day21, Day22, Day23, Day24,
+                    Day25
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.16.4.0, timeit, split, curl, directory, cmdargs,
-						time
-    hs-source-dirs:   app, app/helpers
+    build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl,
+                    data-clist, directory, hashable, linear, psqueues, 
+                    regex-tdfa, split, timeit, time
     default-language: Haskell2010
+
+executable aoc
+    main-is:          Main.hs
+    hs-source-dirs: 2023 2023/days, helpers
+    other-modules: General, Search, Day1, Day2, Day3, Day4, Day5, Day6, Day7 
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl,
+                    data-clist, directory, hashable, linear, psqueues, 
+                    regex-pcre, regex-tdfa, split, timeit, time
+	default-language: Haskell2010
+
+

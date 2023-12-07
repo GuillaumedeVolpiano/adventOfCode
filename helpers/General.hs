@@ -48,7 +48,7 @@ retrieveInput year day test = do
   home <- getHomeDirectory
   if test
     then readFile $
-         home ++ testPath ++ show year ++ "/day" ++ show day ++ "-test.txt"
+         home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
     else remoteInput year day
 
 remoteInput :: Int -> Int -> IO String
