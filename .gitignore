@@ -1,9 +1,8 @@
 cookies.*
 proxy
 PythonHelpers_for_Quitterie
-*/*
 *.hi
 *.o
 !*.hs
-!*/*.hs
-!*/*/*.hs
+dist-newstyle
+test
