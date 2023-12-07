@@ -1,4 +1,4 @@
-import           General            (preciseTimeIt, retrieveInput)
+import           General            (customPreciseTimeIt, retrieveInput)
 import           System.Directory   (getCurrentDirectory)
 import           System.Environment (getArgs, getProgName)
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
@@ -168,7 +168,9 @@ main = do
   let year = read $ directory =~ "[0-9]+"
       day = read $ prog =~ "[0-9]+"
   input <- retrieveInput year day args
-  putStrLn "part 1"
-  preciseTimeIt 3 . print . score . map parseInput . lines $ input
-  putStrLn "part 2"
-  preciseTimeIt 3 . print . score . map (pairToNew . parseInput) . lines $ input
+  customPreciseTimeIt "part 1 CPU time" 3 .
+    print . score . map parseInput . lines $
+    input
+  customPreciseTimeIt "part 2 CPU time" 3 .
+    print . score . map (pairToNew . parseInput) . lines $
+    input
