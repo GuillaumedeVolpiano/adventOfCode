@@ -17,6 +17,8 @@ cookiePath = "/adventOfCode/cookies.json"
 
 adventURL = "https://adventofcode.com/"
 
+testPath = "/adventOfCode/test/"
+
 proxyPath = "/adventOfCode/proxy"
 
 preciseTimeIt :: (MonadIO m, Show a) => Int -> m a -> m a
@@ -41,11 +43,13 @@ parseCookie path = do
         rawCookie
   return $ name ++ "=" ++ value
 
-retrieveInput :: Int -> Int -> [String] -> IO String
-retrieveInput year day args = do
-  case args of
-    [] -> remoteInput year day
-    a  -> readFile $ "day" ++ show day ++ "-test.txt"
+retrieveInput :: Int -> Int -> Bool -> IO String
+retrieveInput year day test = do
+  home <- getHomeDirectory
+  if test
+    then readFile $
+         home ++ testPath ++ show year ++ "/day" ++ show day ++ "-test.txt"
+    else remoteInput year day
 
 remoteInput :: Int -> Int -> IO String
 remoteInput year day = do
