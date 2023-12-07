@@ -77,16 +77,26 @@ neighbours (State st g space) pos =
     toVisit =
       map (curPos +) [V3 1 0 0, V3 (-1) 0 0, V3 0 1 0, V3 0 (-1) 0, V3 0 0 0]
 
-path :: State -> (Pos, Int)
-path state@(State st g@(V3 a b _) sp) = (pos, dist)
+path :: State -> Int
+path state = snd $ pathFrom state 0
+
+pathFrom :: State -> Int -> (Pos, Int)
+pathFrom state@(State st g@(V3 a b _) sp) prev = (pos, dist)
   where
     (_, V3 _ _ depth) = bounds sp
-    dij = fst $ dijkstraGoal st 0 (neighbours state) (isGoal g)
+    dij = fst $ dijkstraGoal st prev (neighbours state) (isGoal g)
     pos = head . filter (`member` dij) $ [V3 a b z | z <- [0 .. depth]]
     dist = fromJust . M.lookup pos $ dij
 
 isGoal :: Pos -> Pos -> Bool
 isGoal (V3 a b _) (V3 c d _) = a == c && b == d
+
+thereAndBackAgain :: State -> Int
+thereAndBackAgain state@(State st g space) =
+  snd $ pathFrom (State newst g space) back
+  where
+    (newst, back) = pathFrom (State newg st space) there
+    (newg, there) = pathFrom state 0
 
 main = do
   args <- getArgs
@@ -95,7 +105,8 @@ main = do
   let year = read $ directory =~ "[0-9]+"
       day = read $ prog =~ "[0-9]+"
   input <- retrieveInput year day args
-  customPreciseTimeIt "part 1 CPU time" 3 .
-    print . snd . path . parseInput . lines $
+  customPreciseTimeIt "part 1 CPU time" 3 . print . path . parseInput . lines $
     input
-  customPreciseTimeIt "part 2 CPU time" 3 . print $ "solution 2"
+  customPreciseTimeIt "part 2 CPU time" 3 .
+    print . thereAndBackAgain . parseInput . lines $
+    input
