@@ -5,6 +5,9 @@ module Search
   , astarVal
   , dfs
   , dfsBest
+  , dijkstraGoal
+  , dijkstraGoalVal
+  , dijkstraAll
   , floydWarshall
   ) where
 
@@ -14,10 +17,8 @@ import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
                                      singleton)
 import           Data.Map      as M (Map, empty, insert, lookup, member,
                                      notMember, singleton, (!))
-import           Data.Maybe    (fromJust, isNothing)
+import           Data.Maybe    (fromJust, isNothing, mapMaybe)
 import           Data.Set      as St (Set, empty, insert, member)
-
-import           Debug.Trace
 
 type NodeFromVertex a = Vertex -> (Int, a, [a])
 
@@ -63,6 +64,57 @@ dfsBest (node:ns) curBest neighbours checkBest seen
       neighbours
       checkBest $
     St.insert node seen
+
+-- Dijkstra
+dijkstraGoalVal ::
+     (Hashable k, Ord k, Show k, Num p, Ord p) => k -> p -> (k -> [(k, p)]) -> k -> p
+dijkstraGoalVal startKey startDist neighbours goal =
+  fromJust . M.lookup goal . fst $
+  dijkstraGoal startKey startDist neighbours (== goal)
+
+dijkstraGoal ::
+     (Hashable k, Ord k, Show k, Num p, Ord p)
+  => k
+  -> p
+  -> (k -> [(k, p)])
+  -> (k -> Bool)
+  -> (Map k p, Map k k)
+dijkstraGoal startKey startDist =
+  dijkstraMech
+    (Q.singleton startKey startDist startKey)
+    (M.singleton startKey startDist)
+    M.empty
+
+dijkstraAll ::
+     (Hashable k, Ord k, Show k, Num p, Ord p)
+  => k
+  -> p
+  -> (k -> [(k, p)])
+  -> (Map k p, Map k k)
+dijkstraAll startKey startDist neighbours =
+  dijkstraGoal startKey startDist neighbours (const False)
+
+dijkstraMech ::
+     (Hashable k, Ord k, Show k, Num p, Ord p)
+  => HashPSQ k p k
+  -> Map k p
+  -> Map k k
+  -> (k -> [(k, p)])
+  -> (k -> Bool)
+  -> (Map k p, Map k k)
+dijkstraMech queue dists paths neighbours isGoal
+  | Q.null queue || isGoal curKey = (dists, paths)
+  | otherwise = dijkstraMech newQueue newDists newPaths neighbours isGoal
+  where
+    (curKey, estDist, _, rest) = fromJust (minView queue)
+    toConsider = mapMaybe consider (neighbours curKey)
+    newQueue = foldl (\a (b, c) -> Q.insert b c b a) rest toConsider
+    newDists = foldl (\a (b, c) -> M.insert b c a) dists toConsider
+    newPaths = foldl (\a (b, _) -> M.insert b curKey a) paths toConsider
+    consider (aKey, anEdge)
+      | not (M.member aKey dists) || estDist + anEdge < dists ! aKey =
+        Just (aKey, estDist + anEdge)
+      | otherwise = Nothing
 
 --A* search
 astarVal ::
