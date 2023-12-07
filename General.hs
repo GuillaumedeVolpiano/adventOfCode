@@ -1,15 +1,17 @@
 module General
-  ( preciseTimeIt, retrieveInput
+  ( preciseTimeIt
+  , customPreciseTimeIt
+  , retrieveInput
   ) where
 
 import           Control.Monad.IO.Class (MonadIO (liftIO))
 import           System.TimeIt          (timeItT)
 import           Text.Printf            (printf)
 
-import           Data.List.Split  (splitOn)
-import           Network.Curl     (CurlOption (CurlCookie, CurlProxy),
-                                   curlGetString)
-import           System.Directory (getHomeDirectory)
+import           Data.List.Split        (splitOn)
+import           Network.Curl           (CurlOption (CurlCookie, CurlProxy),
+                                         curlGetString)
+import           System.Directory       (getHomeDirectory)
 
 cookiePath = "/adventOfCode/cookies.json"
 
@@ -18,9 +20,12 @@ adventURL = "https://adventofcode.com/"
 proxyPath = "/adventOfCode/proxy"
 
 preciseTimeIt :: (MonadIO m, Show a) => Int -> m a -> m a
-preciseTimeIt prec ioa = do
+preciseTimeIt = customPreciseTimeIt "CPU time: "
+
+customPreciseTimeIt :: (MonadIO m, Show a) => String -> Int -> m a -> m a
+customPreciseTimeIt name prec ioa = do
   (t, a) <- timeItT ioa
-  liftIO $ printf ("CPU time" ++ ":%6." ++ show prec ++ "fs\n") t
+  liftIO $ printf (name ++ ":%6." ++ show prec ++ "fs\n") t
   return a
 
 parseCookie :: String -> IO String
@@ -48,6 +53,6 @@ remoteInput year day = do
   home <- getHomeDirectory
   cookie <- parseCookie $ home ++ cookiePath
   proxy <- readFile (home ++ proxyPath)
-  (code, rsp) <- curlGetString url [CurlProxy (init proxy), CurlCookie cookie]
---  (code, rsp) <- curlGetString url [CurlCookie cookie]
+--  (code, rsp) <- curlGetString url [CurlProxy (init proxy), CurlCookie cookie]
+  (code, rsp) <- curlGetString url [CurlCookie cookie]
   return rsp
