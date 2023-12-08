@@ -24,6 +24,18 @@ extra-source-files:
     README.md
 
 
+executable aoc2021
+    main-is:          Main.hs
+    hs-source-dirs: 2021, 2021/days, helpers
+    other-modules: General, Search, Day1
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl,
+                    data-clist, directory, hashable, linear, psqueues, 
+                    regex-tdfa, split, timeit, time
+    default-language: Haskell2010
+
 executable aoc2022
     main-is:          Main.hs
     hs-source-dirs: 2022, 2022/days, helpers
