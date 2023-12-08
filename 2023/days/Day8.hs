@@ -3,16 +3,15 @@ module Day8
   , part2
   ) where
 
-import           Data.Graph      as G (Graph, Vertex, graphFromEdges)
 import           Data.Map        as M (Map, fromList, keys, (!))
 import           Data.Maybe      (fromJust)
 import           Data.Text       as T (Text, last, pack)
-import           Search          (NodeFromVertex, VertexFromKey, floydWarshall)
+import           Search          (bfsDist)
 import           Text.Regex.TDFA (getAllTextMatches, (=~))
 
 type Tree = Map Pos (Pos, Pos)
 
-type Prune = (Graph, NodeFromVertex Pos, VertexFromKey Pos)
+type Prune = Map Pos [Pos]
 
 type Instructions = [Char]
 
@@ -26,9 +25,7 @@ test2 =
 pruneTree :: (Instructions, Tree) -> (Step, Prune)
 pruneTree (instructions, tree) = (length instructions, prunedTree)
   where
-    prunedTree =
-      graphFromEdges $
-      zipWith (\a b -> (a, b, follow instructions b)) [0 ..] (keys tree)
+    prunedTree = fromList . map (\a -> (a, follow instructions a)) $ keys tree
     follow [] p     = [p]
     follow (x:xs) p = follow xs (translateInst x . (!) tree $ p)
 
@@ -46,25 +43,19 @@ translateInst 'R' = snd
 translateInst i   = error ("can't understand instruction " ++ show i)
 
 part1 :: Bool -> String -> String
-part1 _ input = show . (*) step $ fw ! edge
+part1 _ input = show . (*) step $ dist
   where
-    (step, prune@(_, _, vfk)) = parseLine . lines $ input
-    edge = (fromJust . vfk $ pack "AAA", fromJust . vfk $ pack "ZZZ")
-    fw = floydWarshall prune
+    (step, prune) = parseLine . lines $ input
+    dist = (-1) + bfsDist (pack "AAA") (prune !) (== pack "ZZZ")
 
 part2 :: Bool -> String -> String
-part2 test input = show . (*) step . foldl1 lcm $ distOfInterest
+part2 test input = show . (*) step . foldl1 lcm $ dists
   where
     toParse
       | test = test2
       | otherwise = input
-    (step, prune@(_, afv, _)) = parseLine . lines $ toParse
-    fw = floydWarshall prune
-    distOfInterest =
-      map (fw !) .
-      filter
-        (\(a, b) ->
-           T.last (nfa . afv $ a) == 'A' && T.last (nfa . afv $ b) == 'Z') .
-      keys $
-      fw
-    nfa (_, a, _) = a
+    (step, prune) = parseLine . lines $ toParse
+    dists =
+      map (\a -> (-1) + bfsDist a (prune !) (\t -> T.last t == 'Z')) .
+      filter (\t -> T.last t == 'A') . keys $
+      prune
