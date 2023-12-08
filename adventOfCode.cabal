@@ -27,7 +27,7 @@ extra-source-files:
 executable aoc2021
     main-is:          Main.hs
     hs-source-dirs: 2021, 2021/days, helpers
-    other-modules: General, Search, Day1
+    other-modules: General, Search, Day1, Day2
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
