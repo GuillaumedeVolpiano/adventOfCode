@@ -46,7 +46,7 @@ part1 :: Bool -> String -> String
 part1 _ input = show . (*) step $ dist
   where
     (step, prune) = parseLine . lines $ input
-    dist = (-1) + bfsDist (pack "AAA") (prune !) (== pack "ZZZ")
+    dist = bfsDist (pack "AAA") (prune !) (== pack "ZZZ")
 
 part2 :: Bool -> String -> String
 part2 test input = show . (*) step . foldl1 lcm $ dists
@@ -56,6 +56,6 @@ part2 test input = show . (*) step . foldl1 lcm $ dists
       | otherwise = input
     (step, prune) = parseLine . lines $ toParse
     dists =
-      map (\a -> (-1) + bfsDist a (prune !) (\t -> T.last t == 'Z')) .
+      map (\a -> bfsDist a (prune !) (\t -> T.last t == 'Z')) .
       filter (\t -> T.last t == 'A') . keys $
       prune
