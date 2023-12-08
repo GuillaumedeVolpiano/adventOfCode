@@ -50,9 +50,9 @@ floydWarshall (graph, nodeFromVertex, _) = shortPaths valVertices distEdges
     testMemberships x y z dists = M.member (y, x) dists && M.member (x, z) dists
 
 -- Breadth first search
-bfsDist :: Ord a => a -> a -> (a -> [a]) -> (a -> Bool) -> Int
-bfsDist start goal neighbours =
-  length . bfsMech (Sq.singleton start) (St.singleton goal) M.empty neighbours
+bfsDist :: Ord a => a -> (a -> [a]) -> (a -> Bool) -> Int
+bfsDist start neighbours =
+  length . bfsMech (Sq.singleton start) (St.singleton start) M.empty neighbours
 
 bfsMech ::
      Ord a => Seq a -> Set a -> Map a a -> (a -> [a]) -> (a -> Bool) -> [a]
