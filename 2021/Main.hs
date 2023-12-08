@@ -6,6 +6,7 @@ import           Data.Map                        (Map, fromList, (!))
 import           Data.Time.Calendar              (toGregorian)
 import           Data.Time.Clock                 (getCurrentTime, utctDay)
 import           Day1
+
 -- import           Day10
 -- import           Day11
 -- import           Day12
@@ -16,7 +17,8 @@ import           Day1
 -- import           Day17
 -- import           Day18
 -- import           Day19
--- import           Day2
+import           Day2
+
 -- import           Day20
 -- import           Day21
 -- import           Day22
@@ -42,10 +44,8 @@ data Arguments =
     }
   deriving (Show, Data, Typeable)
 
-solver =
-  fromList
-    [ (1, (Day1.part1, Day1.part2))
---    , (2, (Day2.part1, Day2.part2))
+solver = fromList [(1, (Day1.part1, Day1.part2)), (2, (Day2.part1, Day2.part2))]
+
 --    , (3, (Day3.part1, Day3.part2))
 --    , (4, (Day4.part1, Day4.part2))
 --    , (5, (Day5.part1, Day5.part2))
@@ -69,8 +69,6 @@ solver =
 --    , (23, (Day23.part1, Day23.part2))
 --    , (24, (Day24.part1, Day24.part2))
 --    , (25, (Day25.part1, Day25.part2))
-    ]
-
 main :: IO ()
 main = do
   time <- getCurrentTime
