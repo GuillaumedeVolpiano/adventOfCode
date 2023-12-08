@@ -3,6 +3,7 @@ module Search
   , VertexFromKey
   , astar
   , astarVal
+  , bfsDist
   , dfs
   , dfsBest
   , dijkstraGoal
@@ -18,7 +19,9 @@ import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
 import           Data.Map      as M (Map, empty, insert, lookup, member,
                                      notMember, singleton, (!))
 import           Data.Maybe    (fromJust, isNothing, mapMaybe)
-import           Data.Set      as St (Set, empty, insert, member)
+import           Data.Sequence as Sq (Seq ((:<|), (:|>)), null, singleton)
+import           Data.Set      as St (Set, empty, insert, member, notMember,
+                                      singleton)
 
 type NodeFromVertex a = Vertex -> (Int, a, [a])
 
@@ -39,12 +42,35 @@ floydWarshall (graph, nodeFromVertex, _) = shortPaths valVertices distEdges
     path _ _ [] dists = dists
     path x y (z:zs) dists
       | not (testMemberships x y z dists) = path x y zs dists
-      | notMember (y, z) dists =
+      | M.notMember (y, z) dists =
         path x y zs $ M.insert (y, z) (dists ! (y, x) + dists ! (x, z)) dists
       | dists ! (y, z) > dists ! (y, x) + dists ! (x, z) =
         path x y zs $ M.insert (y, z) (dists ! (y, x) + dists ! (x, z)) dists
       | otherwise = path x y zs dists
     testMemberships x y z dists = M.member (y, x) dists && M.member (x, z) dists
+
+-- Breadth first search
+bfsDist :: Ord a => a -> a -> (a -> [a]) -> (a -> Bool) -> Int
+bfsDist start goal neighbours =
+  length . bfsMech (Sq.singleton start) (St.singleton goal) M.empty neighbours
+
+bfsMech ::
+     Ord a => Seq a -> Set a -> Map a a -> (a -> [a]) -> (a -> Bool) -> [a]
+bfsMech toSee seen paths neighbours isGoal
+  | Sq.null toSee = error "goal not found"
+  | isGoal curPos = reconstructPath curPos paths
+  | otherwise = bfsMech toSeeNext newSeen newPaths neighbours isGoal
+  where
+    (curPos :<| rest) = toSee
+    toConsider = filter (`St.notMember` seen) . neighbours $ curPos
+    toSeeNext = foldl (:|>) rest toConsider
+    newSeen = foldl (flip St.insert) seen toConsider
+    newPaths = foldl (\a b -> M.insert b curPos a) paths toConsider
+
+reconstructPath :: Ord a => a -> Map a a -> [a]
+reconstructPath curPos paths
+  | M.notMember curPos paths = [curPos]
+  | otherwise = curPos : reconstructPath (paths M.! curPos) paths
 
 -- Depth first search
 dfs :: Ord n => [n] -> (n -> [n]) -> Set n -> Set n
@@ -67,7 +93,12 @@ dfsBest (node:ns) curBest neighbours checkBest seen
 
 -- Dijkstra
 dijkstraGoalVal ::
-     (Hashable k, Ord k, Show k, Num p, Ord p) => k -> p -> (k -> [(k, p)]) -> k -> p
+     (Hashable k, Ord k, Show k, Num p, Ord p)
+  => k
+  -> p
+  -> (k -> [(k, p)])
+  -> k
+  -> p
 dijkstraGoalVal startKey startDist neighbours goal =
   fromJust . M.lookup goal . fst $
   dijkstraGoal startKey startDist neighbours (== goal)
@@ -159,7 +190,7 @@ astarMech ::
   -> (p, [v])
 astarMech queue paths gscore isGoal neighbours heuristic dist
   | Q.null queue = error "no solution found"
-  | isGoal curKey = (gscore ! curKey, reconstructPath paths curKey)
+  | isGoal curKey = (gscore ! curKey, reconstructPathAStar paths curKey)
   | otherwise =
     astarMech newQueue newPaths newGscore isGoal neighbours heuristic dist
   where
@@ -175,9 +206,9 @@ astarMech queue paths gscore isGoal neighbours heuristic dist
       where
         tentativeScore = fromJust (M.lookup curKey scoreMap) + dist curVal aVal
 
-reconstructPath :: Ord k => Map k (k, v) -> k -> [v]
-reconstructPath paths node
+reconstructPathAStar :: Ord k => Map k (k, v) -> k -> [v]
+reconstructPathAStar paths node
   | isNothing (M.lookup node paths) = []
-  | otherwise = val : reconstructPath paths nextNode
+  | otherwise = val : reconstructPathAStar paths nextNode
   where
     (nextNode, val) = paths ! node
