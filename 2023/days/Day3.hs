@@ -1,11 +1,8 @@
 module Day3 (part1, part2) where
-import           Text.Regex.TDFA    ((=~))
-
 import           Data.Array.Unboxed (UArray, array, bounds, inRange, indices,
                                      (!))
 import           Data.List          (nub, sortBy)
 import           Data.Maybe         (fromJust, isNothing, mapMaybe)
-import           Debug.Trace
 import           Linear.V2          (V2 (..))
 
 type Pos = V2 Int
