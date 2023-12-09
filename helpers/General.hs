@@ -27,7 +27,7 @@ preciseTimeIt = customPreciseTimeIt "CPU time: "
 customPreciseTimeIt :: (MonadIO m, Show a) => String -> Int -> m a -> m a
 customPreciseTimeIt name prec ioa = do
   (t, a) <- timeItT ioa
-  liftIO $ printf (name ++ ":%6." ++ show prec ++ "fs\n") t
+  liftIO $ printf (name ++ ": %6." ++ show prec ++ "fs\n") t
   return a
 
 parseCookie :: String -> IO String
@@ -43,20 +43,23 @@ parseCookie path = do
         rawCookie
   return $ name ++ "=" ++ value
 
-retrieveInput :: Int -> Int -> Bool -> IO String
-retrieveInput year day test = do
+retrieveInput :: Int -> Int -> Bool -> Bool -> IO String
+retrieveInput year day test withProxy = do
   home <- getHomeDirectory
   if test
     then readFile $
          home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
-    else remoteInput year day
+    else remoteInput year day withProxy
 
-remoteInput :: Int -> Int -> IO String
-remoteInput year day = do
+remoteInput :: Int -> Int -> Bool -> IO String
+remoteInput year day withProxy = do
   let url = adventURL ++ show year ++ "/day/" ++ show day ++ "/input"
   home <- getHomeDirectory
   cookie <- parseCookie $ home ++ cookiePath
   proxy <- readFile (home ++ proxyPath)
---  (code, rsp) <- curlGetString url [CurlProxy (init proxy), CurlCookie cookie]
-  (code, rsp) <- curlGetString url [CurlCookie cookie]
+  let curlArgs = if withProxy then
+                      [CurlProxy (init proxy), CurlCookie cookie]
+                 else
+                      [CurlCookie cookie]
+  (code, rsp) <- curlGetString url curlArgs
   return rsp

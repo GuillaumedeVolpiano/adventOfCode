@@ -4,6 +4,7 @@ PythonHelpers_for_Quitterie
 *.hi
 *.o
 !*.hs
+*.hs.swp
 template.hs
 dist-newstyle
 test
