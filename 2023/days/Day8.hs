@@ -6,8 +6,8 @@ module Day8
 import           Data.Map    as M (Map, fromList, keys, (!))
 import           Data.Maybe  (fromJust)
 import           Data.Text   as T (Text, last, pack)
-import           Parsers     (alphaNum)
-import           Search      (bfsDist)
+import           Helpers.Parsers     (alphaNum)
+import           Helpers.Search      (bfsDist)
 
 type Tree = Map Pos (Pos, Pos)
 

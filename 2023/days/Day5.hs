@@ -5,7 +5,7 @@ module Day5
 
 import           Data.List       (minimumBy)
 import           Data.List.Split (chunksOf, splitWhen)
-import           Parsers         (integers)
+import           Helpers.Parsers         (integers)
 
 --parseInput :: [String] -> ([Int], Int -> Int)
 --parseInput i = (map read . getNumbers . head $ i, getMaps i)

@@ -11,7 +11,7 @@ import           Data.Maybe         (Maybe (Just, Nothing), fromJust, isJust,
 import           Data.Set           (Set, fromList, notMember)
 import           Debug.Trace
 import           Linear.V3          (V3 (..))
-import           Search             (dijkstraGoal)
+import           Helpers.Search             (dijkstraGoal)
 
 data State =
   State

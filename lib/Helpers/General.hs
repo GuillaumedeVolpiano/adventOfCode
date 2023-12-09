@@ -1,4 +1,4 @@
-module General
+module Helpers.General
   ( preciseTimeIt
   , customPreciseTimeIt
   , retrieveInput

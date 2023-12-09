@@ -23,14 +23,19 @@ extra-source-files:
     CHANGELOG.md
     README.md
 
+library helpers
+  hs-source-dirs: lib
+  exposed-modules: Helpers.General, Helpers.Parsers, Helpers.Search
+  build-depends: base, containers, curl, directory, hashable, psqueues, regex-tdfa
+                 , split, timeit
 
 executable aoc2021
     main-is:          Main.hs
-    hs-source-dirs: 2021, 2021/days, helpers
-    other-modules: General, Search, Day1, Day2
-
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
+    hs-source-dirs: 2021, 2021/days, lib
+    other-modules: Helpers.General, Helpers.Search, Day1, Day2
+--
+--    -- LANGUAGE extensions used by modules in this package.
+--    -- other-extensions:
     build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl,
                     data-clist, directory, hashable, linear, psqueues, 
                     regex-tdfa, split, timeit, time
@@ -38,30 +43,30 @@ executable aoc2021
 
 executable aoc2022
     main-is:          Main.hs
-    hs-source-dirs: 2022, 2022/days, helpers
-    other-modules: General, Search, Day1, Day2, Day3, Day4, Day5, Day6, Day7, 
-                    Day8, Day9, Day10, Day11, Day12, Day13, Day14, Day15, Day16,
-                    Day17, Day18, Day19, Day20, Day21, Day22, Day23, Day24,
-                    Day25
-
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
+    hs-source-dirs: 2022, 2022/days, lib
+    other-modules: Helpers.General, Helpers.Search, Day1, Day2, Day3, Day4, Day5,
+                  Day6, Day7, Day8, Day9, Day10, Day11, Day12, Day13, Day14, Day15, 
+                  Day16, Day17, Day18, Day19, Day20, Day21, Day22, Day23, Day24,
+                  Day25
+--
+--    -- LANGUAGE extensions used by modules in this package.
+--    -- other-extensions:
     build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl,
                     data-clist, directory, hashable, linear, psqueues, 
                     regex-tdfa, split, timeit, time
     default-language: Haskell2010
-
+--
 executable aoc
     main-is:          Main.hs
-    hs-source-dirs: 2023 2023/days, helpers
-    other-modules: General, Parsers, Search, Day1, Day2, Day3, Day4, Day5, Day6, 
-	               Day7, Day8, Day9
+    hs-source-dirs: 2023 2023/days, lib
+    other-modules: Helpers.General, Helpers.Search, Helpers.Parsers, Day1, Day2
+                   , Day3, Day4, Day5, Day6, Day7, Day8, Day9
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl,
-                    data-clist, directory, hashable, linear, psqueues, 
+                    data-clist, directory, hashable, helpers, linear, psqueues, 
                     regex-pcre, regex-tdfa, split, text, timeit, time
-	default-language: Haskell2010
+    default-language: Haskell2010
 
 

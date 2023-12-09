@@ -32,7 +32,7 @@ import           Day2
 -- import           Day7
 -- import           Day8
 -- import           Day9
-import           General                         (customPreciseTimeIt,
+import           Helpers.General                         (customPreciseTimeIt,
                                                   retrieveInput)
 import           System.Console.CmdArgs.Implicit (Data, Typeable, cmdArgs, def,
                                                   help, opt, (&=))

@@ -3,7 +3,7 @@ module Day7
   , part2
   ) where
 
-import           Parsers   (splitOnSpace)
+import           Helpers.Parsers   (splitOnSpace)
 
 import           Data.Char (isDigit)
 import           Data.List (group, sort, sortBy)
