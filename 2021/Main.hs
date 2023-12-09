@@ -39,8 +39,9 @@ import           System.Console.CmdArgs.Implicit (Data, Typeable, cmdArgs, def,
 
 data Arguments =
   Arguments
-    { day  :: Int
-    , test :: Bool
+    { day   :: Int
+    , test  :: Bool
+    , proxy :: Bool
     }
   deriving (Show, Data, Typeable)
 
@@ -79,6 +80,7 @@ main = do
               def &= help "Which day to process. Defaults to the current day" &=
               opt curDay
           , test = def &= help "Run the test suite? Defaults to True if used"
+          , proxy = def &= help "Use a proxy? Defaults to True if used"
           }
   args <- cmdArgs arguments
   let year = 2021
@@ -86,7 +88,7 @@ main = do
         case day args of
           0 -> curDay
           _ -> day args
-  input <- retrieveInput year theDay $ test args
+  input <- retrieveInput year theDay (test args) (proxy args)
   let (solve1, solve2) = solver ! theDay
   customPreciseTimeIt "Part 1. CPU Time" 4 . putStrLn $ solve1 (test args) input
   customPreciseTimeIt "Part 2. CPU Time" 4 . putStrLn $ solve2 (test args) input
