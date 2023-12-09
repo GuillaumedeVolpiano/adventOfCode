@@ -1,10 +1,12 @@
-module Day7 (part1, part2) where
-import           Text.Regex.TDFA    (getAllTextMatches, (=~))
+module Day7
+  ( part1
+  , part2
+  ) where
 
-import           Data.Char          (isDigit)
-import           Data.List          (group, sort, sortBy)
+import           Parsers   (splitOnSpace)
 
-import           Debug.Trace
+import           Data.Char (isDigit)
+import           Data.List (group, sort, sortBy)
 
 class GenHand a where
   handToList :: a -> [Card]
@@ -63,7 +65,6 @@ instance Ord NewHand where
 
 instance GenHand Hand where
   handToList (Hand a b c d e) = [a, b, c, d, e]
-
   handType h
     | maxGroup == 5 = Five
     | maxGroup == 4 = Four
@@ -75,7 +76,6 @@ instance GenHand Hand where
     where
       handGroup = grouped . handToList $ h
       maxGroup = maximum handGroup
-
   pieceCompare a b = subCompare (handToList a) (handToList b)
     where
       subCompare [] [] = EQ
@@ -84,9 +84,7 @@ instance GenHand Hand where
         | otherwise = compare f s
 
 instance GenHand NewHand where
-
   handToList (NewHand a b c d e) = [a, b, c, d, e]
-
   handType h
     | maxGroup + jsize == 5 = Five
     | maxGroup + jsize == 4 = Four
@@ -112,7 +110,6 @@ instance GenHand NewHand where
       testTwo
         | sort groupedNoJoker == [1, 2, 2] = Two
         | otherwise = One
-  
   pieceCompare a b = subCompare (handToList a) (handToList b)
     where
       subCompare [] [] = EQ
@@ -122,10 +119,9 @@ instance GenHand NewHand where
         | s == J = GT
         | otherwise = compare f s
 
-parseInput :: String -> (Hand, Bid)
-parseInput s = (readHand before, read after)
+parseInput :: String -> [(Hand, Bid)]
+parseInput = map (\(a:b:_) -> (readHand a, read b)) . splitOnSpace
   where
-    (before, _, after) = s =~ " " :: (String, String, String)
     readHand [a, b, c, d, e] =
       Hand (readCard a) (readCard b) (readCard c) (readCard d) (readCard e)
     readCard c
@@ -158,8 +154,8 @@ score =
 pairToNew :: (Hand, Bid) -> (NewHand, Bid)
 pairToNew (a, b) = (handToNew a, b)
 
-part1 :: Bool -> String -> String
-part1 _ = show . score . map parseInput . lines
+part1 :: Bool -> String -> String
+part1 _ = show . score . parseInput
 
-part2 :: Bool -> String -> String
-part2 _ = show . score . map (pairToNew . parseInput) . lines
+part2 :: Bool -> String -> String
+part2 _ = show . score . map pairToNew . parseInput

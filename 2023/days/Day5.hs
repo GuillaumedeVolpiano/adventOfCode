@@ -1,19 +1,21 @@
-module Day5 (part1, part2) where
-import           Data.List          (minimumBy)
-import           Data.List.Split    (chunksOf, splitWhen)
-import           Text.Regex.TDFA    (getAllTextMatches, (=~))
+module Day5
+  ( part1
+  , part2
+  ) where
 
-parseInput :: [String] -> ([Int], Int -> Int)
-parseInput i = (map read . getNumbers . head $ i, getMaps i)
+import           Data.List       (minimumBy)
+import           Data.List.Split (chunksOf, splitWhen)
+import           Parsers         (integers)
 
-getNumbers :: String -> [String]
-getNumbers s = getAllTextMatches (s =~ "[0-9]+") :: [String]
+--parseInput :: [String] -> ([Int], Int -> Int)
+--parseInput i = (map read . getNumbers . head $ i, getMaps i)
+parseInput :: String -> ([Int], Int -> Int)
+parseInput s = (head parsed, getMaps . drop 2 $ parsed)
+  where
+    parsed = integers s
 
-getMaps :: [String] -> (Int -> Int)
-getMaps =
-  process .
-  map (gardenMap . map (truple . map read . getNumbers) . tail) .
-  splitWhen null . drop 2
+getMaps :: [[Int]] -> (Int -> Int)
+getMaps = process . map (gardenMap . map truple) . splitWhen null
 
 truple :: [Int] -> (Int, Int, Int)
 truple [a, b, c] = (a, b, c)
@@ -41,12 +43,13 @@ process fl x = foldl (\x f -> f x) x fl
 part1 :: Bool -> String -> String
 part1 _ input = show . minimum . map mapping $ seeds
   where
-    (seeds, mapping) = parseInput . lines $ input
+    (seeds, mapping) = parseInput input
 
-part2 :: Bool -> String -> String
-part2 _ input = show .
-    minimum .
-    map (\(a, _) -> mapping a) . concatMap (continuityRanges mapping) . ranges $
-    seeds
-      where
-        (seeds, mapping) = parseInput . lines $ input
+part2 :: Bool -> String -> String
+part2 _ input =
+  show .
+  minimum .
+  map (\(a, _) -> mapping a) . concatMap (continuityRanges mapping) . ranges $
+  seeds
+  where
+    (seeds, mapping) = parseInput input

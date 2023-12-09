@@ -3,11 +3,11 @@ module Day8
   , part2
   ) where
 
-import           Data.Map        as M (Map, fromList, keys, (!))
-import           Data.Maybe      (fromJust)
-import           Data.Text       as T (Text, last, pack)
-import           Search          (bfsDist)
-import           Text.Regex.TDFA (getAllTextMatches, (=~))
+import           Data.Map    as M (Map, fromList, keys, (!))
+import           Data.Maybe  (fromJust)
+import           Data.Text   as T (Text, last, pack)
+import           Parsers     (alphaNum)
+import           Search      (bfsDist)
 
 type Tree = Map Pos (Pos, Pos)
 
@@ -32,9 +32,7 @@ pruneTree (instructions, tree) = (length instructions, prunedTree)
 parseLine :: [String] -> (Step, Prune)
 parseLine input = pruneTree (head input, tree)
   where
-    rawTree =
-      map (\a -> getAllTextMatches (a =~ "[0-9A-Z]+") :: [String]) . drop 2 $
-      input
+    rawTree = alphaNum . unlines . drop 2 $ input
     tree = M.fromList . map (\(a:b:c:_) -> (pack a, (pack b, pack c))) $ rawTree
 
 translateInst :: Char -> ((a, a) -> a)

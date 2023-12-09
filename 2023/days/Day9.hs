@@ -3,11 +3,7 @@ module Day9
   , part2
   ) where
 
-import           Text.Regex.TDFA (getAllTextMatches, (=~))
-
-parseLine :: String -> [[Int]]
-parseLine =
-  map (map read . (\t -> getAllTextMatches (t =~ "-?[-0-9]+"))) . lines
+import Parsers (integers)
 
 toZero :: [Int] -> [[Int]]
 toZero s
@@ -26,7 +22,7 @@ extrapolateBackwards :: [[Int]] -> Int
 extrapolateBackwards = foldr ((-) . head) 0
 
 part1 :: Bool -> String -> String
-part1 _ = show . sum . map (extrapolate . toZero) . parseLine
+part1 _ = show . sum . map (extrapolate . toZero) . integers
 
 part2 :: Bool -> String -> String
-part2 _ = show . sum . map (extrapolateBackwards . toZero) . parseLine
+part2 _ = show . sum . map (extrapolateBackwards . toZero) . integers
