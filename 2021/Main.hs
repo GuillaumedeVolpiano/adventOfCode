@@ -25,14 +25,15 @@ import           Day2
 -- import           Day23
 -- import           Day24
 -- import           Day25
--- import           Day3
+import           Day3
+
 -- import           Day4
 -- import           Day5
 -- import           Day6
 -- import           Day7
 -- import           Day8
 -- import           Day9
-import           Helpers.General                         (customPreciseTimeIt,
+import           Helpers.General                 (customPreciseTimeIt,
                                                   retrieveInput)
 import           System.Console.CmdArgs.Implicit (Data, Typeable, cmdArgs, def,
                                                   help, opt, (&=))
@@ -45,9 +46,13 @@ data Arguments =
     }
   deriving (Show, Data, Typeable)
 
-solver = fromList [(1, (Day1.part1, Day1.part2)), (2, (Day2.part1, Day2.part2))]
+solver =
+  fromList
+    [ (1, (Day1.part1, Day1.part2))
+    , (2, (Day2.part1, Day2.part2))
+    , (3, (Day3.part1, Day3.part2))
+    ]
 
---    , (3, (Day3.part1, Day3.part2))
 --    , (4, (Day4.part1, Day4.part2))
 --    , (5, (Day5.part1, Day5.part2))
 --    , (6, (Day6.part1, Day6.part2))

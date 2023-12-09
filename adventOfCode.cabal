@@ -28,11 +28,12 @@ library helpers
   exposed-modules: Helpers.General, Helpers.Parsers, Helpers.Search
   build-depends: base, containers, curl, directory, hashable, psqueues, regex-tdfa
                  , split, timeit
+  default-language: Haskell2010
 
 executable aoc2021
     main-is:          Main.hs
     hs-source-dirs: 2021, 2021/days, lib
-    other-modules: Helpers.General, Helpers.Search, Day1, Day2
+    other-modules: Helpers.General, Helpers.Parsers, Helpers.Search, Day1, Day2, Day3
 --
 --    -- LANGUAGE extensions used by modules in this package.
 --    -- other-extensions:
