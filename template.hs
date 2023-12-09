@@ -1,5 +1,5 @@
 module DayX (part1, part2) where
-import           Text.Regex.TDFA    (getAllTextMatches, (=~))
+import Helpers.Parsers
 
 part1 :: Bool -> String -> String
 part1 _ _ = "Part 1"
