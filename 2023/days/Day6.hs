@@ -4,7 +4,7 @@ module Day6
   ) where
 
 import           Debug.Trace
-import           Parsers     (doubles)
+import           Helpers.Parsers     (doubles)
 
 toPair :: [[Double]] -> [(Double, Double)]
 toPair (a:b:_) = zip a b

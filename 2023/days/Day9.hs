@@ -3,7 +3,7 @@ module Day9
   , part2
   ) where
 
-import Parsers (integers)
+import Helpers.Parsers (integers)
 
 toZero :: [Int] -> [[Int]]
 toZero s

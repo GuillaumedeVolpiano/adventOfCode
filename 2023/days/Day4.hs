@@ -7,7 +7,7 @@ import           Data.Maybe    (fromJust)
 import           Data.Sequence as Sq (Seq ((:<|), (:|>)), adjust, replicate,
                                       splitAt, (!?), (><))
 import           Data.Set      as St (Set, fromList, intersection, size)
-import           Parsers       (complexParser, numbers)
+import           Helpers.Parsers       (complexParser, numbers)
 
 data Card =
   Card Index Winning Have

@@ -1,4 +1,4 @@
-module Parsers
+module Helpers.Parsers
   ( alnum
   , alphaNum
   , characters

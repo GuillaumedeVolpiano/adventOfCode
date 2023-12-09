@@ -3,7 +3,7 @@ module Day2
   , part2
   ) where
 
-import           Parsers        (characters, integers)
+import           Helpers.Parsers        (characters, integers)
 
 import           Data.Bifunctor (second)
 

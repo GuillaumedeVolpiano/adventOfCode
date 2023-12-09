@@ -14,7 +14,7 @@ import           Data.Sequence      as Sq (Seq ((:<|), (:|>)), null, singleton,
                                            (><))
 import           Data.Set           as St (Set, disjoint, empty, insert,
                                            notMember, singleton)
-import           Search             (NodeFromVertex, VertexFromKey,
+import           Helpers.Search             (NodeFromVertex, VertexFromKey,
                                      floydWarshall)
 
 import           Debug.Trace

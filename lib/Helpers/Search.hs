@@ -1,4 +1,4 @@
-module Search
+module Helpers.Search
   ( NodeFromVertex
   , VertexFromKey
   , astar

@@ -3,7 +3,7 @@ import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
 import           Data.Maybe         (Maybe (Just, Nothing), fromJust, mapMaybe)
 import           Data.Set           as St (empty)
-import           Search             (dfsBest)
+import           Helpers.Search             (dfsBest)
 
 import           Debug.Trace
 
