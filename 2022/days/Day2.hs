@@ -1,5 +1,4 @@
 module Day2 where
-import           Data.List.Split    (splitOn)
 
 import           Data.Char          (ord)
 

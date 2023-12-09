@@ -1,13 +1,14 @@
 module Day1
-  ( part1, part2 ) where
+  ( part1
+  , part2
+  ) where
 
-import           Data.List.Split    (splitOn)
-
-import           Data.List          (sortBy)
+import           Data.List.Split (splitOn)
+import           Data.List       (sortBy)
 
 calories :: String -> [Int]
 calories =
-    map (sum . map read . filter (not . null) . splitOn "\n") . splitOn "\n\n"
+  map (sum . map read . filter (not . null) . splitOn "\n") . splitOn "\n\n"
 
 part1 :: Bool -> String -> String
 part1 _ = show . maximum . calories
