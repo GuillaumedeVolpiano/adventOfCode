@@ -45,12 +45,16 @@ pipes =
 findStart :: Diagram -> Pos
 findStart = fst . head . L.filter (\(a, b) -> b == 'S') . assocs
 
+-- Which positions are accessible from a given position, based on the shape of
+-- the loop at that position.
 neighbours :: Diagram -> Pos -> [Pos]
 neighbours diagram pos =
   L.filter (inRange $ bounds diagram) .
   map (pos +) . fromJust . lookup (diagram A.! pos) $
   pipes
 
+-- Follow the loop. From each point, you can access exactly two points, so go to
+-- the one you haven't seen.
 explore :: Diagram -> Set Pos -> Pos -> Set Pos
 explore diagram seen pos
   | L.null next = insert pos seen
@@ -58,10 +62,15 @@ explore diagram seen pos
   where
     next = L.filter (`notMember` seen) . neighbours diagram $ pos
 
+-- We don't know the shape of the Start pipe, so we can't deduce the next steps
+-- directly. We look at the four possible destinations and check which ones are
+-- connected to Start.
 startNeighbours :: Diagram -> Pos -> [Pos]
 startNeighbours diagram pos =
   L.filter (elem pos . neighbours diagram) $ neighbours diagram pos
 
+-- Basic reachability algorithm. Start from a reachable place and consider the
+-- neighbours that have not been seen yet. They are reachable if they are in bound and not part of the pipe loop.
 fill :: Diagram -> Seq Pos -> Set Pos -> Set Pos -> Set Pos
 fill diagram toSee loop seen
   | Sq.null toSee = seen
@@ -76,6 +85,7 @@ fill diagram toSee loop seen
     newToSee = rest >< Sq.fromList toConsider
     newSeen = union seen $ St.fromList toConsider
 
+-- Expand space so that we can squeeze between the pipes.
 expandDiagram :: Diagram -> Diagram
 expandDiagram diagram =
   array
@@ -122,6 +132,8 @@ part2 test input = show $ totalSize - sizeLoop - sizeFilled
     start = findStart expanded
     edgesSeq = Sq.fromList edges
     edgesSet = St.fromList edges
+    -- the edges are reachable if they are not part of the loop, so they make a
+    -- good starting point.
     edges =
       L.filter
         (`notMember` loop)
