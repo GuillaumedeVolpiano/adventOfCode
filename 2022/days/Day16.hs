@@ -21,7 +21,7 @@ import           Debug.Trace
 
 data State =
   State
-    { theGraph         :: (Graph, NodeFromVertex String, VertexFromKey String)
+    { theGraph         :: (Graph, NodeFromVertex Int String, VertexFromKey String)
     , shortestPaths    :: Map Vertex [(Vertex, Int)]
     , curPos           :: String
     , opened           :: Set Vertex
