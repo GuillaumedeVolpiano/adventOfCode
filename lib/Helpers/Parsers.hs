@@ -1,6 +1,7 @@
 module Helpers.Parsers
   ( alnum
   , alphaNum
+  , arrayFromString
   , characters
   , complexParser
   , doubles
@@ -10,6 +11,8 @@ module Helpers.Parsers
   ) where
 
 import           Text.Regex.TDFA (getAllTextMatches, (=~))
+import Linear.V2(V2(..))
+import Data.Array.Unboxed (UArray, array)
 
 numbers = "-?[[:digit:]]+"
 
@@ -37,6 +40,13 @@ doubles = map (map read . regexList numbers) . lines
 
 alphaNum :: String -> [[String]]
 alphaNum = map (regexList alnum) . lines
+
+arrayFromString :: String -> UArray (V2 Int) Char
+arrayFromString s = array (V2 0 0, V2 width height) [(V2 x y, l !! y !! x) | x <- [0..width], y <- [0..height]]
+    where
+            l = lines s
+            width = length (head l) - 1
+            height = length l - 1
 
 characters :: String -> [[String]]
 characters = map (regexList alpha) . lines

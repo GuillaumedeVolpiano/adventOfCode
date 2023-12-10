@@ -3,6 +3,7 @@ module Helpers.Search
   , VertexFromKey
   , astar
   , astarVal
+  , bfs
   , bfsDist
   , dfs
   , dfsBest
@@ -23,13 +24,13 @@ import           Data.Sequence as Sq (Seq ((:<|), (:|>)), null, singleton)
 import           Data.Set      as St (Set, empty, insert, member, notMember,
                                       singleton)
 
-type NodeFromVertex a = Vertex -> (Int, a, [a])
+type NodeFromVertex node key = Vertex -> (node, key, [key])
 
 type VertexFromKey a = a -> Maybe Vertex
 
 -- Find all shortest paths in a graph
 floydWarshall ::
-     Ord a => (Graph, NodeFromVertex a, VertexFromKey a) -> Map Edge Int
+     Ord node => (Graph, NodeFromVertex node key, VertexFromKey key) -> Map Edge Int
 floydWarshall (graph, nodeFromVertex, _) = shortPaths valVertices distEdges
   where
     valVertices = vertices graph
@@ -50,20 +51,19 @@ floydWarshall (graph, nodeFromVertex, _) = shortPaths valVertices distEdges
     testMemberships x y z dists = M.member (y, x) dists && M.member (x, z) dists
 
 -- Breadth first search
-
-
 bfsDist :: Ord a => a -> (a -> [a]) -> (a -> Bool) -> Int
 -- we need to reduce the distance by one because the path includes both the
 -- starting point and the goal
 bfsDist start neighbours =
-  (+) (-1) . length . bfsMech (Sq.singleton start) (St.singleton start) M.empty neighbours
+  (+) (-1) .
+  length . bfs (Sq.singleton start) (St.singleton start) M.empty neighbours
 
-bfsMech ::
+bfs ::
      Ord a => Seq a -> Set a -> Map a a -> (a -> [a]) -> (a -> Bool) -> [a]
-bfsMech toSee seen paths neighbours isGoal
+bfs toSee seen paths neighbours isGoal
   | Sq.null toSee = error "goal not found"
   | isGoal curPos = reconstructPath curPos paths
-  | otherwise = bfsMech toSeeNext newSeen newPaths neighbours isGoal
+  | otherwise = bfs toSeeNext newSeen newPaths neighbours isGoal
   where
     (curPos :<| rest) = toSee
     toConsider = filter (`St.notMember` seen) . neighbours $ curPos
