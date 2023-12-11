@@ -2,46 +2,49 @@
 
 module Main where
 
-import           Data.Map                        (Map, fromList, (!))
-import           Data.Time.Calendar              (toGregorian)
-import           Data.Time.Clock                 (getCurrentTime, utctDay)
-import           Day1
-
-import           Day10
--- import           Day11
--- import           Day12
--- import           Day13
--- import           Day14
--- import           Day15
--- import           Day16
--- import           Day17
--- import           Day18
--- import           Day19
-import           Day2
-
--- import           Day20
--- import           Day21
--- import           Day22
--- import           Day23
--- import           Day24
--- import           Day25
-import           Day3
-import           Day4
-import           Day5
-import           Day6
-import           Day7
-
-import           Day8
-import           Day9
-import           Helpers.General                         (customPreciseTimeIt,
-                                                  retrieveInput)
-import           System.Console.CmdArgs.Implicit (Data, Typeable, cmdArgs, def,
-                                                  help, opt, (&=))
+import Data.Map (Map, (!), fromList)
+import Data.Time.Calendar (toGregorian)
+import Data.Time.Clock (getCurrentTime, utctDay)
+import Day1
+import Day10
+import Day11
+import Day12
+import Day13
+import Day14
+import Day15
+import Day16
+import Day17
+import Day18
+import Day19
+import Day2
+import Day20
+import Day21
+import Day22
+import Day23
+import Day24
+import Day25
+import Day3
+import Day4
+import Day5
+import Day6
+import Day7
+import Day8
+import Day9
+import Helpers.General (customPreciseTimeIt, retrieveInput)
+import System.Console.CmdArgs.Implicit
+  ( Data
+  , Typeable
+  , (&=)
+  , cmdArgs
+  , def
+  , help
+  , opt
+  )
 
 data Arguments =
   Arguments
-    { day   :: Int
-    , test  :: Bool
+    { day :: Int
+    , test :: Bool
     , proxy :: Bool
     }
   deriving (Show, Data, Typeable)
@@ -57,24 +60,24 @@ solver =
     , (7, (Day7.part1, Day7.part2))
     , (8, (Day8.part1, Day8.part2))
     , (9, (Day9.part1, Day9.part2))
-   , (10, (Day10.part1, Day10.part2))
+    , (10, (Day10.part1, Day10.part2))
+    , (11, (Day11.part1, Day11.part2))
+    , (12, (Day12.part1, Day12.part2))
+    , (13, (Day13.part1, Day13.part2))
+    , (14, (Day14.part1, Day14.part2))
+    , (15, (Day15.part1, Day15.part2))
+    , (16, (Day16.part1, Day16.part2))
+    , (17, (Day17.part1, Day17.part2))
+    , (18, (Day18.part1, Day18.part2))
+    , (19, (Day19.part1, Day19.part2))
+    , (20, (Day20.part1, Day20.part2))
+    , (21, (Day21.part1, Day21.part2))
+    , (22, (Day22.part1, Day22.part2))
+    , (23, (Day23.part1, Day23.part2))
+    , (24, (Day24.part1, Day24.part2))
+    , (25, (Day25.part1, Day25.part2))
     ]
 
---   , (11, (Day11.part1, Day11.part2))
---   , (12, (Day12.part1, Day12.part2))
---   , (13, (Day13.part1, Day13.part2))
---   , (14, (Day14.part1, Day14.part2))
---   , (15, (Day15.part1, Day15.part2))
---   , (16, (Day16.part1, Day16.part2))
---   , (17, (Day17.part1, Day17.part2))
---   , (18, (Day18.part1, Day18.part2))
---   , (19, (Day19.part1, Day19.part2))
---   , (20, (Day20.part1, Day20.part2))
---   , (21, (Day21.part1, Day21.part2))
---   , (22, (Day22.part1, Day22.part2))
---   , (23, (Day23.part1, Day23.part2))
---   , (24, (Day24.part1, Day24.part2))
---   , (25, (Day25.part1, Day25.part2))
 main :: IO ()
 main = do
   time <- getCurrentTime
