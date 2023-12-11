@@ -30,8 +30,8 @@ expandImage (s:xs)
   | all (== '.') s = s : s : expandImage xs
   | otherwise = s : expandImage xs
 
-shortestPath :: Image -> Int -> [Int] -> [Int] -> (Pos, Pos) -> Int
-shortestPath diagram factor expX expY (V2 x1 y1, V2 x2 y2) =
+shortestPath :: Int -> [Int] -> [Int] -> (Pos, Pos) -> Int
+shortestPath factor expX expY (V2 x1 y1, V2 x2 y2) =
   abs (x1 - x2) + abs (y1 - y2) + (factor - 1) * expansion
   where
     expansion = countExpandableX + countExpandableY
@@ -53,7 +53,7 @@ expandablesY image =
     (_, V2 mx my) = bounds image
 
 part1 :: Bool -> String -> String
-part1 _ input = show . sum . map (shortestPath image 2 expX expY) $ pairs
+part1 _ input = show . sum . map (shortestPath 2 expX expY) $ pairs
   where
     image = arrayFromString input
     galaxies = filter (\p -> (image ! p) == '#') . indices $ image
@@ -64,8 +64,7 @@ part1 _ input = show . sum . map (shortestPath image 2 expX expY) $ pairs
     expY = expandablesY image
 
 part2 :: Bool -> String -> String
-part2 test input =
-  show . sum . map (shortestPath image factor expX expY) $ pairs
+part2 test input = show . sum . map (shortestPath factor expX expY) $ pairs
   where
     image = arrayFromString input
     galaxies = filter (\p -> (image ! p) == '#') . indices $ image
