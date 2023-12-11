@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Helpers.Parsers
   ( alnum
   , alphaNum
@@ -6,13 +8,15 @@ module Helpers.Parsers
   , complexParser
   , doubles
   , integers
+  , make2DArray
   , numbers
   , splitOnSpace
   ) where
 
-import           Text.Regex.TDFA (getAllTextMatches, (=~))
-import Linear.V2(V2(..))
-import Data.Array.Unboxed (UArray, array)
+import           Data.Array.IArray  (IArray)
+import           Data.Array.Unboxed (UArray, array)
+import           Linear.V2          (V2 (..))
+import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
 numbers = "-?[[:digit:]]+"
 
@@ -41,12 +45,17 @@ doubles = map (map read . regexList numbers) . lines
 alphaNum :: String -> [[String]]
 alphaNum = map (regexList alnum) . lines
 
+make2DArray :: IArray UArray a => [[a]] -> UArray (V2 Int) a
+make2DArray l =
+  array
+    (V2 0 0, V2 width height)
+    [(V2 x y, l !! x !! y) | x <- [0 .. width], y <- [0 .. height]]
+  where
+    width = length (head l) - 1
+    height = length l - 1
+
 arrayFromString :: String -> UArray (V2 Int) Char
-arrayFromString s = array (V2 0 0, V2 width height) [(V2 x y, l !! y !! x) | x <- [0..width], y <- [0..height]]
-    where
-            l = lines s
-            width = length (head l) - 1
-            height = length l - 1
+arrayFromString = make2DArray . lines
 
 characters :: String -> [[String]]
 characters = map (regexList alpha) . lines
