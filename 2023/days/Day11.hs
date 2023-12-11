@@ -36,9 +36,9 @@ shortestPath diagram factor expX expY (V2 x1 y1, V2 x2 y2) =
   where
     expansion = countExpandableX + countExpandableY
     countExpandableX =
-      length . takeWhile (< max x1 x2) . takeWhile (> min x1 x2) $ expX
+      length . takeWhile (< max x1 x2) . dropWhile (< min x1 x2) $ expX
     countExpandableY =
-      length . takeWhile (< max y1 y2) . takeWhile (> min y1 y2) $ expX
+      length . takeWhile (< max y1 y2) . dropWhile (< min y1 y2) $ expX
 
 expandablesX :: Image -> [Int]
 expandablesX image =
