@@ -6,10 +6,12 @@ module Helpers.Parsers
   , arrayFromString
   , characters
   , complexParser
+  , custom
   , doubles
   , integers
   , make2DArray
   , numbers
+  , nums
   , splitOnSpace
   ) where
 
@@ -18,17 +20,32 @@ import           Data.Array.Unboxed (UArray, array)
 import           Linear.V2          (V2 (..))
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
-numbers = "-?[[:digit:]]+"
-
 alnum = "[[:alnum:]]+"
 
 alpha = "[[:alpha:]]+"
 
+nums = "-?[[:digit:]]+"
+
 regexList :: String -> String -> [String]
 regexList pat line = getAllTextMatches (line =~ pat)
 
+alphaNum :: String -> [[String]]
+alphaNum = custom alnum
+
+characters :: String -> [[String]]
+characters = custom alpha
+
+custom :: String -> String -> [[String]]
+custom pat = map (regexList pat) . lines
+
+doubles :: String -> [[Double]]
+doubles = map (map read) . custom nums
+
 integers :: String -> [[Int]]
-integers = map (map read . regexList numbers) . lines
+integers = map (map read) . custom nums
+
+numbers :: (Num a, Read a) => String -> [[a]]
+numbers = map (map read) . custom nums
 
 -- | The 'complex parser' function parses a string with complex patterns. It
 -- takes as arguments a list of splitter patterns, a list of parsing patterns
@@ -38,12 +55,6 @@ integers = map (map read . regexList numbers) . lines
 complexParser :: [String] -> [String] -> String -> [[[String]]]
 complexParser splitters pats =
   map (zipWith regexList pats . splitOnSplitters splitters) . lines
-
-doubles :: String -> [[Double]]
-doubles = map (map read . regexList numbers) . lines
-
-alphaNum :: String -> [[String]]
-alphaNum = map (regexList alnum) . lines
 
 make2DArray :: IArray UArray a => [[a]] -> UArray (V2 Int) a
 make2DArray l =
@@ -56,9 +67,6 @@ make2DArray l =
 
 arrayFromString :: String -> UArray (V2 Int) Char
 arrayFromString = make2DArray . lines
-
-characters :: String -> [[String]]
-characters = map (regexList alpha) . lines
 
 splitOnSpace :: String -> [[String]]
 splitOnSpace = map (regexList "[^[:space:]]+") . lines
