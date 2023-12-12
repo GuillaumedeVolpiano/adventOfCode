@@ -7,7 +7,7 @@ import           Data.Maybe    (fromJust)
 import           Data.Sequence as Sq (Seq ((:<|), (:|>)), adjust, replicate,
                                       splitAt, (!?), (><))
 import           Data.Set      as St (Set, fromList, intersection, size)
-import           Helpers.Parsers       (complexParser, numbers)
+import           Helpers.Parsers       (complexParser, nums)
 
 data Card =
   Card Index Winning Have
@@ -27,7 +27,7 @@ parseLines =
          (read index)
          (fromList . map read $ winning)
          (fromList . map read $ have)) .
-  complexParser [":", "\\|"] [numbers, numbers, numbers]
+  complexParser [":", "\\|"] [nums, nums, nums]
 
 scoreCard :: Card -> Int
 scoreCard (Card _ winning have)
