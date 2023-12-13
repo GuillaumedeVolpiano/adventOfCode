@@ -35,8 +35,10 @@ extractPatternsMech :: (String, [Int]) -> Maybe [([Int], [Int])]
 extractPatternsMech (s, c)
   | null c && '#' `elem` s = Nothing
   | null s || null c = Just [([], c)]
+  | length s < b && '#' `elem` s = Nothing
   | length s < b = Just [([], c)]
   | a == '#' && length s == b = Just [([b], bs)]
+  | length s == b && '#' `elem` s = Just [([b], bs)]
   | length s == b = Just [([b], bs), ([], c)]
   | a == '#' && head postPat == '#' = Nothing
   | a == '#' = insertRes $ extractPatternsMech (tail postPat, bs)
@@ -56,7 +58,7 @@ extractPatternsMech (s, c)
     (curPat, postPat) = splitAt b s
 
 part1 :: Bool -> String -> String
-part1 _ input = show . map extractPatterns $ pairs
+part1 _ input = show . sum . map extractPatterns $ pairs
   where
     springs = custom "[?#]+" input
     records = integers input
