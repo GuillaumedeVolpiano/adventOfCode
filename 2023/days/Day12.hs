@@ -65,4 +65,15 @@ part1 _ input = show . sum . map extractPatterns $ pairs
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ input = show . sum . map extractPatterns $ pairs
+  where
+    springs = map concat . custom "[?#.]+" $ input
+    records = integers input
+    unfoldedSprings =
+      concatMap
+        (\t ->
+           custom "[?#]+" . (t ++) . take (4 * (length t + 1)) . cycle $
+           ('?' : t))
+        springs
+    unfoldedRecords = map (\t -> take (5 * length t) . cycle $ t) records
+    pairs = zip unfoldedSprings unfoldedRecords
