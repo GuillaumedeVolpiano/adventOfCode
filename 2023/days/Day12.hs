@@ -153,8 +153,7 @@ testLine c@(l, record@(b:bs)) seen
 
 part1 :: Bool -> String -> String
 part1 _ input =
-  show .
-  sum . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
+  show . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
   pairs
   where
     springs = map (fromList . concat) . custom "[?.#]+" $ input
