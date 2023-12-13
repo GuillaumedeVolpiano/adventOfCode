@@ -4,7 +4,7 @@ module Day12
   ) where
 
 import           Data.Bifunctor  (first, second)
-import           Data.List       (groupBy, sortBy)
+import           Data.List       (group, sort)
 import           Data.Maybe      (Maybe (Just, Nothing), isNothing, mapMaybe)
 import           Data.Set        (Set, fromList, size)
 import           Helpers.Parsers (custom, integers)
@@ -22,34 +22,30 @@ extractPatterns (ss, c)
     (s:xs) = ss
     rawResult = extractPatternsMech (s, c)
     (Just result) = rawResult
+    minGroups = length . filter ('#' `elem`) $ xs
+    totalHash = length . filter (== '#') . concat $ xs
     grouped =
-      map (second length) .
-      foldl grouping [] . sortBy (\(_, a) (_, b) -> compare a b) $
+      filter (\(a, _) -> (sum a >= totalHash) && length a >= minGroups) .
+      map (\a -> (head a, length a)) . group . sort $
       result
-    grouping [] (a, b) = [(b, [a])]
-    grouping l@((a, b):ls) (c, d)
-      | a == d = (a, c : b) : ls
-      | otherwise = (d, [c]) : l
 
-extractPatternsMech :: (String, [Int]) -> Maybe [([Int], [Int])]
+extractPatternsMech :: (String, [Int]) -> Maybe [[Int]]
 extractPatternsMech (s, c)
   | null c && '#' `elem` s = Nothing
-  | null s || null c = Just [([], c)]
+  | null s || null c = Just [c]
   | length s < b && '#' `elem` s = Nothing
-  | length s < b = Just [([], c)]
-  | a == '#' && length s == b = Just [([b], bs)]
-  | length s == b && '#' `elem` s = Just [([b], bs)]
-  | length s == b = Just [([b], bs), ([], c)]
+  | length s < b = Just [c]
+  | a == '#' && length s == b = Just [bs]
+  | length s == b && '#' `elem` s = Just [bs]
+  | length s == b = Just [bs, c]
   | a == '#' && head postPat == '#' = Nothing
-  | a == '#' = insertRes $ extractPatternsMech (tail postPat, bs)
+  | a == '#' = extractPatternsMech (tail postPat, bs)
   | head postPat == '#' = extractPatternsMech (as, c)
   | otherwise =
     combine
-      (insertRes $ extractPatternsMech (tail postPat, bs))
+      (extractPatternsMech (tail postPat, bs))
       (extractPatternsMech (as, c))
   where
-    insertRes Nothing  = Nothing
-    insertRes (Just t) = Just (map (first (b :)) t)
     combine Nothing t         = t
     combine t Nothing         = t
     combine (Just x) (Just y) = Just (x ++ y)
