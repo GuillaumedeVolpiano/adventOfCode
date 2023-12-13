@@ -60,7 +60,7 @@ make2DArray :: IArray UArray a => [[a]] -> UArray (V2 Int) a
 make2DArray l =
   array
     (V2 0 0, V2 width height)
-    [(V2 x y, l !! x !! y) | x <- [0 .. width], y <- [0 .. height]]
+    [(V2 x y, l !! y !! x) | x <- [0 .. width], y <- [0 .. height]]
   where
     width = length (head l) - 1
     height = length l - 1
