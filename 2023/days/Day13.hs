@@ -6,11 +6,9 @@ module Day13
 import           Helpers.Parsers    (make2DArray)
 
 import           Data.Array.Unboxed (UArray, bounds, (!))
-import           Data.List.Split    (chunksOf, splitWhen)
+import           Data.List.Split    (splitWhen)
 import           Data.Maybe         (Maybe (Just, Nothing), fromJust, isJust)
 import           Linear.V2          (V2 (..))
-
-import           Debug.Trace
 
 type Pos = V2 Int
 
@@ -25,7 +23,6 @@ findAxis :: Pat -> (Int, Direction)
 findAxis pat
   | isJust va = (fromJust va, V)
   | isJust ha = (fromJust ha, H)
-  | otherwise = error ("Could not find a symmetry in\n" ++ printable pat)
   where
     va = findVerticalAxis 0 pat
     ha = findHorizontalAxis 0 pat
@@ -68,12 +65,57 @@ findHorizontalAxis axis pat
         [(axis + 1) .. (axis + term)]
     symmetric = and . zipWith (==) backward $ forward
 
-printable :: Pat -> String
-printable pat =
-  unlines . chunksOf (width + 1) $
-  [pat ! V2 x y | y <- [0 .. height], x <- [0 .. width]]
+findSmudgedAxis :: Pat -> (Int, Direction)
+findSmudgedAxis pat
+  | isJust va = (fromJust va, V)
+  | isJust ha = (fromJust ha, H)
+  where
+    va = findSmudgedVerticalAxis 0 pat
+    ha = findSmudgedHorizontalAxis 0 pat
+
+findSmudgedVerticalAxis :: Int -> Pat -> Maybe Int
+findSmudgedVerticalAxis axis pat
+  | axis >= width = Nothing
+  | quasiSymmetric = Just (axis + 1)
+  | otherwise = findSmudgedVerticalAxis (axis + 1) pat
   where
     (_, V2 width height) = bounds pat
+    term = min (axis + 1) (width - axis)
+    backward =
+      map
+        (\x -> map (\y -> pat ! V2 x y) [0 .. height])
+        [axis,(axis - 1) .. (axis - term)]
+    forward =
+      map
+        (\x -> map (\y -> pat ! V2 x y) [0 .. height])
+        [(axis + 1) .. (axis + term)]
+    diffPairs = filter (uncurry (/=)) . zip backward $ forward
+    justTheOne = length diffPairs == 1
+    (bef, aft) = head diffPairs
+    smudged = (length . filter (uncurry (/=)) . zip bef $ aft) == 1
+    quasiSymmetric = justTheOne && smudged
+
+findSmudgedHorizontalAxis :: Int -> Pat -> Maybe Int
+findSmudgedHorizontalAxis axis pat
+  | axis >= height = Nothing
+  | quasiSymmetric = Just (axis + 1)
+  | otherwise = findSmudgedHorizontalAxis (axis + 1) pat
+  where
+    (_, V2 width height) = bounds pat
+    term = min (axis + 1) (height - axis)
+    backward =
+      map
+        (\y -> map (\x -> pat ! V2 x y) [0 .. width])
+        [axis,(axis - 1) .. (axis - term)]
+    forward =
+      map
+        (\y -> map (\x -> pat ! V2 x y) [0 .. width])
+        [(axis + 1) .. (axis + term)]
+    diffPairs = filter (uncurry (/=)) . zip backward $ forward
+    justTheOne = length diffPairs == 1
+    (bef, aft) = head diffPairs
+    smudged = (length . filter (uncurry (/=)) . zip bef $ aft) == 1
+    quasiSymmetric = justTheOne && smudged
 
 score :: (Int, Direction) -> Int
 score (i, V) = i
@@ -87,4 +129,8 @@ part1 _ =
   splitWhen null . map (filter (`elem` "#.")) . lines
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  show .
+  sum .
+  map (score . findSmudgedAxis . make2DArray) .
+  splitWhen null . map (filter (`elem` "#.")) . lines
