@@ -4,20 +4,24 @@ module Day12
   ) where
 
 import           Data.Bifunctor  (first, second)
-import           Data.List       (group, sort)
+import           Data.List       (group, intercalate, isInfixOf, isPrefixOf,
+                                  sort)
+import           Data.List.Split (splitOn)
+import           Data.Map        (Map, empty, insert, member, (!))
 import           Data.Maybe      (Maybe (Just, Nothing), isNothing, mapMaybe)
 import           Data.Set        (Set, fromList, size)
 import           Helpers.Parsers (custom, integers)
 
 import           Debug.Trace
 
-extractPatterns :: ([String], [Int]) -> Int
-extractPatterns (ss, c)
+extractPatterns :: Map String [([Int], Int)] -> ([String], [Int]) -> Int
+extractPatterns dic (ss, c)
   | null c && any ('#' `elem`) ss = 0
   | null ss && not (null c) = 0
   | null ss || null c = 1
+  | s `member` dic = fromDic
   | isNothing rawResult = 0
-  | otherwise = sum . map (\(a, b) -> b * extractPatterns (xs, a)) $ grouped
+  | otherwise = move grouped
   where
     (s:xs) = ss
     rawResult = extractPatternsMech (s, c)
@@ -28,6 +32,17 @@ extractPatterns (ss, c)
       filter (\(a, _) -> (sum a >= totalHash) && length a >= minGroups) .
       map (\a -> (head a, length a)) . group . sort $
       result
+    newVals = map (\(a, b) -> (take (length c - length a) c, b)) grouped
+    move = sum . map (\(a, b) -> b * extractPatterns newDic (xs, a))
+    seen = filter (\(a, _) -> a `isPrefixOf` c) . (!) dic $ s
+    fromDic
+      | null seen && isNothing rawResult = 0
+      | null seen = move grouped
+      | otherwise = move $ map (\(a, b) -> (drop (length a) c, b)) seen
+    newDic
+      | not (member s dic) = insert s newVals dic
+      | null seen = insert s (newVals ++ dic ! s) dic
+      | otherwise = dic
 
 extractPatternsMech :: (String, [Int]) -> Maybe [[Int]]
 extractPatternsMech (s, c)
@@ -53,15 +68,38 @@ extractPatternsMech (s, c)
     (b:bs) = c
     (curPat, postPat) = splitAt b s
 
+prunePattern :: String -> [Int] -> String
+prunePattern s l
+  | replicate m '#' `isInfixOf` s = newS
+  | otherwise = s
+  where
+    m = maximum l
+    newS =
+      intercalate (('.' : replicate m '#') ++ ".") .
+      splitOn (('?' : replicate m '#') ++ "?") $
+      s
+
 part1 :: Bool -> String -> String
-part1 _ input = show . sum . map extractPatterns $ pairs
+part1 _ input =
+  trace (show . filter (\(a, _) -> length a == 1) $ pairs) show .
+  sum . map (extractPatterns empty) $
+  pairs
   where
     springs = custom "[?#]+" input
     records = integers input
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
-part2 _ input = show . sum . map extractPatterns $ pairs
+part2 _ input =
+  show .
+  sum .
+  map
+    (extractPatterns empty .
+     (\(a@(x:_), b) ->
+        if length a == 1
+          then (concat . custom "[?#]+" . prunePattern x $ b, b)
+          else (a, b))) $
+  pairs
   where
     springs = map concat . custom "[?#.]+" $ input
     records = integers input
