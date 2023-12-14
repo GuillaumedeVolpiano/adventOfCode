@@ -32,8 +32,8 @@ west = V2 (-1) 0
 
 numCycles = 1000000000
 
-moveOnce :: Platform -> (Rocks, Rocks) -> Pos -> (Rocks, Rocks)
-moveOnce platform (toMove, unMoved) dir = allMoved
+move :: Platform -> Rocks -> Pos -> Rocks
+move platform toMove dir = allMoved
   where
     b@(_, V2 mx my) = bounds platform
     order
@@ -44,27 +44,17 @@ moveOnce platform (toMove, unMoved) dir = allMoved
     coord (V2 x y)
       | dir `elem` [north, south] = y
       | otherwise = x
-    allMoved = displaceByRow order (empty, unMoved)
-    displaceByRow [] (a, b) = (a, b)
-    displaceByRow (x:xs) (moved, notMoving) =
-      displaceByRow
-        xs
-        ( moved `union` (haveMoved moved notMoving . atX $ x)
-        , notMoving `union` (cantMove moved notMoving . atX $ x))
+    allMoved = displaceByRow order empty
+    displaceByRow [] moved = moved
+    displaceByRow (x:xs) moved =
+      displaceByRow xs (moved `union` (St.map (fullMove moved) . atX $ x))
     atX x = St.filter (\p -> coord p == x) toMove
-    haveMoved moved staid = St.map (+ dir) . St.filter (canMove moved staid)
-    cantMove moved staid = St.filter (not . canMove moved staid)
-    canMove seen others p =
+    canMove seen p =
       inRange b (p + dir) &&
-      (p + dir) `notMember` seen &&
-      (p + dir) `notMember` others && platform ! (p + dir) /= '#'
-
-move :: Platform -> (Rocks, Rocks) -> Pos -> Rocks
-move platform rocks dir
-  | St.null moved = newUnmoved
-  | otherwise = move platform (moved, newUnmoved) dir
-  where
-    (moved, newUnmoved) = moveOnce platform rocks dir
+      (p + dir) `notMember` seen && platform ! (p + dir) /= '#'
+    fullMove moved p
+      | canMove moved p = fullMove moved (p + dir)
+      | otherwise = p
 
 score :: Platform -> Rocks -> Int
 score platform = St.foldl (\a (V2 _ y) -> a + offset - y) 0
@@ -74,7 +64,7 @@ score platform = St.foldl (\a (V2 _ y) -> a + offset - y) 0
 
 cycleRocks :: Platform -> Rocks -> Rocks
 cycleRocks platform rocks =
-  L.foldl (\a b -> move platform (a, empty) b) rocks [north, west, south, east]
+  L.foldl (move platform) rocks [north, west, south, east]
 
 findPattern :: Int -> Int -> Seq Int -> Int
 findPattern startPoint minSize rockCycle
@@ -90,7 +80,7 @@ findPattern startPoint minSize rockCycle
     testPattern = fromJust (pruned !? (2 * potPatternLength)) == testRocks
 
 part1 :: Bool -> String -> String
-part1 _ input = show . score platform . move platform (rocks, empty) $ north
+part1 _ input = show . score platform . move platform rocks $ north
   where
     platform = arrayFromString input
     (_, V2 mx my) = bounds platform
