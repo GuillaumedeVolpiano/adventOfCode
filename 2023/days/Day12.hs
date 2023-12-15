@@ -13,7 +13,8 @@ import           Data.List.Split                        (splitOn)
 import           Data.Map                               (Map, empty, insert,
                                                          member, (!))
 import           Data.Maybe                             (Maybe (Just, Nothing),
-                                                         isNothing, mapMaybe)
+                                                         catMaybes, isNothing,
+                                                         mapMaybe)
 import           Data.Set                               (Set, fromList, size)
 import           Helpers.Parsers                        (custom, integers)
 import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
@@ -21,54 +22,65 @@ import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
 import           Debug.Trace
 
 extractPatterns :: ([String], [Int]) -> Int
--- we have consumed all the elements and have some '#' left. This was a wrong
--- branch
--- we have consumed all instructions and all '#'
 extractPatterns (s, [])
+  -- we have consumed all the elements and have some '#' left. This was a wrong
+  -- branch
   | any ('#' `elem`) s = 0
+  -- we have consumed all instructions and all '#'
   | all ('#' `notElem`) s = 1
--- we have consumed all the strings and have some instructions left. This was a
--- wrong branch
 extractPatterns ([], l)
+  -- we have consumed all the strings and have some instructions left. This was a
+  -- wrong branch
   | not (null l) = 0
--- we can't fit all the patterns in the remaining strings. Wrong branch
-extractPatterns ([s], l)
-  | length s < totalPatternSize l = 0
--- we can't fit all the patterns in all the strings. This was a wrong branch
--- we can't fit the pattern in the current string. This was a wrong branch
--- the string has exactly the pattern length. We have a pattern
--- the first term after the supposed pattern is a '#'. This is not allowed, so
--- this was a wrong branch
--- otherwise, we consume the pattern and move along. There is only one way to
--- extract the pattern. (1 *) implied.
+extractPatterns (s, l)
+  -- we can't fit all the patterns in the remaining strings. Wrong branch
+  | totalPatternSize (map length s) < totalPatternSize l = 0
 extractPatterns (s@('#':as):ss, l@(b:ls))
+  -- we can't fit the pattern in the current string. This was a wrong branch
   | length s < b = 0
+  -- the string has exactly the pattern length. We have a pattern
   | length s == b = 1 * extractPatterns (ss, ls)
+  -- the first term after the supposed pattern is a '#'. This is not allowed, so
+  -- this was a wrong branch
   | s !! b == '#' = 0
-  | otherwise = extractPatterns (drop b s : ss, ls)
+  -- otherwise, we consume the pattern and move along. There is only one way to
+  -- extract the pattern. (1 *) implied.
+  | otherwise = extractPatterns (drop (b + 1) s : ss, ls)
 -- The first term of the current string is a '?'
--- We can't fit the next pattern in the string and there are no hashes.
--- Just consume it.
--- We can't fit the next pattern in the string and there are hashes. This was a
--- wrong branch.
--- We have no hashes and exactly the right space to fit our remaining pattern
--- We have no hashes and more space than needed. Defer to the noHash algorithm.
--- We don't have hashes, but have more than one string. We can try to fit
--- patterns as long as they fit in the string.
--- We have at least a hash, but the size of the string is exactly that of the
--- first pattern, so there is only one possibility, just consume the string and
--- the pattern
--- We have at least a hash, and the string is longer than the first pattern
 extractPatterns ([s], l@(b:ls))
+  -- We have no hashes and exactly the right space to fit our remaining pattern
   | '#' `notElem` s && length s == totalPatternSize l = 1
+  -- We have no hashes and more space than needed. Defer to the noHash algorithm.
   | '#' `notElem` s && length s > totalPatternSize l = noHash s l
 extractPatterns (f@(s:ss), l@(b:ls))
+  -- We can't fit the next pattern in the string and there are no hashes.
+  -- Just consume it.
   | length s < b && '#' `notElem` s = extractPatterns (ss, l)
+  -- We can't fit the next pattern in the string and there are hashes. This was a
+  -- wrong branch.
   | length s < b = 0
+  -- We don't have hashes, but have more than one string. We can try to fit
+  -- patterns as long as they fit in the string.
   | '#' `notElem` s = sum . zipWith (*) possPotPatterns $ possRemPatterns
+  -- We have at least a hash, but the size of the string is exactly that of the
+  -- first pattern, so there is only one possibility, just consume the string and
+  -- the pattern
   | length s == b = extractPatterns (ss, ls)
+  -- We have at least a hash, and the string is longer than the first pattern
   | otherwise =
-    sum .
+    trace
+      (show s ++
+       "\n" ++
+       show triads ++
+       "\n" ++
+       show toExplore ++
+       "\n" ++
+       show
+         (map
+            (\((a, b), (c, d)) ->
+               extractPatterns ([a], b) * extractPatterns (c : ss, d))
+            toExplore))
+      sum .
     map
       (\((a, b), (c, d)) ->
          extractPatterns ([a], b) * extractPatterns (c : ss, d)) $
@@ -84,9 +96,10 @@ extractPatterns (f@(s:ss), l@(b:ls))
     -- hash, and thus the ? before is a point. So we need to see what patterns
     -- we can fit in the gap. We need < as we need to keep space for a .
     consumablePatterns =
-      filter (\t -> totalPatternSize t < length beforeHashes) . tails $ l
-    unconsumedPatterns =
-      filter (\t -> totalPatternSize t >= length beforeHashes) . tails $ l
+      filter (/= l) .
+      filter (\t -> totalPatternSize t < length beforeHashes) . inits $
+      l
+    unconsumedPatterns = take (length consumablePatterns) . tails $ l
     -- Then, the next pattern would be the one for our hash(es)
     nextPatterns = map head unconsumedPatterns
     remainingPatterns = map tail unconsumedPatterns
@@ -118,16 +131,9 @@ triadToPairs ::
   -> ([Int], Int, [Int])
   -> [((String, [Int]), (String, [Int]))]
 triadToPairs s numHashes beforeString afterString (before, hashLength, after)
-  | null afterString =
-    [((crop needHash beforeString, before), (afterString, after))]
-  | otherwise =
-    [ ((crop k beforeString, before), (drop l afterString, after))
-    | k <- [1 .. needHash]
-    , l <- [1 .. needHash]
-    , k + l == needHash + 1
-    , k <= length beforeString
-    , l <= length afterString
-    ]
+  -- beforeString is too short, discard it. ("", [1]) will give a result of 0
+  -- when fed to extractPatterns.
+ = catMaybes $ eatBefore : eatAfter : baseCase
   where
     needHash = hashLength - numHashes + 1
     mappingTable
@@ -137,6 +143,35 @@ triadToPairs s numHashes beforeString afterString (before, hashLength, after)
         [needHash - length beforeString .. needHash]
       | needHash <= length beforeString = [1 .. length afterString]
       | otherwise = [needHash - length beforeString .. length afterString]
+    baseCase =
+      [ Just ((crop k beforeString, before), (drop l afterString, after))
+      | k <- [1 .. needHash]
+      , l <- [1 .. needHash]
+      , k + l == needHash + 1
+      , k < length beforeString
+      , l < length afterString
+      , afterString !! l /= '#'
+      ]
+    eatAfter
+      | needHash >= length afterString &&
+          needHash - length afterString < length beforeString =
+        Just
+          ( (crop (needHash - length afterString) beforeString, before)
+          , ("", after))
+      | otherwise = Nothing
+    eatBefore
+      | needHash >= length beforeString &&
+          needHash - length beforeString < length afterString &&
+          afterString !! (needHash - length beforeString) /= '#' =
+        Just
+          ( ("", before)
+          , (drop (needHash - length beforeString + 1) afterString, after))
+      | otherwise = Nothing
+    -- here, we don't need to make room for a '.' at all
+    eatAll
+      | needHash == length beforeString + length afterString + 1 =
+        Just (("", before), ("", after))
+      | otherwise = Nothing
 
 totalPatternSize :: [Int] -> Int
 -- The size of the total remaining pattern is calculated by adding a dot to each
@@ -157,8 +192,8 @@ noHash s l
   where
     objLength = length s
     diff = objLength - totalPatternSize l
-         -- We actually have one more slot, but the formula beeing
-         -- choose (n + k -1, k -1), we don't need to add it.
+    -- We actually have one more slot, but the formula beeing
+    -- choose (n + k -1, k -1), we don't need to add it.
     numSlots = length l
 
 crop :: Show a => Int -> [a] -> [a]
@@ -171,7 +206,7 @@ crop n l
   | otherwise = take (length l - n) l
 
 part1 :: Bool -> String -> String
-part1 _ input = show . map extractPatterns $ pairs
+part1 _ input = show . extractPatterns $ head pairs
   where
     springs = custom "[?#]+" input
     records = integers input
