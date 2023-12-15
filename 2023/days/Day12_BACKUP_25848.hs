@@ -183,13 +183,35 @@ crop n l
   | otherwise = take (length l - n) l
 
 part1 :: Bool -> String -> String
+<<<<<<< HEAD
+part1 _ input =
+  show . sum . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
+  pairs
+=======
 part1 _ input = show . sum . map extractPatterns $ pairs
+>>>>>>> day12
   where
     springs = custom "[?#]+" input
     records = integers input
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
+<<<<<<< HEAD
+part2 _ input = "Part 2"
+--   show .
+--   sum . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
+--   pairs
+--   where
+--     springs = map concat . custom "[?.#]+" $ input
+--     records = integers input
+--     unfoldedSprings =
+--       map
+--         (\t ->
+--            fromList . (t ++) . take (4 * (L.length t + 1)) . cycle $ ('?' : t))
+--         springs
+--     unfoldedRecords = map (\t -> take (5 * L.length t) . cycle $ t) records
+--     pairs = zip unfoldedSprings unfoldedRecords
+=======
 part2 _ input = show . sum . map extractPatterns $ pairs
   where
     springs = map concat . custom "[?#.]+" $ input
@@ -202,3 +224,4 @@ part2 _ input = show . sum . map extractPatterns $ pairs
         springs
     unfoldedRecords = map (\t -> take (5 * length t) . cycle $ t) records
     pairs = zip unfoldedSprings unfoldedRecords
+>>>>>>> day12
