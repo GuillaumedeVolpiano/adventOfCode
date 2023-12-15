@@ -4,9 +4,11 @@ module Day12
   ) where
 
 import           Data.Bifunctor                         (first, second)
-import           Data.List                              (group, intercalate,
+import           Data.List                              (group, inits,
+                                                         intercalate,
                                                          intersperse, isInfixOf,
-                                                         isPrefixOf, sort)
+                                                         isPrefixOf, sort,
+                                                         tails)
 import           Data.List.Split                        (splitOn)
 import           Data.Map                               (Map, empty, insert,
                                                          member, (!))
@@ -18,109 +20,165 @@ import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
 
 import           Debug.Trace
 
-extractPatterns :: Map String [([Int], Int)] -> ([String], [Int]) -> Int
-extractPatterns dic (ss, c)
-  | null c && any ('#' `elem`) ss = 0
-  | null ss && not (null c) = 0
-  | null ss || null c = 1
-  | s `member` dic = fromDic
-  | isNothing rawResult = 0
-  | otherwise = move grouped
-  where
-    (s:xs) = ss
-    rawResult = extractPatternsMech (s, c)
-    (Just result) = rawResult
-    minGroups = length . filter ('#' `elem`) $ xs
-    totalHash = length . filter (== '#') . concat $ xs
-    grouped =
-      filter (\(a, _) -> (sum a >= totalHash) && length a >= minGroups) .
-      map (\a -> (head a, length a)) . group . sort $
-      result
-    newVals = map (\(a, b) -> (take (length c - length a) c, b)) grouped
-    move = sum . map (\(a, b) -> b * extractPatterns newDic (xs, a))
-    seen = filter (\(a, _) -> a `isPrefixOf` c) . (!) dic $ s
-    fromDic
-      | null seen && isNothing rawResult = 0
-      | null seen = move grouped
-      | otherwise = move $ map (\(a, b) -> (drop (length a) c, b)) seen
-    newDic
-      | not (member s dic) = insert s newVals dic
-      | null seen = insert s (newVals ++ dic ! s) dic
-      | otherwise = dic
-
-extractPatternsMech :: (String, [Int]) -> Maybe [[Int]]
-extractPatternsMech (s, c)
-  | null c && '#' `elem` s = Nothing
-  | null s || null c = Just [c]
-  | length s < b && '#' `elem` s = Nothing
-  | length s < b = Just [c]
-  | a == '#' && length s == b = Just [bs]
-  | length s == b && '#' `elem` s = Just [bs]
-  | length s == b = Just [bs, c]
-  | a == '#' && head postPat == '#' = Nothing
-  | a == '#' = extractPatternsMech (tail postPat, bs)
-  | head postPat == '#' = extractPatternsMech (as, c)
+extractPatterns :: ([String], [Int]) -> Int
+-- we have consumed all the elements and have some '#' left. This was a wrong
+-- branch
+-- we have consumed all instructions and all '#'
+extractPatterns (s, [])
+  | any ('#' `elem`) s = 0
+  | all ('#' `notElem`) s = 1
+-- we have consumed all the strings and have some instructions left. This was a
+-- wrong branch
+extractPatterns ([], l)
+  | not (null l) = 0
+-- we can't fit all the patterns in the remaining strings. Wrong branch
+extractPatterns ([s], l)
+  | length s < totalPatternSize l = 0
+-- we can't fit all the patterns in all the strings. This was a wrong branch
+-- we can't fit the pattern in the current string. This was a wrong branch
+-- the string has exactly the pattern length. We have a pattern
+-- the first term after the supposed pattern is a '#'. This is not allowed, so
+-- this was a wrong branch
+-- otherwise, we consume the pattern and move along. There is only one way to
+-- extract the pattern. (1 *) implied.
+extractPatterns (s@('#':as):ss, l@(b:ls))
+  | length s < b = 0
+  | length s == b = 1 * extractPatterns (ss, ls)
+  | s !! b == '#' = 0
+  | otherwise = extractPatterns (drop b s : ss, ls)
+-- The first term of the current string is a '?'
+-- We can't fit the next pattern in the string and there are no hashes.
+-- Just consume it.
+-- We can't fit the next pattern in the string and there are hashes. This was a
+-- wrong branch.
+-- We have no hashes and exactly the right space to fit our remaining pattern
+-- We have no hashes and more space than needed. Defer to the noHash algorithm.
+-- We don't have hashes, but have more than one string. We can try to fit
+-- patterns as long as they fit in the string.
+-- We have at least a hash, but the size of the string is exactly that of the
+-- first pattern, so there is only one possibility, just consume the string and
+-- the pattern
+-- We have at least a hash, and the string is longer than the first pattern
+extractPatterns ([s], l@(b:ls))
+  | '#' `notElem` s && length s == totalPatternSize l = 1
+  | '#' `notElem` s && length s > totalPatternSize l = noHash s l
+extractPatterns (f@(s:ss), l@(b:ls))
+  | length s < b && '#' `notElem` s = extractPatterns (ss, l)
+  | length s < b = 0
+  | '#' `notElem` s = sum . zipWith (*) possPotPatterns $ possRemPatterns
+  | length s == b = extractPatterns (ss, ls)
   | otherwise =
-    combine
-      (extractPatternsMech (tail postPat, bs))
-      (extractPatternsMech (as, c))
+    sum .
+    map
+      (\((a, b), (c, d)) ->
+         extractPatterns ([a], b) * extractPatterns (c : ss, d)) $
+    toExplore
   where
-    combine Nothing t         = t
-    combine t Nothing         = t
-    combine (Just x) (Just y) = Just (x ++ y)
-    (a:as) = s
-    (b:bs) = c
-    (curPat, postPat) = splitAt b s
+    potPatterns = filter (\t -> totalPatternSize t <= length s) . inits $ l
+    remPatterns = take (length potPatterns) . tails $ l
+    possPotPatterns = map (noHash s) potPatterns
+    possRemPatterns = map (\a -> extractPatterns (ss, a)) remPatterns
+    (beforeHashes, fromHashes) = span (/= '#') s
+    (firstHashes, afterHashes) = span (== '#') fromHashes
+    -- The best scenario is one where the hash we see is actually the first
+    -- hash, and thus the ? before is a point. So we need to see what patterns
+    -- we can fit in the gap. We need < as we need to keep space for a .
+    consumablePatterns =
+      filter (\t -> totalPatternSize t < length beforeHashes) . tails $ l
+    unconsumedPatterns =
+      filter (\t -> totalPatternSize t >= length beforeHashes) . tails $ l
+    -- Then, the next pattern would be the one for our hash(es)
+    nextPatterns = map head unconsumedPatterns
+    remainingPatterns = map tail unconsumedPatterns
+    triads = zip3 consumablePatterns nextPatterns remainingPatterns
+    -- prune all the situations where the size of nextPattern is smaller than
+    -- our number of hashes
+    prunedTriads = filter (\(_, a, _) -> a >= length firstHashes) triads
+    toExplore =
+      concatMap
+        (triadToPairs s (length firstHashes) beforeHashes afterHashes)
+        prunedTriads
 
-prunePattern :: String -> [Int] -> String
-prunePattern s l
-  | replicate m '#' `isInfixOf` s = newS
-  | otherwise = s
+-- if we have x hashes and y in the pattern, then we need to consider all
+-- cases from x being at the beginning of the pattern to x being at the end
+-- of the pattern, so take [y - x  + 1, y - x .. 1] from beforeHashes (to
+-- leave space for the dot) and [1
+-- .. y - x + 1] from afterHashes, which we can refactor as map (y -x + 2)
+-- [1 .. y -x + 1] and [1 .. y - x + 1]. We must also be careful to limit
+-- ourselves to actually available slots before and after our hashes group.
+-- If the string after our hashes is empty, then all our hashes need to be
+-- consumed before.
+-- And, finally, exclude any pattern where the next character would be a
+-- hash or any situation where the initial ? can't absorb the pattern.
+triadToPairs ::
+     String
+  -> Int
+  -> String
+  -> String
+  -> ([Int], Int, [Int])
+  -> [((String, [Int]), (String, [Int]))]
+triadToPairs s numHashes beforeString afterString (before, hashLength, after)
+  | null afterString =
+    [((crop needHash beforeString, before), (afterString, after))]
+  | otherwise =
+    [ ((crop k beforeString, before), (drop l afterString, after))
+    | k <- [1 .. needHash]
+    , l <- [1 .. needHash]
+    , k + l == needHash + 1
+    , k <= length beforeString
+    , l <= length afterString
+    ]
   where
-    m = maximum l
-    newS =
-      intercalate (('.' : replicate m '#') ++ ".") .
-      splitOn (('?' : replicate m '#') ++ "?") $
-      s
+    needHash = hashLength - numHashes + 1
+    mappingTable
+      | needHash <= length beforeString && needHash <= length afterString =
+        [1 .. needHash]
+      | needHash <= length afterString =
+        [needHash - length beforeString .. needHash]
+      | needHash <= length beforeString = [1 .. length afterString]
+      | otherwise = [needHash - length beforeString .. length afterString]
 
-noDots :: ([String], [Int]) -> Integer
-noDots (s, l) =
-  trace
-    (show s ++
-     " " ++
-     show l ++
-     "\n" ++
-     show numSpots ++
-     " " ++
-     show curLength ++
-     " " ++ show objLength ++ " " ++ show diff ++ "\n" ++ show mandatory)
-    binomialLine
-    (fromIntegral $ diff + numSpots) !!
-  numSpots
+totalPatternSize :: [Int] -> Int
+-- The size of the total remaining pattern is calculated by adding a dot to each
+-- pattern but the last, and then summing the sizes, which is the same as
+-- summing the sizes and adding length - 1.
+totalPatternSize l = sum l + length l - 1
+
+-- We have exactly one way to fit no pattern in a string. Otherwise, we have
+-- choose (difference + number of slots - 1, number of slots - 1)
+noHash :: String -> [Int] -> Int
+noHash s [] = 1
+noHash s l
+  | diff < 0 =
+    error
+      ("the string can't accomodate the pattern\n" ++ show s ++ "\n" ++ show l)
+  | otherwise = binomialLine (fromIntegral diff + numSlots) !! numSlots
+    -- The length of our all '?' string
   where
-    mandatory =
-      (map (\t -> replicate t '#' ++ ".") . init $ l) ++
-      [replicate (last l) '#']
-    curLength = sum . map length $ mandatory
-    objLength = length . head $ s
-    diff = objLength - curLength
-    numSpots = length mandatory
+    objLength = length s
+    diff = objLength - totalPatternSize l
+         -- We actually have one more slot, but the formula beeing
+         -- choose (n + k -1, k -1), we don't need to add it.
+    numSlots = length l
+
+crop :: Show a => Int -> [a] -> [a]
+crop n l
+  | n <= 0 = l
+  | n > length l =
+    error
+      ("can't take " ++
+       show n ++ " out of list " ++ show l ++ " with length " ++ show (length l))
+  | otherwise = take (length l - n) l
 
 part1 :: Bool -> String -> String
-part1 _ input =
-  show (pairs !! 5) ++
-  " " ++
-  show (extractPatterns empty $ pairs !! 5) ++ " " ++ show (noDots $ pairs !! 5)
-        -- show . sum . map (extractPatterns empty) $ pairs
+part1 _ input = show . map extractPatterns $ pairs
   where
     springs = custom "[?#]+" input
     records = integers input
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
-part2 _ input =
-  show (noDots $ pairs !! 5) ++
-  " " ++ " " ++ show (length . concat . fst $ pairs !! 5)
+part2 _ input = "Part 2"
 --   show .
 --   sum .
 --   map
