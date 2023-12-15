@@ -3,21 +3,18 @@ module Day12
   , part2
   ) where
 
-import           Data.Bifunctor                       (first, second)
-import           Data.List                            as L (group, intercalate,
-                                                            intersperse,
-                                                            isInfixOf,
-                                                            isPrefixOf, sort,
-                                                            (!!))
-import           Data.List.Infinite                   as LI ((!!))
-import           Data.List.Split                      (splitOn)
-import           Data.Map                             (Map, empty, insert,
-                                                       member, (!))
-import           Data.Maybe                           (Maybe (Just, Nothing),
-                                                       isNothing, mapMaybe)
-import           Data.Set                             (Set, fromList, size)
-import           Helpers.Parsers                      (custom, integers)
-import           Math.NumberTheory.Recurrences.Linear (factorial)
+import           Data.Bifunctor                         (first, second)
+import           Data.List                              (group, intercalate,
+                                                         intersperse, isInfixOf,
+                                                         isPrefixOf, sort)
+import           Data.List.Split                        (splitOn)
+import           Data.Map                               (Map, empty, insert,
+                                                         member, (!))
+import           Data.Maybe                             (Maybe (Just, Nothing),
+                                                         isNothing, mapMaybe)
+import           Data.Set                               (Set, fromList, size)
+import           Helpers.Parsers                        (custom, integers)
+import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
 
 import           Debug.Trace
 
@@ -89,13 +86,17 @@ prunePattern s l
 noDots :: ([String], [Int]) -> Integer
 noDots (s, l) =
   trace
-    (show numSpots ++
+    (show s ++
+     " " ++
+     show l ++
+     "\n" ++
+     show numSpots ++
      " " ++
      show curLength ++
      " " ++ show objLength ++ " " ++ show diff ++ "\n" ++ show mandatory)
-    (div
-       (factorial LI.!! fromIntegral (max diff numSpots))
-       (factorial LI.!! fromIntegral (min diff numSpots)))
+    binomialLine
+    (fromIntegral $ diff + numSpots) !!
+  numSpots
   where
     mandatory =
       (map (\t -> replicate t '#' ++ ".") . init $ l) ++
@@ -103,12 +104,13 @@ noDots (s, l) =
     curLength = sum . map length $ mandatory
     objLength = length . head $ s
     diff = objLength - curLength
-    numSpots = length mandatory + 1
+    numSpots = length mandatory
 
 part1 :: Bool -> String -> String
 part1 _ input =
-  show (extractPatterns empty $ pairs L.!! 35) ++
-  " " ++ show (noDots $ pairs L.!! 35)
+  show (pairs !! 5) ++
+  " " ++
+  show (extractPatterns empty $ pairs !! 5) ++ " " ++ show (noDots $ pairs !! 5)
         -- show . sum . map (extractPatterns empty) $ pairs
   where
     springs = custom "[?#]+" input
@@ -117,8 +119,8 @@ part1 _ input =
 
 part2 :: Bool -> String -> String
 part2 _ input =
-  show (noDots $ pairs L.!! 35) ++
-  " " ++ " " ++ show (length . concat . fst $ pairs L.!! 35)
+  show (noDots $ pairs !! 5) ++
+  " " ++ " " ++ show (length . concat . fst $ pairs !! 5)
 --   show .
 --   sum .
 --   map
