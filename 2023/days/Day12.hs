@@ -3,14 +3,21 @@ module Day12
   , part2
   ) where
 
-import           Data.Bifunctor  (first, second)
-import           Data.List       (group, intercalate, isInfixOf, isPrefixOf,
-                                  sort)
-import           Data.List.Split (splitOn)
-import           Data.Map        (Map, empty, insert, member, (!))
-import           Data.Maybe      (Maybe (Just, Nothing), isNothing, mapMaybe)
-import           Data.Set        (Set, fromList, size)
-import           Helpers.Parsers (custom, integers)
+import           Data.Bifunctor                       (first, second)
+import           Data.List                            as L (group, intercalate,
+                                                            intersperse,
+                                                            isInfixOf,
+                                                            isPrefixOf, sort,
+                                                            (!!))
+import           Data.List.Infinite                   as LI ((!!))
+import           Data.List.Split                      (splitOn)
+import           Data.Map                             (Map, empty, insert,
+                                                       member, (!))
+import           Data.Maybe                           (Maybe (Just, Nothing),
+                                                       isNothing, mapMaybe)
+import           Data.Set                             (Set, fromList, size)
+import           Helpers.Parsers                      (custom, integers)
+import           Math.NumberTheory.Recurrences.Linear (factorial)
 
 import           Debug.Trace
 
@@ -79,11 +86,30 @@ prunePattern s l
       splitOn (('?' : replicate m '#') ++ "?") $
       s
 
+noDots :: ([String], [Int]) -> Integer
+noDots (s, l) =
+  trace
+    (show numSpots ++
+     " " ++
+     show curLength ++
+     " " ++ show objLength ++ " " ++ show diff ++ "\n" ++ show mandatory)
+    (div
+       (factorial LI.!! fromIntegral (max diff numSpots))
+       (factorial LI.!! fromIntegral (min diff numSpots)))
+  where
+    mandatory =
+      (map (\t -> replicate t '#' ++ ".") . init $ l) ++
+      [replicate (last l) '#']
+    curLength = sum . map length $ mandatory
+    objLength = length . head $ s
+    diff = objLength - curLength
+    numSpots = length mandatory + 1
+
 part1 :: Bool -> String -> String
 part1 _ input =
-  trace (show . filter (\(a, _) -> length a == 1) $ pairs) show .
-  sum . map (extractPatterns empty) $
-  pairs
+  show (extractPatterns empty $ pairs L.!! 35) ++
+  " " ++ show (noDots $ pairs L.!! 35)
+        -- show . sum . map (extractPatterns empty) $ pairs
   where
     springs = custom "[?#]+" input
     records = integers input
@@ -91,15 +117,17 @@ part1 _ input =
 
 part2 :: Bool -> String -> String
 part2 _ input =
-  show .
-  sum .
-  map
-    (extractPatterns empty .
-     (\(a@(x:_), b) ->
-        if length a == 1
-          then (concat . custom "[?#]+" . prunePattern x $ b, b)
-          else (a, b))) $
-  pairs
+  show (noDots $ pairs L.!! 35) ++
+  " " ++ " " ++ show (length . concat . fst $ pairs L.!! 35)
+--   show .
+--   sum .
+--   map
+--     (extractPatterns empty .
+--      (\(a@(x:_), b) ->
+--         if length a == 1
+--           then (concat . custom "[?#]+" . prunePattern x $ b, b)
+--           else (a, b))) $
+--   pairs
   where
     springs = map concat . custom "[?#.]+" $ input
     records = integers input
