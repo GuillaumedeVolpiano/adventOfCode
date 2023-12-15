@@ -19,8 +19,6 @@ import           Data.Set                               (Set, fromList, size)
 import           Helpers.Parsers                        (custom, integers)
 import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
 
-import           Debug.Trace
-
 extractPatterns :: ([String], [Int]) -> Int
 extractPatterns (s, [])
   -- we have consumed all the elements and have some '#' left. This was a wrong
@@ -68,19 +66,7 @@ extractPatterns (f@(s:ss), l@(b:ls))
   | length s == b = extractPatterns (ss, ls)
   -- We have at least a hash, and the string is longer than the first pattern
   | otherwise =
-    trace
-      (show s ++
-       "\n" ++
-       show triads ++
-       "\n" ++
-       show toExplore ++
-       "\n" ++
-       show
-         (map
-            (\((a, b), (c, d)) ->
-               extractPatterns ([a], b) * extractPatterns (c : ss, d))
-            toExplore))
-      sum .
+    sum .
     map
       (\((a, b), (c, d)) ->
          extractPatterns ([a], b) * extractPatterns (c : ss, d)) $
@@ -130,42 +116,33 @@ triadToPairs ::
   -> String
   -> ([Int], Int, [Int])
   -> [((String, [Int]), (String, [Int]))]
-triadToPairs s numHashes beforeString afterString (before, hashLength, after)
-  -- beforeString is too short, discard it. ("", [1]) will give a result of 0
-  -- when fed to extractPatterns.
- = catMaybes $ eatBefore : eatAfter : baseCase
+triadToPairs s numHashes beforeString afterString (before, hashLength, after) =
+  catMaybes $ eatAll : eatBefore : eatAfter : baseCase
   where
     needHash = hashLength - numHashes + 1
-    mappingTable
-      | needHash <= length beforeString && needHash <= length afterString =
-        [1 .. needHash]
-      | needHash <= length afterString =
-        [needHash - length beforeString .. needHash]
-      | needHash <= length beforeString = [1 .. length afterString]
-      | otherwise = [needHash - length beforeString .. length afterString]
     baseCase =
       [ Just ((crop k beforeString, before), (drop l afterString, after))
       | k <- [1 .. needHash]
       , l <- [1 .. needHash]
       , k + l == needHash + 1
-      , k < length beforeString
-      , l < length afterString
-      , afterString !! l /= '#'
+      , k <= length beforeString
+      , l <= length afterString
+      , afterString !! (l - 1) /= '#'
       ]
     eatAfter
-      | needHash >= length afterString &&
-          needHash - length afterString < length beforeString =
+      | needHash > length afterString &&
+          needHash - length afterString <= length beforeString =
         Just
           ( (crop (needHash - length afterString) beforeString, before)
           , ("", after))
       | otherwise = Nothing
     eatBefore
-      | needHash >= length beforeString &&
-          needHash - length beforeString < length afterString &&
-          afterString !! (needHash - length beforeString) /= '#' =
+      | needHash > length beforeString &&
+          needHash - length beforeString <= length afterString &&
+          afterString !! (needHash - length beforeString - 1) /= '#' =
         Just
           ( ("", before)
-          , (drop (needHash - length beforeString + 1) afterString, after))
+          , (drop (needHash - length beforeString) afterString, after))
       | otherwise = Nothing
     -- here, we don't need to make room for a '.' at all
     eatAll
@@ -206,23 +183,14 @@ crop n l
   | otherwise = take (length l - n) l
 
 part1 :: Bool -> String -> String
-part1 _ input = show . extractPatterns $ head pairs
+part1 _ input = show . sum . map extractPatterns $ pairs
   where
     springs = custom "[?#]+" input
     records = integers input
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
-part2 _ input = "Part 2"
---   show .
---   sum .
---   map
---     (extractPatterns empty .
---      (\(a@(x:_), b) ->
---         if length a == 1
---           then (concat . custom "[?#]+" . prunePattern x $ b, b)
---           else (a, b))) $
---   pairs
+part2 _ input = show . sum . map extractPatterns $ pairs
   where
     springs = map concat . custom "[?#.]+" $ input
     records = integers input
