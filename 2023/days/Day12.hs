@@ -3,19 +3,9 @@ module Day12
   , part2
   ) where
 
-import           Data.Bifunctor                         (first, second)
-import           Data.List                              (group, inits,
-                                                         intercalate,
-                                                         intersperse, isInfixOf,
-                                                         isPrefixOf, sort,
-                                                         tails)
-import           Data.List.Split                        (splitOn)
-import           Data.Map                               (Map, empty, insert,
-                                                         member, (!))
+import           Data.List                              (inits, tails)
 import           Data.Maybe                             (Maybe (Just, Nothing),
-                                                         catMaybes, isNothing,
-                                                         mapMaybe)
-import           Data.Set                               (Set, fromList, size)
+                                                         catMaybes)
 import           Helpers.Parsers                        (custom, integers)
 import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
 
