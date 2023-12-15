@@ -153,7 +153,7 @@ testLine c@(l, record@(b:bs)) seen
 
 part1 :: Bool -> String -> String
 part1 _ input =
-  show . sum . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
+  show . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
   pairs
   where
     springs = map (fromList . concat) . custom "[?.#]+" $ input
@@ -161,17 +161,17 @@ part1 _ input =
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
-part2 _ input =
-  show .
-  sum . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
-  pairs
-  where
-    springs = map concat . custom "[?.#]+" $ input
-    records = integers input
-    unfoldedSprings =
-      map
-        (\t ->
-           fromList . (t ++) . take (4 * (L.length t + 1)) . cycle $ ('?' : t))
-        springs
-    unfoldedRecords = map (\t -> take (5 * L.length t) . cycle $ t) records
-    pairs = zip unfoldedSprings unfoldedRecords
+part2 _ input = "Part 2"
+--   show .
+--   sum . map (L.length . catMaybes . toList . (\x -> testLine x M.empty ! x)) $
+--   pairs
+--   where
+--     springs = map concat . custom "[?.#]+" $ input
+--     records = integers input
+--     unfoldedSprings =
+--       map
+--         (\t ->
+--            fromList . (t ++) . take (4 * (L.length t + 1)) . cycle $ ('?' : t))
+--         springs
+--     unfoldedRecords = map (\t -> take (5 * L.length t) . cycle $ t) records
+--     pairs = zip unfoldedSprings unfoldedRecords
