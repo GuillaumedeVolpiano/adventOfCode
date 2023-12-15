@@ -71,8 +71,9 @@ executable aoc
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends: arithmoi, array, base ^>=4.16.4.0, cmdargs, containers, curl,
-                   data-clist, directory, hashable, infinite-list, linear, psqueues, 
+                   data-clist, directory, hashable, linear, parallel, psqueues, 
                    regex-pcre, regex-tdfa, split, text, time, timeit
+    ghc-options: -threaded
     default-language: Haskell2010
 
 

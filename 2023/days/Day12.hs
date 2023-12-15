@@ -3,6 +3,7 @@ module Day12
   , part2
   ) where
 
+import           Control.Parallel.Strategies            (parMap, rpar)
 import           Data.List                              (inits, tails)
 import           Data.Maybe                             (Maybe (Just, Nothing),
                                                          catMaybes)
@@ -180,7 +181,7 @@ part1 _ input = show . sum . map extractPatterns $ pairs
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
-part2 _ input = show . sum . map extractPatterns $ pairs
+part2 _ input = show . sum . parMap rpar extractPatterns $ pairs
   where
     springs = map concat . custom "[?#.]+" $ input
     records = integers input
