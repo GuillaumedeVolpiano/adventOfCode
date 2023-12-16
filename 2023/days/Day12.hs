@@ -10,6 +10,8 @@ import           Data.Maybe                             (Maybe (Just, Nothing),
 import           Helpers.Parsers                        (custom, integers)
 import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
 
+data State = State { group :: Int, amount :: Int, permutations :: Int }
+
 extractPatterns :: ([String], [Int]) -> Int
 extractPatterns (s, [])
   -- we have consumed all the elements and have some '#' left. This was a wrong
