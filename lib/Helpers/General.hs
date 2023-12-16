@@ -2,9 +2,11 @@ module Helpers.General
   ( preciseTimeIt
   , customPreciseTimeIt
   , retrieveInput
+  , wallTimeIt
   ) where
 
 import           Control.Monad.IO.Class (MonadIO (liftIO))
+import           Data.Time.Clock        (diffUTCTime, getCurrentTime)
 import           System.TimeIt          (timeItT)
 import           Text.Printf            (printf)
 
@@ -27,8 +29,23 @@ preciseTimeIt = customPreciseTimeIt "CPU time: "
 customPreciseTimeIt :: (MonadIO m, Show a) => String -> Int -> m a -> m a
 customPreciseTimeIt name prec ioa = do
   (t, a) <- timeItT ioa
-  liftIO $ printf (name ++ ": %6." ++ show prec ++ "fs\n") t
+  liftIO $ printf (name ++ " CPU Time: %6." ++ show prec ++ "fs\n") t
   return a
+
+wallTimeIt :: (MonadIO m, Show a) => String -> Int -> m a -> m a
+wallTimeIt name prec ioa = do
+  (t, a) <- wallTimeItT ioa
+  liftIO $ printf (name ++ " Wall Time: %6." ++ show prec ++ "fs\n") t
+  return a
+
+wallTimeItT :: (MonadIO m) => m a -> m (Double, a)
+wallTimeItT ioa = do
+  t1 <- liftIO getCurrentTime
+  a <- ioa
+  t2 <- liftIO getCurrentTime
+  let t :: Double
+      t = realToFrac (diffUTCTime t2 t1)
+  return (t, a)
 
 parseCookie :: String -> IO String
 parseCookie path = do
@@ -57,9 +74,9 @@ remoteInput year day withProxy = do
   home <- getHomeDirectory
   cookie <- parseCookie $ home ++ cookiePath
   proxy <- readFile (home ++ proxyPath)
-  let curlArgs = if withProxy then
-                      [CurlProxy (init proxy), CurlCookie cookie]
-                 else
-                      [CurlCookie cookie]
+  let curlArgs =
+        if withProxy
+          then [CurlProxy (init proxy), CurlCookie cookie]
+          else [CurlCookie cookie]
   (code, rsp) <- curlGetString url curlArgs
   return rsp
