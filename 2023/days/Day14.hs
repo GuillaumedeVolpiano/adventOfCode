@@ -12,9 +12,8 @@ import           Data.Set           as St (Set, difference, empty, filter,
                                            foldl, fromList, intersection, map,
                                            notMember, null, union)
 import           Helpers.Parsers    (arrayFromString)
+import           Helpers.Search     (findPattern)
 import           Linear.V2          (V2 (..))
-
-import           Debug.Trace
 
 type Platform = UArray Pos Char
 
@@ -66,19 +65,6 @@ cycleRocks :: Platform -> Rocks -> Rocks
 cycleRocks platform rocks =
   L.foldl (move platform) rocks [north, west, south, east]
 
-findPattern :: Int -> Int -> Seq Int -> Int
-findPattern startPoint minSize rockCycle
-  | (startPoint + minSize) >= div (Sq.length rockCycle) 2 =
-    error "Could not find a pattern"
-  | testPattern = potPatternLength
-  | otherwise = findPattern startPoint (potPatternLength + 1) rockCycle
-  where
-    pruned = Sq.drop startPoint rockCycle
-    (testRocks :<| rest) = pruned
-    potPatternLength =
-      minSize + Sq.length (takeWhileL (/= testRocks) $ Sq.drop minSize pruned)
-    testPattern = fromJust (pruned !? (2 * potPatternLength)) == testRocks
-
 part1 :: Bool -> String -> String
 part1 _ input = show . score platform . move platform rocks $ north
   where
@@ -98,6 +84,6 @@ part2 _ input = show pos
         [V2 x y | x <- [0 .. mx], y <- [0 .. my], platform ! V2 x y == 'O']
     firstCycles =
       fmap (score platform) . iterateN 250 (cycleRocks platform) $ rocks
-    pat = findPattern 100 1 firstCycles
+    pat = findPattern 100 1 (==) firstCycles
     remainder = mod (numCycles - 100) pat
     pos = fromJust $ firstCycles !? (100 + remainder)

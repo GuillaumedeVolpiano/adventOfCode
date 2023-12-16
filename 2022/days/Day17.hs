@@ -3,13 +3,15 @@ module Day17
   , part2
   ) where
 
-import           Text.Regex.TDFA    ((=~))
+import           Text.Regex.TDFA ((=~))
 
-import           Data.List.Split    (chunksOf)
-import           Data.Map           as M (Map, empty, findWithDefault, insert,
-                                          keys, lookup)
-import           Data.Maybe         (Maybe (Just, Nothing), fromJust, isNothing)
-import           Linear.V2          (V2 (..))
+import           Data.List.Split (chunksOf)
+import           Data.Map        as M (Map, empty, findWithDefault, insert,
+                                       keys, lookup)
+import           Data.Maybe      (Maybe (Just, Nothing), fromJust, isNothing)
+import           Data.Sequence   (fromList)
+import           Helpers.Search  (findPattern)
+import           Linear.V2       (V2 (..))
 
 type Pos = V2 Int
 
@@ -72,19 +74,6 @@ fallRock state = State newCave newHeight newJets rs
           all (\p -> isNothing . M.lookup p $ curCave) fell &&
           all (\(V2 _ y) -> y >= 0) fell
 
-findPattern :: [State] -> Int -> Int
-findPattern states jetLength = length potPattern + 1
-  where
-    pruned = drop 1000 states
-    testRock = head . rocks . head $ pruned
-    testJets = take jetLength . jets . head $ pruned
-    potPattern =
-      takeWhile
-        (\x ->
-           (head . rocks $ x) /= testRock || take jetLength (jets x) /= testJets) .
-      tail $
-      pruned
-
 patternHeight :: [State] -> Int -> Int
 patternHeight states patLength =
   height (states !! (1000 + patLength)) - height (states !! 1000)
@@ -92,7 +81,14 @@ patternHeight states patLength =
 predictHeight :: [State] -> Int -> Int -> Int
 predictHeight states jetLength numRocks = prediction
   where
-    patL = findPattern states jetLength
+    patL =
+      findPattern
+        1000
+        1
+        (\a b ->
+           (head . rocks $ a) == (head . rocks $ b) &&
+           take jetLength (jets a) == take jetLength (jets b)) $
+      fromList states
     patH = patternHeight states patL
     toFall = numRocks - 1000
     (times, remainder) = divMod toFall patL

@@ -11,6 +11,7 @@ module Helpers.Search
   , dijkstraGoalVal
   , dijkstraAll
   , floydWarshall
+  , findPattern
   ) where
 
 import           Data.Graph    (Edge, Graph, Vertex, edges, vertices)
@@ -20,9 +21,11 @@ import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
 import           Data.Map      as M (Map, empty, insert, lookup, member,
                                      notMember, singleton, (!))
 import           Data.Maybe    (fromJust, isNothing, mapMaybe)
-import           Data.Sequence as Sq (Seq ((:<|), (:|>)), null, singleton)
+import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
+                                      singleton, takeWhileL, (!?))
 import           Data.Set      as St (Set, empty, insert, member, notMember,
                                       singleton)
+import Data.List as L (length)
 
 type NodeFromVertex node key = Vertex -> (node, key, [key])
 
@@ -30,7 +33,9 @@ type VertexFromKey a = a -> Maybe Vertex
 
 -- Find all shortest paths in a graph
 floydWarshall ::
-     Ord node => (Graph, NodeFromVertex node key, VertexFromKey key) -> Map Edge Int
+     Ord node
+  => (Graph, NodeFromVertex node key, VertexFromKey key)
+  -> Map Edge Int
 floydWarshall (graph, nodeFromVertex, _) = shortPaths valVertices distEdges
   where
     valVertices = vertices graph
@@ -56,10 +61,9 @@ bfsDist :: Ord a => a -> (a -> [a]) -> (a -> Bool) -> Int
 -- starting point and the goal
 bfsDist start neighbours =
   (+) (-1) .
-  length . bfs (Sq.singleton start) (St.singleton start) M.empty neighbours
+  L.length . bfs (Sq.singleton start) (St.singleton start) M.empty neighbours
 
-bfs ::
-     Ord a => Seq a -> Set a -> Map a a -> (a -> [a]) -> (a -> Bool) -> [a]
+bfs :: Ord a => Seq a -> Set a -> Map a a -> (a -> [a]) -> (a -> Bool) -> [a]
 bfs toSee seen paths neighbours isGoal
   | Sq.null toSee = error "goal not found"
   | isGoal curPos = reconstructPath curPos paths
@@ -216,3 +220,19 @@ reconstructPathAStar paths node
   | otherwise = val : reconstructPathAStar paths nextNode
   where
     (nextNode, val) = paths ! node
+
+-- Patterns
+-- | findPattern finds a pattern after *starting point*, with minimum size *min
+-- size* in a Sequence (for efficiency), testing them with the provided boolean
+-- test function and returns a pattern length.
+findPattern :: Int -> Int -> (a -> a -> Bool) -> Seq a -> Int
+findPattern startPoint minSize boolTest cycle
+  | (startPoint + minSize) >= div (Sq.length cycle) 2 =
+    error "Could not find pattern"
+  | testPattern = potPatternLength
+  | otherwise = findPattern startPoint (potPatternLength + 1) boolTest cycle
+  where
+          pruned = Sq.drop startPoint cycle
+          (orVal :<| rest) = pruned
+          potPatternLength = minSize + Sq.length (takeWhileL (not . boolTest orVal) $ Sq.drop minSize pruned)
+          testPattern = boolTest orVal . fromJust $ pruned !? (2 * potPatternLength)
