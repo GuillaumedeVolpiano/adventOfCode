@@ -2,52 +2,51 @@
 
 module Main where
 
-import Data.Map (Map, (!), fromList)
-import Data.Time.Calendar (toGregorian)
-import Data.Time.Clock (getCurrentTime, utctDay)
-import Day1
-import Day10
-import Day11
-import Day12
-import Day13
-import Day14
-import Day15
-import Day16
-import Day17
-import Day18
-import Day19
-import Day2
-import Day20
-import Day21
-import Day22
-import Day23
-import Day24
-import Day25
-import Day3
-import Day4
-import Day5
-import Day6
-import Day7
-import Day8
-import Day9
-import Helpers.General (customPreciseTimeIt, retrieveInput)
-import System.Console.CmdArgs.Implicit
-  ( Data
-  , Typeable
-  , (&=)
-  , cmdArgs
-  , def
-  , help
-  , opt
-  )
+import           Data.Map                        (Map, fromList, (!))
+import           Data.Time.Calendar              (toGregorian)
+import           Data.Time.Clock                 (getCurrentTime, utctDay)
+import           Day1
+import           Day10
+import           Day11
+import           Day12
+import           Day13
+import           Day14
+import           Day15
+import           Day16
+import           Day17
+import           Day18
+import           Day19
+import           Day2
+import           Day20
+import           Day21
+import           Day22
+import           Day23
+import           Day24
+import           Day25
+import           Day3
+import           Day4
+import           Day5
+import           Day6
+import           Day7
+import           Day8
+import           Day9
+import           Helpers.General                 (customPreciseTimeIt,
+                                                  retrieveInput, wallTimeIt)
+import           System.Console.CmdArgs.Implicit (Data, Typeable, args, cmdArgs,
+                                                  def, help, opt, (&=))
 
 data Arguments =
   Arguments
-    { day :: Int
-    , test :: Bool
-    , proxy :: Bool
+    { day      :: Int
+    , test     :: Bool
+    , proxy    :: Bool
+    , wallTime :: Bool
     }
   deriving (Show, Data, Typeable)
+
+type Solver = (Bool -> String -> String)
+
+type Day = (Solver, Solver)
 
 solver =
   fromList
@@ -89,6 +88,7 @@ main = do
               opt curDay
           , test = def &= help "Run the test suite? Defaults to True if used"
           , proxy = def &= help "Use a proxy? Defaults to True if used"
+          , wallTime = def &= help "Report wall Time rather than CPU time"
           }
   args <- cmdArgs arguments
   let year = 2023
@@ -98,5 +98,9 @@ main = do
           _ -> day args
   input <- retrieveInput year theDay (test args) (proxy args)
   let (solve1, solve2) = solver ! theDay
-  customPreciseTimeIt "Part 1. CPU Time" 4 . putStrLn $ solve1 (test args) input
-  customPreciseTimeIt "Part 2. CPU Time" 4 . putStrLn $ solve2 (test args) input
+  let timer =
+        if wallTime args
+          then wallTimeIt
+          else customPreciseTimeIt
+  timer "Part 1." 4 . putStrLn $ solve1 (test args) input
+  timer "Part 2." 4 . putStrLn $ solve2 (test args) input
