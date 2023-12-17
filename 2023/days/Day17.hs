@@ -5,15 +5,13 @@ module Day17
 
 import           Data.Array.Unboxed (UArray, bounds, inRange, (!))
 import           Data.Hashable      (Hashable, hashWithSalt)
-import           Data.Map           as M (Map, elems, filterWithKey, keys,
-                                          lookup)
+import           Data.HashPSQ       as Q (insert, singleton)
+import           Data.Map           as M (Map, elems, empty, insert, lookup,
+                                          singleton)
+import           Data.Maybe         (fromJust)
 import           Helpers.Parsers    (digitArrayFromString)
-import           Helpers.Search     (astarVal, dijkstraGoal)
+import           Helpers.Search     (dijkstraMech)
 import           Linear.V2          (V2 (..))
-
-import           Data.Char          (intToDigit)
-import           Data.List.Split    (chunksOf)
-import           Data.Maybe         (fromJust, isNothing)
 
 data Crucible =
   Crucible
@@ -53,12 +51,6 @@ left (V2 x y) = V2 y (-x)
 right :: Pos -> Pos
 right (V2 x y) = V2 (-y) x
 
-moves :: Blocks -> Crucible -> [(Crucible, Pos)]
-moves blocks =
-  map (\x -> (x, pos x)) .
-  filter (\(Crucible np _ na) -> inRange (bounds blocks) np && na <= maxMove1) .
-  nextMoves
-
 nextMoves :: Crucible -> [Crucible]
 nextMoves (Crucible p d a) =
   Crucible (p + d) d (a + 1) :
@@ -67,13 +59,8 @@ nextMoves (Crucible p d a) =
 heatLoss :: Blocks -> Pos -> Pos -> Int
 heatLoss blocks _ p = blocks ! p
 
-heuristic :: Pos -> Crucible -> Int
-heuristic (V2 a b) crucible = abs (a - c) + abs (b - d)
-  where
-    V2 c d = pos crucible
-
-ultraMoves :: Int -> Int -> Blocks -> Crucible -> [(Crucible, Int)]
-ultraMoves minMoves maxMoves blocks c@(Crucible p d nm) =
+moves :: Int -> Int -> Blocks -> Crucible -> [(Crucible, Int)]
+moves minMoves maxMoves blocks c@(Crucible p d nm) =
   map (\x -> (x, blocks ! pos x)) .
   filter (\(Crucible np _ na) -> inRange (bounds blocks) np && na <= maxMoves) $
   next
@@ -82,80 +69,34 @@ ultraMoves minMoves maxMoves blocks c@(Crucible p d nm) =
       | nm < minMoves = [Crucible (p + d) d (nm + 1)]
       | otherwise = nextMoves c
 
-reconstructPath :: Crucible -> Map Crucible Crucible -> [Pos]
-reconstructPath c paths
-  | isNothing . M.lookup c $ paths = []
-  | otherwise = pos c : reconstructPath (fromJust . M.lookup c $ paths) paths
-
-renderPath :: Blocks -> [Pos] -> String
-renderPath blocks path =
-  unlines . chunksOf (mx + 1) $
-  [ if V2 x y `elem` path
-    then '>'
-    else intToDigit $ blocks ! V2 x y
-  | y <- [0 .. my]
-  , x <- [0 .. mx]
-  ]
-  where
-    (_, V2 mx my) = bounds blocks
-
 part1 :: Bool -> String -> String
 part1 _ input = show dijkVal
-  -- astarVal
-  --   startPos
-  --   (V2 0 0)
-  --   ((==) endGoal . pos)
-  --   (moves blocks)
-  --   (heuristic endGoal)
-  --   (heatLoss blocks)
   where
     blocks = digitArrayFromString input
     startPos = Crucible start east 0
     (start, endGoal) = bounds blocks
-    dijked =
-      dijkstraGoal
-        startPos
-        0
-        (ultraMoves minMove1 maxMove1 blocks)
+    (actualGoal, (dijVals, _)) =
+      dijkstraMech
+        (Q.singleton startPos 0 startPos)
+        (M.singleton startPos 0)
+        M.empty
+        (moves minMove1 maxMove1 blocks)
         ((==) endGoal . pos)
-    dijkVal =
-      minimum . elems . filterWithKey (\c _ -> pos c == endGoal) . fst $ dijked
+    dijkVal = fromJust . M.lookup actualGoal $ dijVals
 
 part2 :: Bool -> String -> String
-part2 _ input = show $ min eastVal southVal
+part2 _ input = show dijkVal
   where
     blocks = digitArrayFromString input
     startPosEast = Crucible start east 0
     startPosSouth = Crucible start south 0
     (start, endGoal) = bounds blocks
-    goEastYoungMan =
-      dijkstraGoal
-        startPosEast
-        0
-        (ultraMoves minMove2 maxMove2 blocks)
-        (\c -> pos c == endGoal && acc c >= minMove2)
-    goSouthYoungMan =
-      dijkstraGoal
-        startPosSouth
-        0
-        (ultraMoves minMove2 maxMove2 blocks)
-        (\c -> pos c == endGoal && acc c >= minMove2)
-    eastVal =
-      minimum .
-      elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
-      fst goEastYoungMan
-    southVal =
-      minimum .
-      elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
-      fst goSouthYoungMan
-    eastGoal =
-      head .
-      keys . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
-      snd goEastYoungMan
-    southGoal =
-      head .
-      keys . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
-      snd goSouthYoungMan
-    eastPath = renderPath blocks . reconstructPath eastGoal $ snd goEastYoungMan
-    southPath =
-      renderPath blocks . reconstructPath southGoal $ snd goSouthYoungMan
+    (actualGoal, (dijVals, _)) =
+      dijkstraMech
+        (Q.insert startPosEast 0 startPosEast $
+         Q.singleton startPosSouth 0 startPosSouth)
+        (M.insert startPosEast 0 $ M.singleton startPosSouth 0)
+        M.empty
+        (moves minMove2 maxMove2 blocks)
+        (\c -> pos c == endGoal && acc c >= 4)
+    dijkVal = fromJust . M.lookup actualGoal $ dijVals
