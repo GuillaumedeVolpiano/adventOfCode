@@ -27,7 +27,7 @@ library helpers
   hs-source-dirs: lib
   exposed-modules: Helpers.General, Helpers.Parsers, Helpers.Search
   build-depends: array, base, containers, curl, directory, hashable, linear, psqueues
-                 , regex-tdfa, split, timeit
+                 , regex-tdfa, split, time, timeit
   default-language: Haskell2010
 
 executable aoc2021
