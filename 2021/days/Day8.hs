@@ -31,12 +31,11 @@ key s =
     fourSeven = four `union` seven
     nine = head . filter (St.null . (fourSeven \\)) $ zeroSixNine
     zeroSix = filter (not . St.null . (fourSeven \\)) zeroSixNine
-    zero = head . filter (St.null . (one \\)) $ s
-    six = head . filter (not. St.null . (one \\) ) $ s
+    zero = head . filter (St.null . (one \\)) $ zeroSix
+    six = head . filter (not . St.null . (one \\)) $ zeroSix
     twoThreeFive = filter ((== 5) . size) s
     two = head . filter ((== 2) . size . (fourSeven \\)) $ twoThreeFive
-    threeFive =
-      filter ((== 1) . size . (fourSeven \\)) twoThreeFive
+    threeFive = filter ((== 1) . size . (fourSeven \\)) twoThreeFive
     three = head . filter (St.null . (one \\)) $ threeFive
     five = head . filter (not . St.null . (one \\)) $ threeFive
 
@@ -56,4 +55,4 @@ part1 _ =
   characters
 
 part2 :: Bool -> String -> String
-part2 _ = show . map (decode . map fromList) . characters
+part2 _ = show . sum . map (decode . map fromList) . characters
