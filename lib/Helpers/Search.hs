@@ -10,6 +10,7 @@ module Helpers.Search
   , dijkstraGoal
   , dijkstraGoalVal
   , dijkstraAll
+  , dijkstraMech
   , floydWarshall
   , findPattern
   ) where
@@ -18,6 +19,7 @@ import           Data.Graph    (Edge, Graph, Vertex, edges, vertices)
 import           Data.Hashable (Hashable)
 import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
                                      singleton)
+import           Data.List     as L (length)
 import           Data.Map      as M (Map, empty, insert, lookup, member,
                                      notMember, singleton, (!))
 import           Data.Maybe    (fromJust, isNothing, mapMaybe)
@@ -25,7 +27,6 @@ import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
                                       singleton, takeWhileL, (!?))
 import           Data.Set      as St (Set, empty, insert, member, notMember,
                                       singleton)
-import Data.List as L (length)
 
 type NodeFromVertex node key = Vertex -> (node, key, [key])
 
@@ -118,11 +119,13 @@ dijkstraGoal ::
   -> (k -> [(k, p)])
   -> (k -> Bool)
   -> (Map k p, Map k k)
-dijkstraGoal startKey startDist =
+dijkstraGoal startKey startDist neighbours =
+  snd .
   dijkstraMech
     (Q.singleton startKey startDist startKey)
     (M.singleton startKey startDist)
     M.empty
+    neighbours
 
 dijkstraAll ::
      (Hashable k, Ord k, Show k, Num p, Ord p)
@@ -140,9 +143,10 @@ dijkstraMech ::
   -> Map k k
   -> (k -> [(k, p)])
   -> (k -> Bool)
-  -> (Map k p, Map k k)
+  -> (k, (Map k p, Map k k))
 dijkstraMech queue dists paths neighbours isGoal
-  | Q.null queue || isGoal curKey = (dists, paths)
+  | Q.null queue = error "Goal not found"
+  | isGoal curKey = (curKey, (dists, paths))
   | otherwise = dijkstraMech newQueue newDists newPaths neighbours isGoal
   where
     (curKey, estDist, _, rest) = fromJust (minView queue)
@@ -232,7 +236,9 @@ findPattern startPoint minSize boolTest cycle
   | testPattern = potPatternLength
   | otherwise = findPattern startPoint (potPatternLength + 1) boolTest cycle
   where
-          pruned = Sq.drop startPoint cycle
-          (orVal :<| rest) = pruned
-          potPatternLength = minSize + Sq.length (takeWhileL (not . boolTest orVal) $ Sq.drop minSize pruned)
-          testPattern = boolTest orVal . fromJust $ pruned !? (2 * potPatternLength)
+    pruned = Sq.drop startPoint cycle
+    (orVal :<| rest) = pruned
+    potPatternLength =
+      minSize +
+      Sq.length (takeWhileL (not . boolTest orVal) $ Sq.drop minSize pruned)
+    testPattern = boolTest orVal . fromJust $ pruned !? (2 * potPatternLength)

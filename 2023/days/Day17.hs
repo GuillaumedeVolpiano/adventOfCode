@@ -5,9 +5,12 @@ module Day17
 
 import           Data.Array.Unboxed (UArray, bounds, inRange, (!))
 import           Data.Hashable      (Hashable, hashWithSalt)
-import           Data.Map           as M (Map, elems, filterWithKey)
+import           Data.HashPSQ       as Q (insert, singleton)
+import           Data.Map           as M (Map, elems, empty, insert, lookup,
+                                          singleton)
+import           Data.Maybe         (fromJust)
 import           Helpers.Parsers    (digitArrayFromString)
-import           Helpers.Search     (astarVal, dijkstraGoal)
+import           Helpers.Search     (dijkstraMech)
 import           Linear.V2          (V2 (..))
 
 data Crucible =
@@ -72,39 +75,28 @@ part1 _ input = show dijkVal
     blocks = digitArrayFromString input
     startPos = Crucible start east 0
     (start, endGoal) = bounds blocks
-    dijked =
-      dijkstraGoal
-        startPos
-        0
+    (actualGoal, (dijVals, _)) =
+      dijkstraMech
+        (Q.singleton startPos 0 startPos)
+        (M.singleton startPos 0)
+        M.empty
         (moves minMove1 maxMove1 blocks)
         ((==) endGoal . pos)
-    dijkVal =
-      minimum . elems . filterWithKey (\c _ -> pos c == endGoal) . fst $ dijked
+    dijkVal = fromJust . M.lookup actualGoal $ dijVals
 
 part2 :: Bool -> String -> String
-part2 _ input = show $ min eastVal southVal
+part2 _ input = show dijkVal
   where
     blocks = digitArrayFromString input
     startPosEast = Crucible start east 0
     startPosSouth = Crucible start south 0
     (start, endGoal) = bounds blocks
-    goEastYoungMan =
-      dijkstraGoal
-        startPosEast
-        0
+    (actualGoal, (dijVals, _)) =
+      dijkstraMech
+        (Q.insert startPosEast 0 startPosEast $
+         Q.singleton startPosSouth 0 startPosSouth)
+        (M.insert startPosEast 0 $ M.singleton startPosSouth 0)
+        M.empty
         (moves minMove2 maxMove2 blocks)
-        (\c -> pos c == endGoal && acc c >= minMove2)
-    goSouthYoungMan =
-      dijkstraGoal
-        startPosSouth
-        0
-        (moves minMove2 maxMove2 blocks)
-        (\c -> pos c == endGoal && acc c >= minMove2)
-    eastVal =
-      minimum .
-      elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
-      fst goEastYoungMan
-    southVal =
-      minimum .
-      elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
-      fst goSouthYoungMan
+        (\c -> pos c == endGoal && acc c >= 4)
+    dijkVal = fromJust . M.lookup actualGoal $ dijVals
