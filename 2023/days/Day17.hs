@@ -39,6 +39,14 @@ east = V2 1 0
 
 west = V2 (-1) 0
 
+minMove1 = 0
+
+maxMove1 = 3
+
+minMove2 = 4
+
+maxMove2 = 10
+
 left :: Pos -> Pos
 left (V2 x y) = V2 y (-x)
 
@@ -48,7 +56,7 @@ right (V2 x y) = V2 (-y) x
 moves :: Blocks -> Crucible -> [(Crucible, Pos)]
 moves blocks =
   map (\x -> (x, pos x)) .
-  filter (\(Crucible np _ na) -> inRange (bounds blocks) np && na <= 3) .
+  filter (\(Crucible np _ na) -> inRange (bounds blocks) np && na <= maxMove1) .
   nextMoves
 
 nextMoves :: Crucible -> [Crucible]
@@ -92,19 +100,26 @@ renderPath blocks path =
     (_, V2 mx my) = bounds blocks
 
 part1 :: Bool -> String -> String
-part1 _ input =
-  show $
-  astarVal
-    startPos
-    (V2 0 0)
-    ((==) endGoal . pos)
-    (moves blocks)
-    (heuristic endGoal)
-    (heatLoss blocks)
+part1 _ input = show dijkVal
+  -- astarVal
+  --   startPos
+  --   (V2 0 0)
+  --   ((==) endGoal . pos)
+  --   (moves blocks)
+  --   (heuristic endGoal)
+  --   (heatLoss blocks)
   where
     blocks = digitArrayFromString input
     startPos = Crucible start east 0
     (start, endGoal) = bounds blocks
+    dijked =
+      dijkstraGoal
+        startPos
+        0
+        (ultraMoves minMove1 maxMove1 blocks)
+        ((==) endGoal . pos)
+    dijkVal =
+      minimum . elems . filterWithKey (\c _ -> pos c == endGoal) . fst $ dijked
 
 part2 :: Bool -> String -> String
 part2 _ input = show $ min eastVal southVal
@@ -117,25 +132,29 @@ part2 _ input = show $ min eastVal southVal
       dijkstraGoal
         startPosEast
         0
-        (ultraMoves 4 10 blocks)
-        (\c -> pos c == endGoal && acc c >= 4)
+        (ultraMoves minMove2 maxMove2 blocks)
+        (\c -> pos c == endGoal && acc c >= minMove2)
     goSouthYoungMan =
       dijkstraGoal
         startPosSouth
         0
-        (ultraMoves 4 10 blocks)
-        (\c -> pos c == endGoal && acc c >= 4)
+        (ultraMoves minMove2 maxMove2 blocks)
+        (\c -> pos c == endGoal && acc c >= minMove2)
     eastVal =
-      minimum . elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= 4) $
+      minimum .
+      elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
       fst goEastYoungMan
     southVal =
-      minimum . elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= 4) $
+      minimum .
+      elems . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
       fst goSouthYoungMan
     eastGoal =
-      head . keys . filterWithKey (\c _ -> pos c == endGoal && acc c >= 4) $
+      head .
+      keys . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
       snd goEastYoungMan
     southGoal =
-      head . keys . filterWithKey (\c _ -> pos c == endGoal && acc c >= 4) $
+      head .
+      keys . filterWithKey (\c _ -> pos c == endGoal && acc c >= minMove2) $
       snd goSouthYoungMan
     eastPath = renderPath blocks . reconstructPath eastGoal $ snd goEastYoungMan
     southPath =
