@@ -8,6 +8,7 @@ module Helpers.Parsers
   , complexParser
   , custom
   , doubles
+  , digitArrayFromString
   , integers
   , make2DArray
   , numbers
@@ -17,6 +18,7 @@ module Helpers.Parsers
 
 import           Data.Array.IArray  (IArray)
 import           Data.Array.Unboxed (UArray, array)
+import Data.Char (digitToInt)
 import           Linear.V2          (V2 (..))
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
@@ -67,6 +69,9 @@ make2DArray l =
 
 arrayFromString :: String -> UArray (V2 Int) Char
 arrayFromString = make2DArray . lines
+
+digitArrayFromString :: String -> UArray (V2 Int) Int
+digitArrayFromString = make2DArray . map (map digitToInt) . lines
 
 splitOnSpace :: String -> [[String]]
 splitOnSpace = map (regexList "[^[:space:]]+") . lines
