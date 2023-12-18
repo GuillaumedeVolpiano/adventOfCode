@@ -3,10 +3,10 @@ module Day11
   , part2
   ) where
 
-import           Data.Char (digitToInt)
-import           Data.List as L (map)
-import           Data.Map  as M (Map, adjust, filter, fromList, keys, map, null,
-                                 size, (!))
+import           Data.Char (digitToInt, intToDigit)
+import           Data.List as L (filter, groupBy, map, sortBy)
+import           Data.Map  as M (Map, adjust, assocs, filter, fromList, keys,
+                                 map, null, size, (!))
 import           Linear.V2 (V2 (..))
 
 type Pos = V2 Int
@@ -30,13 +30,14 @@ buildMap string =
 energize :: Cavern -> Cavern
 energize = M.map (+ 1)
 
-flash :: Cavern -> Cavern
-flash cavern
-  | M.null . M.filter (== 10) $ cavern = cavern
-  | otherwise = flash . foldl (flip (adjust (+ 1))) cavern $ toFlash
+flash :: [Pos] -> Cavern -> Cavern
+flash seen cavern
+  | all (`elem` seen) newSeen = cavern
+  | otherwise = flash newSeen . foldl (flip (adjust (+ 1))) cavern $ toFlash
   where
-    flashed = keys . M.filter (== 10) $ cavern
+    flashed = L.filter (`notElem` seen) newSeen
     toFlash = concatMap neighbours flashed
+    newSeen = keys . M.filter (> 9) $ cavern
 
 neighbours :: Pos -> [Pos]
 neighbours pos = L.map (pos +) surroundings
@@ -53,13 +54,26 @@ doRound :: (Cavern, Int) -> (Cavern, Int)
 doRound (cavern, acc) =
   (deplete flashed, (+ acc) . M.size . M.filter (> 9) $ flashed)
   where
-    flashed = flash . energize $ cavern
+    flashed = flash [] . energize $ cavern
 
 doRounds :: Cavern -> [(Cavern, Int)]
 doRounds cavern = iterate doRound (cavern, 0)
 
+render :: Cavern -> String
+render =
+  unlines .
+  L.map (L.map (intToDigit . snd)) . groupBy alignV2 . sortBy compareV2 . assocs
+  where
+    compareV2 (V2 a b, _) (V2 c d, _)
+      | b == d = compare a c
+      | otherwise = compare b d
+    alignV2 (V2 _ a, _) (V2 _ c, _) = a == c
+
 part1 :: Bool -> String -> String
-part1 _ = show . snd . last . take 11 . doRounds . buildMap
+part1 _ = show . snd . last . take 101 . doRounds . buildMap
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  show .
+  length .
+  takeWhile (not . M.null . M.filter (/= 0) . fst) . doRounds . buildMap
