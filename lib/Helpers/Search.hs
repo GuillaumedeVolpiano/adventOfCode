@@ -11,11 +11,14 @@ module Helpers.Search
   , dijkstraGoalVal
   , dijkstraAll
   , dijkstraMech
-  , floydWarshall
   , findPattern
+  , floydWarshall
+  , floodFill
+  , treeSize
   ) where
 
-import           Data.Graph    (Edge, Graph, Vertex, edges, vertices)
+import qualified Data.Graph    as G (Edge, Graph, Tree (Node), Vertex, dfs,
+                                     edges, graphFromEdges, vertices)
 import           Data.Hashable (Hashable)
 import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
                                      singleton)
@@ -28,20 +31,20 @@ import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
 import           Data.Set      as St (Set, empty, insert, member, notMember,
                                       singleton)
 
-type NodeFromVertex node key = Vertex -> (node, key, [key])
+type NodeFromVertex node key = G.Vertex -> (node, key, [key])
 
-type VertexFromKey a = a -> Maybe Vertex
+type VertexFromKey a = a -> Maybe G.Vertex
 
 -- Find all shortest paths in a graph
 floydWarshall ::
      Ord node
-  => (Graph, NodeFromVertex node key, VertexFromKey key)
-  -> Map Edge Int
+  => (G.Graph, NodeFromVertex node key, VertexFromKey key)
+  -> Map G.Edge Int
 floydWarshall (graph, nodeFromVertex, _) = shortPaths valVertices distEdges
   where
-    valVertices = vertices graph
+    valVertices = G.vertices graph
     distVertices = foldl (\a b -> M.insert (b, b) 0 a) M.empty valVertices
-    distEdges = foldl (\a b -> M.insert b 1 a) distVertices $ edges graph
+    distEdges = foldl (\a b -> M.insert b 1 a) distVertices $ G.edges graph
     shortPaths [] dists     = dists
     shortPaths (x:xs) dists = shortPaths xs $ findPaths x valVertices dists
     findPaths _ [] dists     = dists
@@ -242,3 +245,17 @@ findPattern startPoint minSize boolTest cycle
       minSize +
       Sq.length (takeWhileL (not . boolTest orVal) $ Sq.drop minSize pruned)
     testPattern = boolTest orVal . fromJust $ pruned !? (2 * potPatternLength)
+
+-- FloodFill
+-- | floodFill returns a Forest of points reachable from  each of a list of
+-- points corresponding to positions in a graph. Arguments are a list of nodes,
+-- keys, edges and the list of points to consider.
+floodFill :: Ord a => [(b, a, [a])] -> [a] -> [G.Tree G.Vertex]
+floodFill edges points = G.dfs graph $ mapMaybe vfk points
+  where
+    (graph, _, vfk) = G.graphFromEdges edges
+    insertInTuple p (n, ps) = (n, p, ps)
+
+-- | treeSize returns the size of a Tree of Vertices
+treeSize :: G.Tree G.Vertex -> Int
+treeSize (G.Node a forest) = (1 +) . sum . map treeSize $ forest
