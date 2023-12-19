@@ -18,7 +18,7 @@ module Helpers.Parsers
 
 import           Data.Array.IArray  (IArray)
 import           Data.Array.Unboxed (UArray, array)
-import Data.Char (digitToInt)
+import           Data.Char          (digitToInt)
 import           Linear.V2          (V2 (..))
 import           Text.Regex.TDFA    (getAllTextMatches, (=~))
 
