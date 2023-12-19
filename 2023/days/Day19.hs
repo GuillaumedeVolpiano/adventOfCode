@@ -6,9 +6,11 @@ module Day19
   ) where
 
 import           Data.List.Split (splitWhen)
-import           Data.Map        (Map, fromList, (!))
-import           Data.Maybe      (Maybe (Just, Nothing), catMaybes)
+import           Data.Map        as M (Map, fromList, (!))
+import           Data.Maybe      (Maybe (Just, Nothing), catMaybes, isNothing)
 import           Text.Regex.TDFA (getAllTextMatches, (=~))
+
+import           Debug.Trace
 
 data Part =
   Part
@@ -21,12 +23,14 @@ data Part =
 
 data PartRange =
   PartRange
-    { xRange :: [Int]
-    , mRange :: [Int]
-    , aRange :: [Int]
-    , sRange :: [Int]
+    { xRange :: Range
+    , mRange :: Range
+    , aRange :: Range
+    , sRange :: Range
     }
   deriving (Show)
+
+type Range = Maybe (Int, Int)
 
 type Workflow = String
 
@@ -42,18 +46,19 @@ type Accepted = [Part]
 
 type AcceptedRange = [PartRange]
 
-toCat = fromList [("x", x), ("m", m), ("a", a), ("s", s)]
+toCat = M.fromList [("x", x), ("m", m), ("a", a), ("s", s)]
 
-toComp = fromList [("<", (<)), (">", (>)), ("=", (==))]
+toComp = M.fromList [("<", (<)), (">", (>))]
 
-range = [1 .. 4000]
+range = Just (1, 4000)
 
 initialRange = PartRange range range range range
 
-emptyRange = PartRange [] [] [] []
+emptyRange = PartRange Nothing Nothing Nothing Nothing
 
 empty :: PartRange -> Bool
-empty (PartRange a b c d) = null a || null b || null c || null d
+empty (PartRange a b c d) =
+  isNothing a || isNothing b || isNothing c || isNothing d
 
 toDicTuple :: [String] -> (Workflow, [(Condition, Workflow)])
 toDicTuple (s:ss) = (s, conditionParse ss)
@@ -74,30 +79,52 @@ rangeConditionParse (a:b:as) = (rangeThreeParse a, b) : rangeConditionParse as
 threeParse :: String -> (Part -> Bool)
 threeParse s = \part -> (toComp ! b) ((toCat ! a) part) (read c)
   where
-    (a, b, c) = s =~ "[<>=]"
+    (a, b, c) = s =~ "[<>]"
 
 rangeThreeParse :: String -> RangeCondition
 rangeThreeParse s = newPartRange
   where
-    (a, b, c) = s =~ "[<>=]"
+    (a, b, c) = s =~ "[<>]"
     val = read c
     newPartRange
-      | a == "x" =
-        \(PartRange xr mr ar sr) ->
-          ( PartRange (filter (\v -> (toComp ! b) v val) xr) mr ar sr
-          , PartRange (filter (\v -> not ((toComp ! b) v val)) xr) mr ar sr)
-      | a == "m" =
-        \(PartRange xr mr ar sr) ->
-          ( PartRange xr (filter (\v -> (toComp ! b) v val) mr) ar sr
-          , PartRange xr (filter (\v -> not ((toComp ! b) v val)) mr) ar sr)
-      | a == "a" =
-        \(PartRange xr mr ar sr) ->
-          ( PartRange xr mr (filter (\v -> (toComp ! b) v val) ar) sr
-          , PartRange xr mr (filter (\v -> not ((toComp ! b) v val)) ar) sr)
-      | a == "s" =
-        \(PartRange xr mr ar sr) ->
-          ( PartRange xr mr ar (filter (\v -> (toComp ! b) v val) sr)
-          , PartRange xr mr ar (filter (\v -> not ((toComp ! b) v val)) sr))
+      | a == "x" = xSplit b val
+      | a == "m" = mSplit b val
+      | a == "a" = aSplit b val
+      | a == "s" = sSplit b val
+
+xSplit :: String -> Int -> PartRange -> (PartRange, PartRange)
+xSplit comp val (PartRange xr mr ar sr) =
+  (PartRange yr mr ar sr, PartRange nr mr ar sr)
+  where
+    (yr, nr) = split comp val xr
+
+mSplit :: String -> Int -> PartRange -> (PartRange, PartRange)
+mSplit comp val (PartRange xr mr ar sr) =
+  (PartRange xr yr ar sr, PartRange xr nr ar sr)
+  where
+    (yr, nr) = split comp val mr
+
+aSplit :: String -> Int -> PartRange -> (PartRange, PartRange)
+aSplit comp val (PartRange xr mr ar sr) =
+  (PartRange xr mr yr sr, PartRange xr mr nr sr)
+  where
+    (yr, nr) = split comp val ar
+
+sSplit :: String -> Int -> PartRange -> (PartRange, PartRange)
+sSplit comp val (PartRange xr mr ar sr) =
+  (PartRange xr mr ar yr, PartRange xr mr ar nr)
+  where
+    (yr, nr) = split comp val sr
+
+split ::
+     String -> Int -> Maybe (Int, Int) -> (Maybe (Int, Int), Maybe (Int, Int))
+split comp val (Just (minv, maxv))
+  | comp == "<" && minv < val && maxv < val = (Just (minv, maxv), Nothing)
+  | comp == "<" && minv < val = (Just (minv, val - 1), Just (val, maxv))
+  | comp == "<" = (Nothing, Just (minv, maxv))
+  | minv > val && maxv > val = (Just (minv, maxv), Nothing)
+  | maxv > val = (Just (val + 1, maxv), Just (minv, val))
+  | otherwise = (Nothing, Just (minv, maxv))
 
 makePart :: [String] -> Part
 makePart s = Part a b c d
@@ -155,8 +182,11 @@ processRange accepted system partRange workflow = finalAccepted
         stillToProcess
 
 partRangeSize :: PartRange -> Int
-partRangeSize (PartRange xr mr ar sr) =
-  length xr * length mr * length ar * length sr
+partRangeSize (PartRange xr mr ar sr) = size xr * size mr * size ar * size sr
+
+size :: Maybe (Int, Int) -> Int
+size Nothing       = 0
+size (Just (a, b)) = b - a + 1
 
 processOneRange ::
      AcceptedRange
