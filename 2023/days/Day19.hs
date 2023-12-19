@@ -3,15 +3,11 @@ module Day19
   , part2
   ) where
 
-import           Data.List.Split (splitWhen)
-import           Data.Map        as M (Map, fromList, (!))
-import           Data.Maybe      (Maybe (Just, Nothing), catMaybes, fromJust,
-                                  isNothing)
-import           Part            (Accepted, Condition, Part, Range, System,
-                                  Workflow, empty, parseInput, size)
-import           Text.Regex.TDFA (getAllTextMatches, (=~))
+import           Data.Map   ((!))
+import           Data.Maybe (catMaybes)
+import           Part       (Accepted, Condition, Part, Range, System, Workflow,
+                             empty, parseInput, size)
 
--- Main body
 processAll :: Accepted a -> (System a, [Part a]) -> Accepted a
 processAll proc (system, []) = proc
 processAll proc (system, p:ps) =
