@@ -1,5 +1,7 @@
 {-# LANGUAGE TupleSections #-}
 
+-- data module for day 19
+
 module Part
   ( Part
   , Range
@@ -111,7 +113,7 @@ initialRange = Part range range range range
 
 emptyPart = Part Nothing Nothing Nothing Nothing
 
--- helper functions for Parseable
+-- helper functions
 toDicTuple :: (Parseable a) => [String] -> (Workflow, [(Condition a, Workflow)])
 toDicTuple (s:ss) = (s, conditionParse ss)
 
