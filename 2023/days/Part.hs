@@ -1,7 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 
 -- data module for day 19
-
 module Part
   ( Part
   , Range
@@ -52,7 +51,7 @@ instance Parseable Int where
     where
       (a, b, c) = s =~ "[<>]"
       condition part
-        | (toComp ! b) (fromJust . (toCat ! a) $ part) (read c) =
+        | compare (fromJust . (toCat ! a) $ part) (read c) == toComp ! b =
           (part, emptyPart)
         | otherwise = (emptyPart, part)
   size p
@@ -82,9 +81,12 @@ instance Parseable Range where
           (yr, nr) = split $ (toCat ! a) part
       split Nothing = (Nothing, Nothing)
       split (Just (Range minv maxv))
-        | order minv val && order maxv val = (Just (Range minv maxv), Nothing)
-        | order minv val = (Just (Range minv (val - 1)), Just (Range val maxv))
-        | order maxv val = (Just (Range (val + 1) maxv), Just (Range minv val))
+        | compare minv val == order && compare maxv val == order =
+          (Just (Range minv maxv), Nothing)
+        | compare minv val == order =
+          (Just (Range minv (val - 1)), Just (Range val maxv))
+        | compare maxv val == order =
+          (Just (Range (val + 1) maxv), Just (Range minv val))
         | otherwise = (Nothing, Just (Range minv maxv))
       order = toComp ! b
       val = read c
@@ -105,7 +107,7 @@ instance Parseable Range where
 -- global variables
 toCat = fromList [("x", x), ("m", m), ("a", a), ("s", s)]
 
-toComp = fromList [("<", (<)), (">", (>))]
+toComp = fromList [("<", LT), (">", GT)]
 
 range = Just (Range 1 4000)
 
