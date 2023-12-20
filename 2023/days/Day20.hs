@@ -154,4 +154,4 @@ part2 _ =
   filter (not . L.null . snd) .
   zip [0 .. 5000] .
   map checkAccConjunction .
-  take 5001 . iterate pressButton . toState . map (splitOn " -> ") . lines
+  take 5001 . iterate pressButton . toState . map (splitOn " -> ") . lines 
