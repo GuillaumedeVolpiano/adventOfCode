@@ -107,9 +107,9 @@ pressButton :: State -> State
 pressButton = receiveImpulse . emptyState
 
 emptyState :: State -> State
-emptyState (_, _, b) =
+emptyState (_, acc, b) =
   ( singleton (L, "button", "broadcaster")
-  , emptyAcc
+  , acc
   , insert finalMod (Accumulator [], []) .
     insert accMod (AccumConjunction dicCs [], destCs) $
     b)
@@ -141,7 +141,7 @@ part1 :: Bool -> String -> String
 part1 _ =
   show .
   pulseProduct .
-  sum .
+  last .
   map (\(_, v, _) -> v) .
   take 1001 . iterate pressButton . toState . map (splitOn " -> ") . lines
 
