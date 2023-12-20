@@ -7,3 +7,5 @@ PythonHelpers_for_Quitterie
 *.swp
 template.hs
 dist-newstyle
+*.dot
+*.svg
