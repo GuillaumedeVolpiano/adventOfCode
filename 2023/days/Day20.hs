@@ -12,6 +12,7 @@ import           Data.Map        as M (Map, elems, empty, fromList, insert,
 import           Data.Maybe      (Maybe (Just, Nothing), isNothing)
 import           Data.Sequence   as Sq (Seq ((:<|)), empty, fromList, null,
                                         singleton, (><))
+import           Helpers.Graph   (dicToGraph, graphToViz)
 import           Linear.V2       (V2 (..))
 
 data Module
