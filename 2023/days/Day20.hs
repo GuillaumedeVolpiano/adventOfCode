@@ -148,7 +148,7 @@ part1 _ =
 part2 :: Bool -> String -> String
 part2 _ =
   show .
-  foldl lcm 1 .
+  product .
   map fst .
   filter (not . L.null . snd) .
   zip [0 .. 5000] .
