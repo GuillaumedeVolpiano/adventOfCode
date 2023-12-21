@@ -254,7 +254,6 @@ floodFill :: Ord a => [(b, a, [a])] -> [a] -> [G.Tree G.Vertex]
 floodFill edges points = G.dfs graph $ mapMaybe vfk points
   where
     (graph, _, vfk) = G.graphFromEdges edges
-    insertInTuple p (n, ps) = (n, p, ps)
 
 -- | treeSize returns the size of a Tree of Vertices
 treeSize :: G.Tree G.Vertex -> Int
