@@ -3,31 +3,44 @@ module Day22
   , part2
   ) where
 
-import           Data.List       (sortBy)
+import           Data.List       as L (filter, map, sort)
+import           Data.Set        as St (Set, delete, difference, empty, filter,
+                                        fromList, insert, intersection, map,
+                                        notMember, size)
 import           Helpers.Parsers (complexParser)
 import           Linear.V3       (V3 (..))
 
 type Pos = V3 Int
 
-type Brick = (Pos, Pos)
+type ID = Int
+
+data Brick =
+  Brick ID Pos Pos
+  deriving (Show, Eq)
+
+type Stack = Set Brick
+
+instance Ord Brick where
+  compare (Brick i (V3 a b c) _) (Brick j (V3 d e f) _)
+    | a == d && b == e && c == f = compare i j
+    | c == f && b == e = compare a d
+    | c == f = compare b e
+    | otherwise = compare c f
 
 toPos :: [String] -> Pos
 toPos [a, b, c] = V3 (read a) (read b) (read c)
 
-toBricks :: [Pos] -> Brick
-toBricks [x, y] = (x, y)
-
-lowPointSort :: Brick -> Brick -> Ordering
-lowPointSort (V3 _ _ x, _) (V3 _ _ y, _) = compare x y
+toBricks :: (Int, [Pos]) -> Brick
+toBricks (i, [x, y]) = Brick i x y
 
 highPoint :: Brick -> Int
-highPoint (_, V3 _ _ z) = z
+highPoint (Brick _ _ (V3 _ _ z)) = z
 
 lowPoint :: Brick -> Int
-lowPoint (V3 _ _ z, _) = z
+lowPoint (Brick _ (V3 _ _ z) _) = z
 
 collide :: Brick -> Brick -> Bool
-collide (V3 a b _, V3 c d _) (V3 e f _, V3 g h _)
+collide (Brick _ (V3 a b _) (V3 c d _)) (Brick _ (V3 e f _) (V3 g h _))
   -- vertical bar. We check if our (x,y) coordinates fall somewhere inside the
   -- other brick.
   | a == c && b == d = e <= a && a <= g && f <= b && b <= h
@@ -45,42 +58,59 @@ collide (V3 a b _, V3 c d _) (V3 e f _, V3 g h _)
     maxMinY = max b f
     minMaxY = min d h
 
-supports :: Brick -> Brick -> Bool
-supports brick otherBrick =
+supported :: Brick -> Brick -> Bool
+supported brick otherBrick =
   lowPoint otherBrick == highPoint brick + 1 && collide brick otherBrick
 
 isSupported :: Brick -> Brick -> Bool
 isSupported brick otherBrick =
   highPoint otherBrick == lowPoint brick - 1 && collide brick otherBrick
 
-fall :: [Brick] -> Brick -> [Brick]
-fall bricks brick@(V3 a b c, V3 d e f)
+fall :: Stack -> Brick -> Stack
+fall bricks brick@(Brick iD (V3 a b c) (V3 d e f))
   -- path is blocked. We can't fall further
   | c == 1 || any (\b -> highPoint b == c - 1 && collide brick b) bricks =
-    brick : bricks
+    insert brick bricks
   -- otherwise, fall.
   | otherwise = fall bricks fallen
   where
-    fallen = (V3 a b (c - 1), V3 d e (f - 1))
+    fallen = Brick iD (V3 a b (c - 1)) (V3 d e (f - 1))
+
+disintegrate :: Stack -> Brick -> Stack
+disintegrate bricks brick = foldl fall empty . delete brick $ bricks
+
+supportingFilter :: Stack -> Brick -> Bool
+supportingFilter stack brick =
+  1 `elem`
+  (foldl (\l ob -> (size . St.filter (isSupported ob) $ stack) : l) [] .
+   St.filter (supported brick) $
+   stack)
+
+notSupporting :: Stack -> Stack
+notSupporting stack = St.filter (not . supportingFilter stack) stack
+
+supporting :: Stack -> Stack
+supporting stack = St.filter (supportingFilter stack) stack
+
+fallenStack :: String -> Stack
+fallenStack =
+  foldl fall empty .
+  fromList .
+  zipWith (curry toBricks) [1 ..] .
+  L.map (L.map toPos) . complexParser ["~"] ["[[:digit:]]+", "[[:digit:]]+"]
+
+countFall :: Stack -> Brick -> Int
+countFall stack brick =
+  size . difference (disintegrate stack brick) . delete brick $ stack
+
+countAllFall :: Stack -> Stack -> Int
+countAllFall fullStack = foldr ((+) . countFall fullStack) 0
 
 part1 :: Bool -> String -> String
-part1 _ input =
-  show .
-  length .
-  filter (notElem 1) .
-  map
-    (\b ->
-       map (\ob -> length . filter (isSupported ob) $ fallenStack) .
-       filter (supports b) $
-       fallenStack) $
-  fallenStack
-  where
-    fallenStack =
-      foldl fall [] .
-      sortBy lowPointSort .
-      map (toBricks . map toPos) .
-      complexParser ["~"] ["[[:digit:]]+", "[[:digit:]]+"] $
-      input
+part1 _ = show . size . notSupporting . fallenStack
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ input = show . countAllFall fullStack $ isSupport
+  where
+    fullStack = fallenStack input
+    isSupport = supporting fullStack
