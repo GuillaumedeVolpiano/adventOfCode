@@ -55,7 +55,7 @@ numbers = map (map read) . custom nums
 -- strings, taken from the original string, split around the splitters and
 -- parsed with the patterns.
 complexParser :: [String] -> [String] -> String -> [[[String]]]
-complexParser splitters pats =
+complexParser splitters pats = 
   map (zipWith regexList pats . splitOnSplitters splitters) . lines
 
 make2DArray :: IArray UArray a => [[a]] -> UArray (V2 Int) a
