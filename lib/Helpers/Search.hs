@@ -172,14 +172,14 @@ astarVal ::
   -> (k -> p)
   -> (v -> v -> p)
   -> p
-astarVal startKey startValue isGoal neighbours heuristic dist =
-  fst $ astar startKey startValue isGoal neighbours heuristic dist
+astarVal startKey startValue isGoal neighbours heuristics dist =
+  fst $ astar startKey startValue isGoal neighbours heuristics dist
 
 -- queue: a priority queue, originally the start key priority value set
 -- isGoal: returns True if the goal has been reached
 -- neighbours: a function that returns a list of key  values of the nodes
 --            accessible from the current node.
--- heuristic: the heuristic function
+-- heuristics: the heuristics function
 -- dist : a function returning the real distance between two values
 astar ::
      (Hashable k, Ord k, Num p, Ord p)
@@ -203,23 +203,24 @@ astarMech ::
   -> (k -> p)
   -> (v -> v -> p)
   -> (p, [v])
-astarMech queue paths gscore isGoal neighbours heuristic dist
+astarMech queue paths gscore isGoal neighbours heuristics dist
   | Q.null queue = error "no solution found"
   | isGoal curKey = (gscore ! curKey, reconstructPathAStar paths curKey)
   | otherwise =
-    astarMech newQueue newPaths newGscore isGoal neighbours heuristic dist
+    astarMech newQueue newPaths newGscore isGoal neighbours heuristics dist
   where
     (curKey, curPri, curVal, rest) = fromJust $ minView queue
     toVisit = neighbours curKey
     (newQueue, newGscore, newPaths) = foldl fscore (rest, gscore, paths) toVisit
     fscore (aQueue, scoreMap, pathMap) (aKey, aVal)
       | isNothing (M.lookup aKey scoreMap) || tentativeScore < scoreMap ! aKey =
-        ( Q.insert aKey tentativeScore aVal aQueue
+        ( Q.insert aKey hScore aVal aQueue
         , M.insert aKey tentativeScore scoreMap
         , M.insert aKey (curKey, curVal) pathMap)
       | otherwise = (aQueue, scoreMap, pathMap)
       where
         tentativeScore = fromJust (M.lookup curKey scoreMap) + dist curVal aVal
+        hScore = tentativeScore + heuristics curKey
 
 reconstructPathAStar :: Ord k => Map k (k, v) -> k -> [v]
 reconstructPathAStar paths node
