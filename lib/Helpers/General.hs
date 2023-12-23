@@ -73,7 +73,6 @@ retrieveInput year day test withProxy = do
 remoteInput :: Int -> Int -> Bool -> IO String
 remoteInput year day withProxy = do
   let url = adventURL ++ show year ++ "/day/" ++ show day ++ "/input"
-  print url
   home <- getHomeDirectory
   cookie <- parseCookie $ home ++ cookiePath
   proxy <- readFile (home ++ proxyPath)
@@ -82,5 +81,4 @@ remoteInput year day withProxy = do
           then [CurlProxy (init proxy), CurlCookie cookie]
           else [CurlCookie cookie]
   (code, rsp) <- curlGetString url curlArgs
-  print code
   return rsp
