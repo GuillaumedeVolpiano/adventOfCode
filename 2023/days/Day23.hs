@@ -38,14 +38,6 @@ neighbours hikes hasSlopes (pos, path) = nextStates
       possDest
     b = bounds hikes
 
-explore :: Hikes -> Bool -> Pos -> State -> Int
-explore hikes hasSlopes goal state@(pos, path)
-  | pos == goal = St.size path - 1
-  | L.null nextPos = negate 1
-  | otherwise = maximum . map (explore hikes hasSlopes goal) $ nextPos
-  where
-    nextPos = neighbours hikes hasSlopes state
-
 findNodes :: Hikes -> Pos -> Pos -> Bool -> Pos -> [Node]
 findNodes hikes startPos goalPos hasSlopes pos =
   mapMaybe (followPath hikes startPos goalPos hasSlopes) .
@@ -96,7 +88,6 @@ part1 _ input =
   show .
   maximum . catMaybes . findPaths nodeMap (startPos, St.singleton startPos) $
   goalPos
-  -- show . explore hikes True goalPos $ startState
   where
     hikes = arrayFromString input
     (_, V2 _ dy) = bounds hikes
@@ -105,9 +96,6 @@ part1 _ input =
       head . filter (\pos@(V2 _ y) -> y == 0 && hikes A.! pos == '.') $ posPos
     goalPos =
       head . filter (\pos@(V2 _ y) -> y == dy && hikes A.! pos == '.') $ posPos
-    isGoal pos = fst pos == goalPos
-    allSpots = length . filter (/= '#') . elems $ hikes
-    startState = (startPos, St.singleton startPos)
     nodeMap =
       findAllNodes hikes startPos goalPos True (Sq.singleton startPos) M.empty
 
@@ -125,8 +113,5 @@ part2 _ input =
       head . filter (\pos@(V2 _ y) -> y == 0 && hikes A.! pos == '.') $ posPos
     goalPos =
       head . filter (\pos@(V2 _ y) -> y == dy && hikes A.! pos == '.') $ posPos
-    isGoal pos = fst pos == goalPos
-    allSpots = length . filter (/= '#') . elems $ hikes
-    startState = (startPos, St.singleton startPos)
     nodeMap =
       findAllNodes hikes startPos goalPos False (Sq.singleton startPos) M.empty
