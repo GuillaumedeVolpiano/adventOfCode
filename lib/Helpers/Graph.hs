@@ -20,8 +20,9 @@ import           Data.Graph.Inductive.PatriciaTree (Gr)
 import           Data.GraphViz                     (DotGraph, Labellable,
                                                     graphToDot, printDotGraph,
                                                     quickParams)
-import           Data.Map                          (Map, assocs, fromList, keys,
-                                                    (!))
+import           Data.List                         (nub)
+import           Data.Map                          (Map, assocs, elems,
+                                                    fromList, keys, (!))
 import           Data.Text.Lazy                    (Text)
 import           Linear.V2                         (V2 (..))
 
@@ -37,12 +38,12 @@ west = V2 (-1) 0
 
 dirs = [north, south, east, west]
 
-dicToGraph :: Map String [String] -> Gr String String
+dicToGraph :: Map String [(String, a)] -> Gr String a
 dicToGraph dic = mkGraph nodes edges
   where
-    nodes = zip [0 ..] . keys $ dic
+    nodes = zip [0 ..] . nub $ keys dic ++ map fst (concat . elems $ dic)
     edges =
-      map (\(a, b) -> (labelToNode ! a, labelToNode ! b, a ++ " " ++ b)) .
+      map (\(a, (b, c)) -> (labelToNode ! a, labelToNode ! b, c)) .
       concatMap (\(a, b) -> map (a, ) b) . assocs $
       dic
     labelToNode = fromList . map (\(a, b) -> (b, a)) $ nodes
