@@ -1,0 +1,11 @@
+{-# LANGUAGE TupleSections #-}
+module Day25 (part1, part2) where
+
+import Helpers.Parsers (complexParser)
+import Helpers.Graph (dicToGraph, graphToViz)
+
+part1 :: Bool -> String -> String
+part1 _ = show . words . lines
+
+part2 :: Bool -> String -> String
+part2 _ _ = "Part 2"
