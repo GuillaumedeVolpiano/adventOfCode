@@ -70,8 +70,8 @@ retrieveInput year day test withProxy = do
   if test
     then readFile $
          home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
-    else readFile $ home ++ inputPath ++ show year ++ "/day" ++ show day ++ ".txt" 
-    --remoteInput year day withProxy
+    -- readFile $ home ++ inputPath ++ show year ++ "/day" ++ show day ++ ".txt"
+    else remoteInput year day withProxy
 
 remoteInput :: Int -> Int -> Bool -> IO String
 remoteInput year day withProxy = do

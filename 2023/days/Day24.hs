@@ -5,18 +5,23 @@ module Day24
   , part2
   ) where
 
-import           Data.List                             (tails)
-import           Data.Set                              (Set, fromList,
-                                                        intersection)
-import           Helpers.Parsers                       (complexParser, nums)
-import           Linear.V3
-import           Math.NumberTheory.ArithmeticFunctions (divisors)
+import           Data.List       (tails)
+import           Helpers.Parsers (complexParser, nums)
+import           Linear.Matrix   (M44 (..))
+import           Linear.V2       (V2 (..))
+import           Linear.V3       (V3 (..))
+import           Linear.V4       (V4 (..))
+import           Linear.Vector   ((*^))
+
+import           Debug.Trace
 
 type Pos a = V3 a
 
 type Vel a = V3 a
 
 type Hail a = (Pos a, Vel a)
+
+type System = (M44 Integer, V4 Integer)
 
 minV t
   | t = 7
@@ -60,32 +65,74 @@ count2DIntersections test l =
 makeHail :: [[a]] -> Hail a
 makeHail [[a, b, c], [d, e, f]] = (V3 a b c, V3 d e f)
 
-potK :: Hail Int -> Hail Int -> Set Int
-potK (V3 x y z, _) (V3 a b c, _)
-  | x /= a && y /= b && z /= c = intersection dx . intersection dy $ dz
-  | x == a = intersection dy dz
-  | y == b = intersection dx dz
-  | z == c = intersection dx dy
+toXYEquations :: [Hail Integer] -> System
+toXYEquations (a:b) =
+  (\[(e1, r1), (e2, r2), (e3, r3), (e4, r4)] -> (V4 e1 e2 e3 e4, V4 r1 r2 r3 r4)) .
+  map (toXYEquation a) $
+  b
+
+toXYEquation :: Hail Integer -> Hail Integer -> (V4 Integer, Integer)
+toXYEquation (V3 x0 y0 _, V3 vx0 vy0 _) (V3 x1 y1 _, V3 vx1 vy1 _) =
+  ( V4 (vy0 - vy1) (y1 - y0) (vx1 - vx0) (x0 - x1)
+  , vy0 * x0 - vx0 * y0 + vx1 * y1 - vy1 * x1)
+
+solve4System :: System -> V4 Integer
+solve4System = result . reduce3 . reduce2 . reduce1
+
+posVel :: [Hail Integer] -> Hail Integer
+posVel hails = (V3 x y z, V3 dx dy dz)
   where
-    dx = divisors . abs $ x - a
-    dy = divisors . abs $ y - b
-    dz = divisors . abs $ z - c
+    (V4 x dx y dy) = solve4System . toXYEquations $ hails
+    (V2 z dz) = findZdZ x dx . take 2 $ hails
 
-findK :: Hail Int -> [Hail Int] -> Set Int
-findK p [a]    = potK p a
-findK p (a:as) = intersection (potK p a) . findK p $ as
+findZdZ :: Integer -> Integer -> [Hail Integer] -> V2 Integer
+findZdZ x dx [(V3 x0 _ z0, V3 vx0 _ vz0), (V3 x1 _ z1, V3 vx1 _ vz1)] = V2 z dz
+  where
+    t0 = div (x0 - x) (dx - vx0)
+    t1 = div (x1 - x) (dx - vx1)
+    r0 = z0 + vz0 * t0
+    r1 = z1 + vz1 * t1
+    dz = div (r1 - r0) (t1 - t0)
+    z = r0 - dz * t0
 
-allKs :: [Hail Int] -> [Set Int]
-allKs l = zipWith findK (init l) . tail . tails $ l
+reduce1 :: System -> System
+reduce1 (V4 e1@(V4 a _ _ _) e2@(V4 b _ _ _) e3@(V4 c _ _ _) e4@(V4 d _ _ _), V4 r1 r2 r3 r4) =
+  (V4 e1 ne2 ne3 ne4, V4 r1 nr2 nr3 nr4)
+  where
+    ne2 = a *^ e2 - b *^ e1
+    nr2 = a * r2 - b * r1
+    ne3 = a *^ e3 - c *^ e1
+    nr3 = a * r3 - c * r1
+    ne4 = a *^ e4 - d *^ e1
+    nr4 = a * r4 - d * r1
 
-similarVelocity :: [Hail Int] -> [(Hail Int, Hail Int)]
-similarVelocity hails =
-  concatMap (filter equalVel . (\(a, b) -> map (a, ) b)) .
-  zip (init hails) . tail . tails $
-  hails
+reduce2 :: System -> System
+reduce2 (V4 e1 e2@(V4 _ b _ _) e3@(V4 _ c _ _) e4@(V4 _ d _ _), V4 r1 r2 r3 r4) =
+  (V4 e1 e2 ne3 ne4, V4 r1 r2 nr3 nr4)
+  where
+    ne3 = b *^ e3 - c *^ e2
+    nr3 = b * r3 - c * r2
+    ne4 = b *^ e4 - d *^ e2
+    nr4 = b * r4 - d * r2
 
-equalVel :: (Eq a) => (Hail a, Hail a) -> Bool
-equalVel ((_, V3 a b c), (_, V3 d e f)) = a == d || b == e || c == f
+reduce3 :: System -> System
+reduce3 (V4 e1 e2 e3@(V4 _ _ c _) e4@(V4 _ _ d _), V4 r1 r2 r3 r4) =
+  (V4 e1 e2 e3 ne4, V4 r1 r2 r3 nr4)
+  where
+    ne4 = c *^ e4 - d *^ e3
+    nr4 = c * r4 - d * r3
+
+result :: System -> V4 Integer
+result (V4 e1@(V4 a b c d) e2@(V4 0 e f g) e3@(V4 0 0 h i) e4@(V4 0 0 0 j), V4 r1 r2 r3 r4) =
+  V4 w x y z
+  where
+    z = div r4 j
+    y = div (r3 - i * z) h
+    x = div (r2 - f * y - g * z) e
+    w = div (r1 - b * x - c * y - d * z) a
+
+sumCoords :: Hail Integer -> Integer
+sumCoords (V3 x y z, _) = x + y + z
 
 part1 :: Bool -> String -> String
 part1 test =
@@ -93,12 +140,9 @@ part1 test =
   count2DIntersections test .
   map (makeHail . map (map read)) . complexParser ["@"] [nums, nums]
 
--- x mod k = x1 mod k
--- y mod k = y1 mod k
--- z mod k = z1 mod k
--- x + y + z mod k = x1 + y1 + z1
 part2 :: Bool -> String -> String
 part2 _ =
   show .
-  similarVelocity .
-  map (makeHail . map (map read)) . complexParser ["@"] [nums, nums]
+  sumCoords .
+  posVel .
+  take 5 . map (makeHail . map (map read)) . complexParser ["@"] [nums, nums]
