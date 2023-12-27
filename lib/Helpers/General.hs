@@ -64,14 +64,16 @@ parseCookie path = do
         rawCookie
   return $ name ++ "=" ++ value
 
-retrieveInput :: Int -> Int -> Bool -> Bool -> IO String
-retrieveInput year day test withProxy = do
+retrieveInput :: Int -> Int -> Bool -> Bool -> Bool -> IO String
+retrieveInput year day test local withProxy = do
   home <- getHomeDirectory
   if test
     then readFile $
          home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
-    -- readFile $ home ++ inputPath ++ show year ++ "/day" ++ show day ++ ".txt"
-    else remoteInput year day withProxy
+    else if local
+           then readFile $
+                home ++ inputPath ++ show year ++ "/day" ++ show day ++ ".txt"
+           else remoteInput year day withProxy
 
 remoteInput :: Int -> Int -> Bool -> IO String
 remoteInput year day withProxy = do
