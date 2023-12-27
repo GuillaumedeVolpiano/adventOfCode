@@ -39,6 +39,7 @@ data Arguments =
   Arguments
     { day      :: Int
     , test     :: Bool
+    , local :: Bool
     , proxy    :: Bool
     , wallTime :: Bool
     }
@@ -86,6 +87,7 @@ main = do
           { day =
               def &= help "Which day to process. Defaults to the current day" &=
               opt curDay
+          , local = def &= help "Use a local input file rather than downloading"
           , test = def &= help "Run the test suite? Defaults to True if used"
           , proxy = def &= help "Use a proxy? Defaults to True if used"
           , wallTime = def &= help "Report wall Time rather than CPU time"
@@ -96,7 +98,7 @@ main = do
         case day args of
           0 -> curDay
           _ -> day args
-  input <- retrieveInput year theDay (test args) (proxy args)
+  input <- retrieveInput year theDay (test args) (local args) (proxy args)
   let (solve1, solve2) = solver ! theDay
   let timer =
         if wallTime args
