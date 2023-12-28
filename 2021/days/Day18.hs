@@ -1,14 +1,11 @@
 module Day18
   ( part1
   , part2
-  , parseNumber
-  , explode
   ) where
 
 import           Control.Monad.State.Lazy (State, evalState, get, put, runState)
 import           Data.Char                (isDigit)
-
-import           Debug.Trace
+import           Data.Maybe               (Maybe (Just, Nothing), catMaybes)
 
 data Number
   = Reg Int
@@ -68,14 +65,9 @@ addNumber a = reduce . Pair a
 
 reduce :: Number -> Number
 reduce n
-  | isDeep 4 n = trace ("explode " ++ show n) reduce . explode $ [(n, 0, [])]
-  | has10 n = trace ("reduce " ++ show n) reduce . split $ [(n, 0, [])]
+  | isDeep 4 n = reduce . explode $ [(n, 0, [])]
+  | has10 n = reduce . split $ [(n, 0, [])]
   | otherwise = n
-
-addLeft :: Int -> Zipper -> Zipper
-addLeft x (Pair a b, d, z) = (Pair addedLeft (Reg 0), d, z)
-  where
-    addedLeft = goTop . leftAdd x $ (a, 0, [])
 
 leftAdd :: Int -> Zipper -> Zipper
 leftAdd x zip@(Reg y, _, _) = zipAdd x zip
@@ -89,7 +81,7 @@ addUpThenRight :: Int -> Zipper -> Number
 addUpThenRight x zip@(_, _, z:zs)
   | isLeft z && all isLeft zs = goTop zip
   | isLeft z = addUpThenRight x . goUp $ zip
-  | otherwise = goTop . rightAdd x . goLeft $ zip
+  | otherwise = goTop . rightAdd x . goLeft . goUp $ zip
 
 addUpThenLeft :: Int -> Zipper -> Number
 addUpThenLeft x zip@(_, _, z:zs)
@@ -97,10 +89,15 @@ addUpThenLeft x zip@(_, _, z:zs)
   | isRight z = addUpThenLeft x . goUp $ zip
   | otherwise = goTop . leftAdd x . goRight . goUp $ zip
 
+addLeft :: Int -> Zipper -> Zipper
+addLeft x (Pair a b, d, z) = (Pair addedLeft (Reg 0), d, z)
+  where
+    addedLeft = goTop . rightAdd x $ (a, 0, [])
+
 addRight :: Int -> Zipper -> Zipper
 addRight x (Pair a b, d, z) = (Pair (Reg 0) addedRight, d, z)
   where
-    addedRight = goTop . rightAdd x $ (b, 0, [])
+    addedRight = goTop . leftAdd x $ (b, 0, [])
 
 zipAdd :: Int -> Zipper -> Zipper
 zipAdd x (Reg y, d, z) = (Reg (x + y), d, z)
@@ -139,8 +136,23 @@ parsePair = do
   firstNumber <- parseNumber
   Pair firstNumber <$> parseNumber
 
+magnitude :: Number -> Int
+magnitude (Pair a b) = 3 * magnitude a + 2 * magnitude b
+magnitude (Reg a)    = a
+
+checkMagnitude :: Number -> Number -> Maybe Int
+checkMagnitude a b
+  | a == b = Nothing
+  | otherwise = Just . magnitude . addNumber a $ b
+
+allMagnitudes :: [Number] -> [Maybe Int]
+allMagnitudes nums = checkMagnitude <$> nums <*> nums
+
 part1 :: Bool -> String -> String
-part1 _ = show . foldl1 addNumber . map (evalState parseNumber) . lines
+part1 _ =
+  show . magnitude . foldl1 addNumber . map (evalState parseNumber) . lines
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  show .
+  maximum . catMaybes . allMagnitudes . map (evalState parseNumber) . lines
