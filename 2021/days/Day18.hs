@@ -72,40 +72,35 @@ reduce n
   | has10 n = trace ("reduce " ++ show n) reduce . split $ [(n, 0, [])]
   | otherwise = n
 
-addLeft :: Int -> [Zipper -> Zipper] -> Zipper -> Zipper
-addLeft x l zip@(n, d, z)
-  | all isLeft z = zip
-addLeft x l zip@(n, d, z:zs)
-  | isRight z = leftAdd x (goUp : goRight : l) . goLeft . goUp $ zip
-  | otherwise = addUpThenRight x (goRight : l) . goUp $ zip
+addLeft :: Int -> Zipper -> Zipper
+addLeft x (Pair a b, d, z) = (Pair addedLeft (Reg 0), d, z)
+  where
+    addedLeft = goTop . leftAdd x $ (a, 0, [])
 
-leftAdd :: Int -> [Zipper -> Zipper] -> Zipper -> Zipper
-leftAdd x l zip@(Reg y, _, _) = goBack l . zipAdd x $ zip
-leftAdd x l zip               = leftAdd x (goUp : l) . goLeft $ zip
+leftAdd :: Int -> Zipper -> Zipper
+leftAdd x zip@(Reg y, _, _) = zipAdd x zip
+leftAdd x zip               = leftAdd x . goLeft $ zip
 
-rightAdd :: Int -> [Zipper -> Zipper] -> Zipper -> Zipper
-rightAdd x l zip@(Reg y, _, _) = goBack l . zipAdd x $ zip
-rightAdd x l zip               = rightAdd x (goUp : l) . goRight $ zip
+rightAdd :: Int -> Zipper -> Zipper
+rightAdd x zip@(Reg y, _, _) = zipAdd x zip
+rightAdd x zip               = rightAdd x . goRight $ zip
 
-addUpThenRight :: Int -> [Zipper -> Zipper] -> Zipper -> Zipper
-addUpThenRight x l zip@(Reg y, _, _) = goBack l . zipAdd x $ zip
-addUpThenRight x l zip@(_, _, z:zs)
-  | isLeft z = addUpThenRight x (goLeft : l) . goUp $ zip
-  | otherwise = rightAdd x (goUp : l) . goLeft $ zip
+addUpThenRight :: Int -> Zipper -> Number
+addUpThenRight x zip@(_, _, z:zs)
+  | isLeft z && all isLeft zs = goTop zip
+  | isLeft z = addUpThenRight x . goUp $ zip
+  | otherwise = goTop . rightAdd x . goLeft $ zip
 
 addUpThenLeft :: Int -> Zipper -> Number
-addUpThenLeft x zip@(Reg y, _, _) = goTop . zipAdd x $ zip
 addUpThenLeft x zip@(_, _, z:zs)
-  | isRight z =
-    trace ("still going up " ++ show zip) addUpThenLeft x . goUp $ zip
-  | otherwise = goTop . leftAdd x [] . goRight . goUp $ zip
+  | isRight z && all isRight zs = goTop zip
+  | isRight z = addUpThenLeft x . goUp $ zip
+  | otherwise = goTop . leftAdd x . goRight . goUp $ zip
 
-addRight :: Int -> Zipper -> Number
-addRight x zip@(n, d, z)
-  | all isRight z = goTop zip
-addRight x zip@(n, d, z:zs)
-  | isLeft z = goTop . rightAdd x [] . goRight . goUp $ zip
-  | otherwise = addUpThenLeft x . goUp $ zip
+addRight :: Int -> Zipper -> Zipper
+addRight x (Pair a b, d, z) = (Pair (Reg 0) addedRight, d, z)
+  where
+    addedRight = goTop . rightAdd x $ (b, 0, [])
 
 zipAdd :: Int -> Zipper -> Zipper
 zipAdd x (Reg y, d, z) = (Reg (x + y), d, z)
@@ -117,8 +112,9 @@ explode :: [Zipper] -> Number
 explode s
   | null s = error "no nested pair found"
 explode ((Reg _, _, _):zs) = explode zs
-explode ((Pair (Reg a) (Reg b), 4, zipper):_) =
-  addRight b . addLeft a [] $ (Reg 0, 4, zipper)
+explode (zip@(Pair (Reg a) (Reg b), 4, z:zs):_)
+  | isRight z = addUpThenLeft b . addLeft a . goUp $ zip
+  | isLeft z = addUpThenRight a . addRight b . goUp $ zip
 explode (z:zs) = explode $ goLeft z : goRight z : zs
 
 split :: [Zipper] -> Number
