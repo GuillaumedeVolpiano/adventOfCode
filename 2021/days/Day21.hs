@@ -3,11 +3,10 @@ module Day21
   , part2
   ) where
 
-import           Control.Monad.State (State, evalState, get, gets, put)
-import           Data.Hashable       (Hashable, hashWithSalt)
-import           Data.HashPSQ        (HashPSQ, alter, minView, singleton)
-import           Data.Maybe          (Maybe (Just, Nothing), fromJust,
-                                      isNothing)
+import           Control.Monad.State (State, evalState, get, put)
+import           Data.MultiSet       as MS (MultiSet, Occur, empty, foldOccur,
+                                            fromList, insertMany, partition,
+                                            singleton, size, union)
 import           Helpers.Parsers     (integers)
 import           Linear.V2           (V2 (..))
 
@@ -17,92 +16,88 @@ type Score = Int
 
 data Player =
   Player Pos Score
-  deriving (Show, Eq)
-
-data Players =
-  Players Player Player
   deriving (Show, Eq, Ord)
 
 type Die = Int
 
 type Rolls = Int
 
-type Occurences = Int
-
 type Win = V2 Int
 
-type Turn = Int
+type Dice = MultiSet Int
 
-type PosTurn = (Player, Player, Turn)
-
-type GameQueue = HashPSQ PosTurn Players Occurences
+type Games = MultiSet (Player, Player)
 
 type Game1 = State (Player, Player, Die, Rolls) Int
 
-type Game2 = State GameQueue Win
+type Game2 = State Games Win
 
-instance Ord Player where
-  compare (Player p1 s1) (Player p2 s2) = compare p1 p2 `mappend` compare s1 s2
+dirac = fromList [x + y + z | x <- [1 .. 3], y <- [1 .. 3], z <- [1 .. 3]]
 
-instance Hashable Player where
-  hashWithSalt salt (Player p s) = hashWithSalt salt (2000 * p + s)
-
-dirac = [(3, 1), (4, 3), (5, 6), (6, 7), (7, 6), (8, 3), (9, 1)]
+advance :: Player -> Die -> Player
+advance (Player pos score) roll = Player newPos (score + newPos)
+  where
+    newPos = mod (pos + roll - 1) 10 + 1
 
 advanceP1 :: Game1
 advanceP1 = do
-  (Player p1pos p1score, p2, die, rolls) <- get
+  (p1, p2, die, rolls) <- get
   let roll = die + mod (die + 1) 100 + mod (die + 2) 100 + 3
-      newp1pos = mod (p1pos + roll - 1) 10 + 1
-      p1 = Player newp1pos (p1score + newp1pos)
+      newP1 = advance p1 roll
       newdie = mod (die + 2) 100 + 1
       newRolls = rolls + 3
-  put (p1, p2, newdie, newRolls)
+  put (newP1, p2, newdie, newRolls)
   return $ score p2 newRolls
 
 advanceP2 :: Game1
 advanceP2 = do
-  (p1, Player p2pos p2score, die, rolls) <- get
+  (p1, p2, die, rolls) <- get
   let roll = die + mod (die + 1) 100 + mod (die + 2) 100 + 3
-      newp2pos = mod (p2pos + roll - 1) 10 + 1
+      newP2 = advance p2 roll
       newdie = mod (die + 2) 100 + 1
-      p2 = Player newp2pos (p2score + newp2pos)
       newRolls = rolls + 3
-  put (p1, p2, newdie, newRolls)
+  put (p1, newP2, newdie, newRolls)
   return $ score p1 newRolls
 
-game2 :: Game2
-game2 = do
-  queue <- gets minView
-  let result
-        | isNothing queue = V2 0 0
-        | otherwise = treat . fromJust $ queue
-  return result
+playGame1 :: (Player, Player) -> Occur -> Games
+playGame1 (p1, p2) numUniv =
+  foldOccur
+    (\roll numRoll games ->
+       insertMany (advance p1 roll, p2) (numUniv * numRoll) games)
+    empty
+    dirac
 
-treat :: (PosTurn, Players, Occurences, GameQueue) -> Win
-treat ((_, _, turn), Players p1@(Player _ s1) p2@(Player _ s2), oc, queue)
-  | s1 >= 21 = V2 oc 0 + evalState game2 queue
-  | s2 >= 21 = V2 0 oc + evalState game2 queue
-  | otherwise = evalState game2 newQueue
-  where
-    newQueue =
-      foldl
-        (\a b@(newP1, newP2, _) ->
-           snd . alter (updateQueue b) (newP1, newP2, newTurn) $ a)
-        queue
-        newPlayers
-    newPlayers
-      | turn == 1 = map (\(a, b) -> (a, p2, b)) . advanceBy $ p1
-      | otherwise = map (\(a, b) -> (p1, a, b)) . advanceBy $ p2
-    newTurn = 3 - turn
-    advanceBy (Player pos score) =
-      map (\(a, b) -> (updatePlayer pos score a, b * oc)) dirac
-    updatePlayer pos score a = Player (newPos pos a) (score + newPos pos a)
-    newPos pos a = mod (pos + a - 1) 10 + 1
-    updateQueue (newP1, newP2, newOc) Nothing =
-      (0, Just (Players newP1 newP2, newOc))
-    updateQueue (newP1, newP2, newOc) (Just (_, oldOc)) =
-      (0, Just (Players newP1 newP2, newOc + oldOc))
+playGame2 :: (Player, Player) -> Occur -> Games
+playGame2 (p1, p2) numUniv =
+  foldOccur
+    (\roll numRoll games ->
+       insertMany (p1, advance p2 roll) (numUniv * numRoll) games)
+    empty
+    dirac
+
+doGame1 :: Game2
+doGame1 = do
+  universes <- get
+  let played = foldOccur (\a o b -> playGame1 a o `union` b) empty universes
+      (won, undecided) = partition p1Wins played
+      wins = size won
+  put undecided
+  return (V2 wins 0)
+
+doGame2 :: Game2
+doGame2 = do
+  universes <- get
+  let played = foldOccur (\a o b -> playGame2 a o `union` b) empty universes
+      (won, undecided) = partition p2Wins played
+      wins = size won
+  put undecided
+  return (V2 0 wins)
+
+p1Wins :: (Player, Player) -> Bool
+p1Wins (Player _ score, _) = score >= 21
+
+p2Wins :: (Player, Player) -> Bool
+p2Wins (_, Player _ score) = score >= 21
 
 score :: Player -> Rolls -> Int
 score (Player _ score) rolls = score * rolls
@@ -122,13 +117,24 @@ game1 = do
         | otherwise = evalState game1 curState
   return result
 
+game2 :: Game2
+game2 = do
+  p1Win <- doGame1
+  p2Win <- doGame2
+  universes <- get
+  let interm = p1Win + p2Win
+      result
+        | null universes = interm
+        | otherwise = interm + evalState game2 universes
+  return result
+
 toState :: String -> (Player, Player, Die, Rolls)
 toState input = (Player p1 0, Player p2 0, 0, 0)
   where
     [[_, p1], [_, p2]] = integers input
 
-toState2 :: String -> HashPSQ PosTurn Players Occurences
-toState2 input = singleton (p1, p2, 1) (Players p1 p2) 1
+toState2 :: String -> Games
+toState2 input = singleton (p1, p2)
   where
     p1 = Player pos1 0
     p2 = Player pos2 0
