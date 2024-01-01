@@ -43,7 +43,8 @@ executable aoc2021
    -- other-extensions:
     build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl
                    , data-clist, directory, fgl, graphviz, hashable, linear
-                   , mtl, psqueues, regex-tdfa, split, text, timeit, time
+                   , mtl, multiset, psqueues, regex-tdfa, split, text, timeit
+                   , time
     default-language: Haskell2010
 
 executable aoc2022
