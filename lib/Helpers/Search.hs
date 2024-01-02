@@ -164,7 +164,7 @@ dijkstraMech queue dists paths neighbours isGoal
 
 --A* search
 astarVal ::
-     (Hashable k, Ord k, Num p, Ord p)
+     (Hashable k, Ord k, Num p, Ord p, Show k, Show v)
   => k
   -> v
   -> (k -> Bool)
@@ -182,7 +182,7 @@ astarVal startKey startValue isGoal neighbours heuristics dist =
 -- heuristics: the heuristics function
 -- dist : a function returning the real distance between two values
 astar ::
-     (Hashable k, Ord k, Num p, Ord p)
+     (Hashable k, Ord k, Num p, Ord p, Show k)
   => k
   -> v
   -> (k -> Bool)
@@ -194,7 +194,7 @@ astar startKey startValue =
   astarMech (Q.singleton startKey 0 startValue) M.empty (M.singleton startKey 0)
 
 astarMech ::
-     (Hashable k, Ord k, Num p, Ord p)
+     (Hashable k, Ord k, Num p, Ord p, Show k)
   => HashPSQ k p v
   -> Map k (k, v)
   -> Map k p
@@ -222,7 +222,7 @@ astarMech queue paths gscore isGoal neighbours heuristics dist
         tentativeScore = fromJust (M.lookup curKey scoreMap) + dist curVal aVal
         hScore = tentativeScore + heuristics curKey
 
-reconstructPathAStar :: Ord k => Map k (k, v) -> k -> [v]
+reconstructPathAStar :: (Ord k, Show k) => Map k (k, v) -> k -> [v]
 reconstructPathAStar paths node
   | isNothing (M.lookup node paths) = []
   | otherwise = val : reconstructPathAStar paths nextNode
