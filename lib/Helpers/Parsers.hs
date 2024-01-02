@@ -2,6 +2,7 @@
 
 module Helpers.Parsers
   ( alnum
+  , alpha
   , alphaNum
   , arrayFromString
   , characters
