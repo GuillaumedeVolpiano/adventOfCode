@@ -3,82 +3,88 @@ module Day25
   , part2
   ) where
 
-import           Data.Set    as St (Set, fromList, map, notMember)
-import           Linear.V2   (V2 (..))
-
-import           Debug.Trace
+import           Data.HashMap.Strict as M (HashMap, fromList, mapKeys, member,
+                                           (!))
+import           Data.List           (unfoldr)
+import           Linear.V2           (V2 (..))
 
 data Cucumber
-  = East Pos Pos
-  | South Pos Pos
+  = East
+  | South
   deriving (Show, Eq, Ord)
 
 type Pos = V2 Int
 
-type Trench = Set Cucumber
+type Trench = HashMap Pos Cucumber
+
+type Bounds = Pos
 
 south = V2 0 1
 
 east = V2 1 0
 
-pos :: Cucumber -> Pos
-pos (East p _)  = p
-pos (South p _) = p
+moveCucumberEast :: Bounds -> Pos -> Pos
+moveCucumberEast bounds p = vMod (p + east) bounds
 
-moveCucumber :: Cucumber -> Cucumber
-moveCucumber (East p v)  = East (vMod (p + east) v) v
-moveCucumber (South p v) = South (vMod (p + south) v) v
+moveCucumberSouth :: Bounds -> Pos -> Pos
+moveCucumberSouth bounds p = vMod (p + south) bounds
 
-vMod :: Pos -> Pos -> Pos
+vMod :: Pos -> Bounds -> Pos
 vMod (V2 x y) (V2 mx my) = V2 (mod x mx) (mod y my)
 
 isEast :: Cucumber -> Bool
-isEast (East _ _) = True
-isEast _          = False
+isEast East = True
+isEast _    = False
 
 isSouth :: Cucumber -> Bool
 isSouth = not . isEast
 
-moveEast :: Set Pos -> Cucumber -> Cucumber
-moveEast posTrench cucumber
-  | isEast cucumber && pos moved `notMember` posTrench = moved
-  | otherwise = cucumber
+moveEast :: Trench -> Bounds -> Pos -> Pos
+moveEast trench bounds pos
+  | isEast (trench ! pos) && not (moved `member` trench) = moved
+  | otherwise = pos
   where
-    moved = moveCucumber cucumber
+    moved = moveCucumberEast bounds pos
 
-moveSouth :: Set Pos -> Cucumber -> Cucumber
-moveSouth posTrench cucumber
-  | isSouth cucumber && pos moved `notMember` posTrench = moved
-  | otherwise = cucumber
+moveSouth :: Trench -> Bounds -> Pos -> Pos
+moveSouth trench bounds pos
+  | isSouth (trench ! pos) && not (moved `member` trench) = moved
+  | otherwise = pos
   where
-    moved = moveCucumber cucumber
+    moved = moveCucumberSouth bounds pos
 
-moveTrench :: Int -> Trench -> Int
-moveTrench acc trench
-  | trench == moved = acc
-  | otherwise = moveTrench (acc + 1) moved
+moveTrench :: Bounds -> Trench -> Trench
+moveTrench bounds trench = mapKeys (moveSouth eastMove bounds) eastMove
   where
-    movedEast = St.map (moveEast posTrench) trench
-    moved = St.map (moveSouth posEast) movedEast
-    posTrench = St.map pos trench
-    posEast = St.map pos movedEast
+    eastMove = mapKeys (moveEast trench bounds) trench
 
-mapTrench :: [String] -> Trench
+mapTrench :: [String] -> (Trench, Bounds)
 mapTrench input =
-  fromList
-    [ toCucumber (input !! y !! x) x y
-    | x <- [0 .. width - 1]
-    , y <- [0 .. height - 1]
-    , input !! y !! x /= '.'
-    ]
+  ( fromList
+      [ toCucumber (input !! y !! x) x y
+      | x <- [0 .. width - 1]
+      , y <- [0 .. height - 1]
+      , input !! y !! x /= '.'
+      ]
+  , V2 width height)
   where
     width = length . head $ input
     height = length input
-    toCucumber '>' x y = East (V2 x y) (V2 width height)
-    toCucumber 'v' x y = South (V2 x y) (V2 width height)
+    toCucumber '>' x y = (V2 x y, East)
+    toCucumber 'v' x y = (V2 x y, South)
+
+moving :: Bounds -> Trench -> Maybe (Trench, Trench)
+moving bounds trench
+  | moved == trench = Nothing
+  | otherwise = Just (moved, moved)
+  where
+    moved = moveTrench bounds trench
+
+doMoves :: (Trench, Bounds) -> [Trench]
+doMoves (trench, bounds) = unfoldr (moving bounds) trench
 
 part1 :: Bool -> String -> String
-part1 _ = show . moveTrench 1 . mapTrench . lines
+part1 _ = show . (+ 1) . length . doMoves . mapTrench . lines
 
 part2 :: Bool -> String -> String
 part2 _ _ = "Part 2"
