@@ -4,7 +4,7 @@ module Day22
   ) where
 
 import           Data.Maybe      (Maybe (Just, Nothing), mapMaybe)
-import           Helpers.Parsers (alpha, complexParser, nums)
+import           Helpers.Parsers (alpha, complexParser, numsAsStrings)
 import           Linear.V3       (V3 (..))
 
 data Cuboid =
@@ -84,11 +84,30 @@ part1 _ =
   ons .
   reboot .
   mapMaybe (threshold . toCuboid) .
-  complexParser [" "] [alpha, nums, nums, nums, nums, nums, nums]
+  complexParser
+    [" "]
+    [ alpha
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    ]
 
 part2 :: Bool -> String -> String
 part2 _ =
   show .
   ons .
   reboot .
-  map toCuboid . complexParser [" "] [alpha, nums, nums, nums, nums, nums, nums]
+  map toCuboid .
+  complexParser
+    [" "]
+    [ alpha
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    , numsAsStrings
+    ]

@@ -14,50 +14,103 @@ module Helpers.Parsers
   , make2DArray
   , numbers
   , nums
+  , numsAsStrings
   , splitOnSpace
   ) where
 
-import           Data.Array.IArray  (IArray)
-import           Data.Array.Unboxed (UArray, array)
-import           Data.Char          (digitToInt)
-import           Linear.V2          (V2 (..))
-import           Text.Regex.TDFA    (getAllTextMatches, (=~))
+import           Data.Array.IArray    (IArray)
+import           Data.Array.Unboxed   (UArray, array)
+import           Data.Char            (digitToInt, isAlpha, isAlphaNum, isDigit,
+                                       isSpace)
+import           Data.Either          (fromRight)
+import           Data.Maybe           (Maybe (Just, Nothing), catMaybes)
+import           Data.Void            (Void)
+import           Linear.V2            (V2 (..))
+import           Text.Megaparsec      (Parsec, eof, manyTill, optional, parse,
+                                       someTill, takeWhile1P, takeWhileP, try,
+                                       (<|>))
+import           Text.Megaparsec.Char (char, eol, printChar, string)
 
-alnum = "[[:alnum:]]+"
+type Parser = Parsec Void String
 
-alpha = "[[:alpha:]]+"
+parseLineList :: Parser (Maybe String) -> String -> [String]
+parseLineList parser =
+  fromRight [] . parse (catMaybes <$> manyTill (try parser <|> consume) eof) ""
 
-nums = "-?[[:digit:]]+"
+parseList :: Parser (Maybe a) -> String -> [[a]]
+parseList parser = fromRight [] . parse (manyTill (parseLine parser) eof) ""
 
-regexList :: String -> String -> [String]
-regexList pat line = getAllTextMatches (line =~ pat)
+parseInput :: Parser (Maybe a) -> Parser [[a]]
+parseInput parser = manyTill (parseLine parser) eof
+
+parseLine :: Parser (Maybe a) -> Parser [a]
+parseLine parser = catMaybes <$> manyTill (try parser <|> consume) eol
+
+consume :: Parser (Maybe a)
+consume = do
+  _ <- printChar
+  return Nothing
+
+nums :: (Num a, Read a) => Parser (Maybe a)
+nums = do
+  s <- optional . try $ do char '-'
+  i <- takeWhile1P Nothing isDigit
+  d <-
+    optional . try $ do
+      sep <- char '.'
+      dec <- takeWhile1P Nothing isDigit
+      return (sep : dec)
+  return (Just . read . concat . catMaybes $ [fmap (: []) s, Just i, d])
+
+numsAsStrings:: Parser (Maybe String)
+numsAsStrings = do
+  s <- optional . try $ do char '-'
+  i <- takeWhile1P Nothing isDigit
+  d <-
+    optional . try $ do
+      sep <- char '.'
+      dec <- takeWhile1P Nothing isDigit
+      return (sep : dec)
+  return (Just . concat . catMaybes $ [fmap (: []) s, Just i, d])
+
+alpha :: Parser (Maybe String)
+alpha = do
+  Just <$> takeWhile1P Nothing isAlpha
+
+alnum :: Parser (Maybe String)
+alnum = do
+  Just <$> takeWhile1P Nothing isAlphaNum
+
+notSpace :: Parser (Maybe String)
+notSpace = do
+  Just <$> takeWhileP Nothing (not . isSpace)
 
 alphaNum :: String -> [[String]]
-alphaNum = custom alnum
+alphaNum = parseList alnum
 
 characters :: String -> [[String]]
-characters = custom alpha
+characters = parseList alpha
 
-custom :: String -> String -> [[String]]
-custom pat = map (regexList pat) . lines
+custom :: Parser (Maybe String) -> String -> [[String]]
+custom = parseList
 
 doubles :: String -> [[Double]]
-doubles = map (map read) . custom nums
+doubles = numbers
 
 integers :: String -> [[Int]]
-integers = map (map read) . custom nums
+integers = numbers
 
 numbers :: (Num a, Read a) => String -> [[a]]
-numbers = map (map read) . custom nums
+numbers = parseList nums
 
 -- | The 'complex parser' function parses a string with complex patterns. It
 -- takes as arguments a list of splitter patterns, a list of parsing patterns
 -- and a string, potentially unlined, and return a list of list of lists of
 -- strings, taken from the original string, split around the splitters and
 -- parsed with the patterns.
-complexParser :: [String] -> [String] -> String -> [[[String]]]
-complexParser splitters pats = 
-  map (zipWith regexList pats . splitOnSplitters splitters) . lines
+complexParser :: [String] -> [Parser (Maybe String)] -> String -> [[[String]]]
+complexParser splitters pats =
+  map (zipWith parseLineList pats . splitOnSplitters splitters) . lines
 
 make2DArray :: IArray UArray a => [[a]] -> UArray (V2 Int) a
 make2DArray l =
@@ -75,10 +128,17 @@ digitArrayFromString :: String -> UArray (V2 Int) Int
 digitArrayFromString = make2DArray . map (map digitToInt) . lines
 
 splitOnSpace :: String -> [[String]]
-splitOnSpace = map (regexList "[^[:space:]]+") . lines
+splitOnSpace = parseList notSpace
+
+splitter :: String -> Parser (String, String)
+splitter s = do
+  b <- manyTill printChar (string s)
+  _ <- string s
+  a <- manyTill printChar eof
+  return (b, a)
 
 splitOnSplitters :: [String] -> String -> [String]
-splitOnSplitters [] string = [string]
-splitOnSplitters (s:ss) string = before : splitOnSplitters ss after
+splitOnSplitters [] aString = [aString]
+splitOnSplitters (s:ss) aString = before : splitOnSplitters ss after
   where
-    (before, _, after) = string =~ s :: (String, String, String)
+    (before, after) = fromRight ("", "") . parse (splitter s) "" $ aString
