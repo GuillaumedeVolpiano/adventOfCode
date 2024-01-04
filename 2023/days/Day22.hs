@@ -7,7 +7,7 @@ import           Data.List       as L (filter, map, sort)
 import           Data.Set        as St (Set, delete, difference, empty, filter,
                                         fromList, insert, intersection, map,
                                         notMember, size)
-import           Helpers.Parsers (complexParser)
+import           Helpers.Parsers (complexParser, digits)
 import           Linear.V3       (V3 (..))
 
 type Pos = V3 Int
@@ -97,7 +97,7 @@ fallenStack =
   foldl fall empty .
   fromList .
   zipWith (curry toBricks) [1 ..] .
-  L.map (L.map toPos) . complexParser ["~"] ["[[:digit:]]+", "[[:digit:]]+"]
+  L.map (L.map toPos) . complexParser ["~"] [digits, digits]
 
 countFall :: Stack -> Brick -> Int
 countFall stack brick =

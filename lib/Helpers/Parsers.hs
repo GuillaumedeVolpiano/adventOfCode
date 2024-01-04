@@ -8,6 +8,7 @@ module Helpers.Parsers
   , characters
   , complexParser
   , custom
+  , digits
   , doubles
   , digitArrayFromString
   , integers
@@ -51,6 +52,10 @@ consume = do
   _ <- printChar
   return Nothing
 
+digits :: Parser (Maybe String)
+digits = do
+  Just <$> takeWhile1P Nothing isDigit
+
 nums :: (Num a, Read a) => Parser (Maybe a)
 nums = do
   s <- optional . try $ do char '-'
@@ -62,7 +67,7 @@ nums = do
       return (sep : dec)
   return (Just . read . concat . catMaybes $ [fmap (: []) s, Just i, d])
 
-numsAsStrings:: Parser (Maybe String)
+numsAsStrings :: Parser (Maybe String)
 numsAsStrings = do
   s <- optional . try $ do char '-'
   i <- takeWhile1P Nothing isDigit
