@@ -1,15 +1,10 @@
-{-# LANGUAGE PackageImports #-}
-
 module Day1
   ( part1
   , part2
   ) where
 
-import           "regex-pcre" Text.Regex.PCRE (getAllTextMatches, (=~))
-
 import           Data.Char                    (digitToInt, isAlpha, isDigit)
 import           Data.Either                  (fromRight)
-import           Data.Map                     (fromList, (!))
 import           Data.Maybe                   (catMaybes)
 import           Data.Void                    (Void)
 import           Text.Megaparsec              (Parsec, eof, lookAhead, manyTill,
@@ -19,28 +14,6 @@ import           Text.Megaparsec.Char         (char, digitChar, eol, lowerChar,
                                                string)
 
 type Parser = Parsec Void String
-
-specialRead =
-  fromList
-    [ ("on", 1)
-    , ("tw", 2)
-    , ("thre", 3)
-    , ("four", 4)
-    , ("fiv", 5)
-    , ("six", 6)
-    , ("seve", 7)
-    , ("eigh", 8)
-    , ("nin", 9)
-    , ("1", 1)
-    , ("2", 2)
-    , ("3", 3)
-    , ("4", 4)
-    , ("5", 5)
-    , ("6", 6)
-    , ("7", 7)
-    , ("8", 8)
-    , ("9", 9)
-    ]
 
 parseInteger :: Parser (Maybe Int)
 parseInteger = do

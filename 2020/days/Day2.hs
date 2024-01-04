@@ -3,7 +3,7 @@ module Day2
   , part2
   ) where
 
-import           Helpers.Parsers (alpha, complexParser, nums)
+import           Helpers.Parsers (alpha, complexParser, numsAsStrings)
 
 validate :: [String] -> Bool
 validate [a, b, [c], d] = length pruned <= read b && length pruned >= read a
@@ -21,11 +21,11 @@ part1 _ =
   show .
   length .
   filter validate .
-  map concat . complexParser ["-", " ", ": "] [nums, nums, alpha, alpha]
+  map concat . complexParser ["-", " ", ": "] [numsAsStrings, numsAsStrings, alpha, alpha]
 
 part2 :: Bool -> String -> String
 part2 _ =
   show .
   length .
   filter otherValidate .
-  map concat . complexParser ["-", " ", ": "] [nums, nums, alpha, alpha]
+  map concat . complexParser ["-", " ", ": "] [numsAsStrings, numsAsStrings, alpha, alpha]

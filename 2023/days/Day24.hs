@@ -8,7 +8,7 @@ module Day24
 import           Data.List       (tails)
 import           Data.Sequence   (Seq ((:<|), (:|>)), singleton)
 import           Helpers.Maths   (solve)
-import           Helpers.Parsers (complexParser, nums)
+import           Helpers.Parsers (complexParser, numsAsStrings)
 import           Linear.Matrix   (M44 (..))
 import           Linear.V2       (V2 (..))
 import           Linear.V3       (V3 (..))
@@ -108,11 +108,11 @@ part1 :: Bool -> String -> String
 part1 test =
   show .
   count2DIntersections test .
-  map (makeHail . map (map read)) . complexParser ["@"] [nums, nums]
+  map (makeHail . map (map read)) . complexParser ["@"] [numsAsStrings, numsAsStrings]
 
 part2 :: Bool -> String -> String
 part2 _ =
   show .
   sumCoords .
   posVel .
-  take 5 . map (makeHail . map (map read)) . complexParser ["@"] [nums, nums]
+  take 5 . map (makeHail . map (map read)) . complexParser ["@"] [numsAsStrings, numsAsStrings]
