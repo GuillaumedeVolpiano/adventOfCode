@@ -7,8 +7,18 @@ import           Control.Parallel.Strategies            (parMap, rpar)
 import           Data.List                              (inits, tails)
 import           Data.Maybe                             (Maybe (Just, Nothing),
                                                          catMaybes)
+import           Data.Void
 import           Helpers.Parsers                        (custom, integers)
 import           Math.NumberTheory.Recurrences.Bilinear (binomialLine)
+import           Text.Megaparsec                        (Parsec, takeWhile1P)
+
+parser :: Parsec Void String (Maybe String)
+parser = do
+  Just <$> takeWhile1P Nothing (`elem` "#?")
+
+parserDot :: Parsec Void String (Maybe String)
+parserDot = do
+  Just <$> takeWhile1P Nothing (`elem` "#?.")
 
 extractPatterns :: ([String], [Int]) -> Int
 extractPatterns (s, [])
@@ -176,19 +186,19 @@ crop n l
 part1 :: Bool -> String -> String
 part1 _ input = show . sum . map extractPatterns $ pairs
   where
-    springs = custom "[?#]+" input
+    springs = custom parser input
     records = integers input
     pairs = zip springs records
 
 part2 :: Bool -> String -> String
 part2 _ input = show . sum . parMap rpar extractPatterns $ pairs
   where
-    springs = map concat . custom "[?#.]+" $ input
+    springs = map concat . custom parserDot $ input
     records = integers input
     unfoldedSprings =
       concatMap
         (\t ->
-           custom "[?#]+" . (t ++) . take (4 * (length t + 1)) . cycle $
+           custom parserDot . (t ++) . take (4 * (length t + 1)) . cycle $
            ('?' : t))
         springs
     unfoldedRecords = map (\t -> take (5 * length t) . cycle $ t) records
