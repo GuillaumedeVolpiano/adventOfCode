@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Helpers.Parsers
-  ( alnum
+  ( Parser
+  , alnum
   , alpha
   , alphaNum
   , arrayFromString
@@ -16,6 +17,7 @@ module Helpers.Parsers
   , numbers
   , nums
   , numsAsStrings
+  , parseByLine
   , splitOnSpace
   ) where
 
@@ -33,6 +35,11 @@ import           Text.Megaparsec      (Parsec, eof, manyTill, optional, parse,
 import           Text.Megaparsec.Char (char, eol, printChar, string)
 
 type Parser = Parsec Void String
+
+-- the supplied parser must consume all the line, including the new line
+-- character
+parseByLine :: Parser a -> String -> [a]
+parseByLine parser = fromRight [] . parse (manyTill parser eof) ""
 
 parseLineList :: Parser (Maybe String) -> String -> [String]
 parseLineList parser =
