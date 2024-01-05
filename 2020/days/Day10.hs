@@ -19,10 +19,8 @@ combinations list = (map comb [0 ..] !!)
     comb 0 = 1
     comb 1
       | 1 `elem` list = comb 0
-      | otherwise = 0
     comb 2
       | 2 `elem` list = comb 1 + comb 0
-      | otherwise = 0
     comb n
       | n `elem` list = sum . combined $ n
       | otherwise = 0
