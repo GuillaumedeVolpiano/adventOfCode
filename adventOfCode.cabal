@@ -43,7 +43,7 @@ executable aoc2020
     build-depends: arithmoi, array, base ^>=4.16.4.0, cmdargs, containers 
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, linear, megaparsec, mtl, parallel, psqueues
-                   , split, text, time, timeit, vector
+                   , split, text, time, timeit, unordered-containers, vector
     ghc-options: -threaded
     default-language: Haskell2010
 

@@ -2,10 +2,12 @@
 
 module Helpers.Parsers
   ( Parser
+  , Pos
   , alnum
   , alpha
   , alphaNum
   , arrayFromString
+  , boolArrayFromString
   , characters
   , complexParser
   , custom
@@ -35,6 +37,7 @@ import           Text.Megaparsec      (Parsec, eof, manyTill, optional, parse,
 import           Text.Megaparsec.Char (char, eol, printChar, string)
 
 type Parser = Parsec Void String
+type Pos = V2 Int
 
 -- the supplied parser must consume all the line, including the new line
 -- character
@@ -133,10 +136,13 @@ make2DArray l =
     width = length (head l) - 1
     height = length l - 1
 
-arrayFromString :: String -> UArray (V2 Int) Char
+arrayFromString :: String -> UArray Pos Char
 arrayFromString = make2DArray . lines
 
-digitArrayFromString :: String -> UArray (V2 Int) Int
+boolArrayFromString :: Char -> String -> UArray Pos Bool
+boolArrayFromString test = make2DArray . map (map (== test)) . lines
+
+digitArrayFromString :: String -> UArray Pos Int
 digitArrayFromString = make2DArray . map (map digitToInt) . lines
 
 splitOnSpace :: String -> [[String]]
