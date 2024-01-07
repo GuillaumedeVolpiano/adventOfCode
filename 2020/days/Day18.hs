@@ -21,73 +21,52 @@ instance Show Expression where
   show (Add a b)  = "(" ++ show a ++ " + " ++ show b ++ ")"
   show (Mult a b) = "(" ++ show a ++ "*" ++ show b ++ ")"
 
-parsePrec :: ExpParser
-parsePrec = parsePrecExpr <* eol
+parse :: Bool -> ExpParser
+parse lp = parseExpr lp <* eol
 
-parse :: ExpParser
-parse = parseExpr <* eol
+parseExpr :: Bool -> ExpParser
+parseExpr lp = do
+  a <- parseVal lp
+  parseRest lp a
 
-parsePrecExpr :: ExpParser
-parsePrecExpr = do
-  a <- parsePrecVal
-  parsePrecRest a
+parseRest :: Bool -> Expression -> ExpParser
+parseRest lp a
+  | lp =
+    try
+      (do v <- parseAdd lp a
+          parseRest lp v) <|>
+    parseMult lp a <|>
+    return a
+  | otherwise =
+    try
+      (do v <- try (parseAdd lp a) <|> parseMult lp a
+          parseRest lp v) <|>
+    return a
 
-parseExpr :: ExpParser
-parseExpr = do
-  a <- parseVal
-  parseRest a
+parseVal :: Bool -> ExpParser
+parseVal lp = try (parseParens lp) <|> parseInt
 
-parsePrecRest :: Expression -> ExpParser
-parsePrecRest a =
-  try
-    (do v <- try (parsePrecAdd a)
-        parsePrecRest v) <|>
-  try (parsePrecMult a) <|>
-  return a
-
-parseRest :: Expression -> ExpParser
-parseRest a =
-  try
-    (do v <- try (parseAdd a) <|> parseMult a
-        parseRest v) <|>
-  return a
-
-parsePrecVal :: ExpParser
-parsePrecVal = try parsePrecParens <|> parseInt
-
-parseVal :: ExpParser
-parseVal = try parseParens <|> parseInt
-
-parsePrecParens :: ExpParser
-parsePrecParens = char '(' *> parsePrecExpr <* char ')'
-
-parseParens :: ExpParser
-parseParens = char '(' *> parseExpr <* char ')'
+parseParens :: Bool -> ExpParser
+parseParens lp = char '(' *> parseExpr lp <* char ')'
 
 parseInt :: ExpParser
 parseInt = do
   t <- takeWhile1P Nothing isDigit
   return (Number $ read t)
 
-parsePrecAdd :: Expression -> ExpParser
-parsePrecAdd exp = do
+parseAdd :: Bool -> Expression -> ExpParser
+parseAdd lp exp = do
   void . string $ " + "
-  Add exp <$> parsePrecVal
+  Add exp <$> parseVal lp
 
-parseAdd :: Expression -> ExpParser
-parseAdd exp = do
-  void . string $ " + "
-  Add exp <$> parseVal
-
-parsePrecMult :: Expression -> ExpParser
-parsePrecMult exp = do
-  void . string $ " * "
-  Mult exp <$> parsePrecExpr
-
-parseMult :: Expression -> ExpParser
-parseMult exp = do
-  void . string $ " * "
-  Mult exp <$> parseVal
+parseMult :: Bool -> Expression -> ExpParser
+parseMult lp exp
+  | lp = do
+    void . string $ " * "
+    Mult exp <$> parseExpr lp
+  | otherwise = do
+    void . string $ " * "
+    Mult exp <$> parseVal lp
 
 evaluate :: Expression -> Int
 evaluate (Number a) = a
@@ -95,7 +74,7 @@ evaluate (Mult a b) = evaluate a * evaluate b
 evaluate (Add a b)  = evaluate a + evaluate b
 
 part1 :: Bool -> String -> String
-part1 _ = show . sum . map evaluate . parseByLine parse
+part1 _ = show . sum . map evaluate . parseByLine (parse False)
 
 part2 :: Bool -> String -> String
-part2 _ = show . sum . map evaluate . parseByLine parsePrec
+part2 _ = show . sum . map evaluate . parseByLine (parse True)
