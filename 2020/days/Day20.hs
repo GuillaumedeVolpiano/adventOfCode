@@ -23,10 +23,6 @@ import           Text.Megaparsec      (count, eof, many, manyTill, optional,
                                        takeWhile1P)
 import           Text.Megaparsec.Char (char, digitChar, eol, printChar)
 
-import           Data.List.Split      (chunksOf)
-
-import           Debug.Trace
-
 type Id = Int
 
 type Tile = UArray Pos Bool
@@ -247,18 +243,6 @@ roughness image = allHash - length monster * length monsters
     monsters = L.filter (\x -> any (monsterIsThere x) images) potMonsters
     b = bounds image
     allHash = length . L.filter (image A.!) . indices $ image
-
-showImage :: Image -> String
-showImage image =
-  unlines . chunksOf (mx + 1) $
-  [ if image A.! V2 x y
-    then '#'
-    else '.'
-  | y <- [0 .. my]
-  , x <- [0 .. mx]
-  ]
-  where
-    (_, V2 mx my) = bounds image
 
 part1 :: Bool -> String -> String
 part1 _ =
