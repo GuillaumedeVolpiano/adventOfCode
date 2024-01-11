@@ -1,9 +1,12 @@
 module Intcode
-  ( evalIntcode
+  ( Intcode
+  , evalIntcode
   , execIntcode
+  , halted
   , initialise
   , initialiseChain
   , runChain
+  , runIntcode
   , memory
   , sendInput
   , update
@@ -44,6 +47,11 @@ evalIntcode = evalState execute
 
 execIntcode :: Intcode -> [Int]
 execIntcode = output . execState execute
+
+runIntcode :: Intcode -> ([Int], Intcode)
+runIntcode intcode = (output ran, ran)
+  where
+    ran = execState execute intcode
 
 runChain :: Int -> [Intcode] -> Int
 runChain x = evalState (chain x)
