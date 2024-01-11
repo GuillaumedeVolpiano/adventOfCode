@@ -3,8 +3,10 @@ module Day10
   , part2
   ) where
 
-import           Data.List (delete, group, groupBy, maximumBy, nub, sort,
-                            sortBy, tails, (\\))
+import           Data.List (group, groupBy, maximumBy, nub, sort, sortBy, tails)
+import           Data.List as L (filter, map)
+import           Data.Set  as St (Set, delete, difference, empty, filter,
+                                  foldl', fromList, insert, map, size, toList)
 import           Linear.V2 (V2 (..))
 
 type Pos = V2 Int
@@ -43,16 +45,16 @@ between from@(V2 xf yf) to@(V2 xt yt) pos@(V2 a b) =
 
 selectVisible :: [(Pos, Pos)] -> [Pos]
 selectVisible aList =
-  unpair . filter (\(a, b) -> not . any (between a b) $ nubbed) $ aList
+  unpair . L.filter (\(a, b) -> not . any (between a b) $ nubbed) $ aList
   where
-    nubbed = nub . unpair $ aList
+    nubbed = fromList . unpair $ aList
     unpair = concatMap (\(a, b) -> [a, b])
 
 allLines :: AstMap -> [(Pos, Pos, Line)]
 allLines astMap =
   concat .
   zipWith
-    (\a b -> map (\x -> (a, x, line a x)) . filter (/= a) $ b)
+    (\a b -> L.map (\x -> (a, x, line a x)) . L.filter (/= a) $ b)
     (init astMap) $
   tails astMap
 
@@ -60,15 +62,15 @@ grouped :: [(Pos, Pos, Line)] -> [[Pos]]
 grouped =
   group .
   sort .
-  concatMap (selectVisible . map (\(a, b, _) -> (a, b))) .
+  concatMap (selectVisible . L.map (\(a, b, _) -> (a, b))) .
   groupBy (\(_, _, a) (_, _, b) -> a == b) .
   sortBy (\(_, _, a) (_, _, b) -> compare a b)
 
 findBest :: [(Pos, Pos, Line)] -> Int
-findBest = maximum . map length . grouped
+findBest = maximum . L.map length . grouped
 
 findZapped :: AstMap -> Int
-findZapped astMap = score . zapPos [] . delete best $ astMap
+findZapped astMap = score . zapPos (0, empty) . delete best . fromList $ astMap
   where
     score (V2 x y) = 100 * x + y
     linedUp = allLines astMap
@@ -76,21 +78,22 @@ findZapped astMap = score . zapPos [] . delete best $ astMap
       head . maximumBy (\a b -> compare (length a) (length b)) . grouped $
       linedUp
     bestLines =
-      sortBy (flip compare) .
-      nub .
-      map (\(_, _, c) -> c) . filter (\(a, b, _) -> a == best || b == best) $
+      fromList .
+      L.map (\(_, _, c) -> c) . L.filter (\(a, b, _) -> a == best || b == best) $
       linedUp
     zapPos preZapped surviving
-      | length preZapped == numBet = head preZapped
-      | otherwise = zapNeg zapped (surviving \\ zapped)
-      where
-        zapped = foldr (zap best (firstHalf best) surviving) preZapped bestLines
-    zapNeg preZapped surviving
-      | length preZapped == numBet = head preZapped
-      | otherwise = zapPos zapped (surviving \\ zapped)
+      | length (snd preZapped) == numBet = fst preZapped
+      | otherwise = zapNeg zapped (difference surviving (snd zapped))
       where
         zapped =
-          foldr (zap best (secondHalf best) surviving) preZapped bestLines
+          foldl' (zap best (firstHalf best) surviving) preZapped bestLines
+    zapNeg :: (Pos, Set Pos) -> Set Pos -> Pos
+    zapNeg preZapped surviving
+      | length preZapped == numBet = fst preZapped
+      | otherwise = zapPos zapped (difference surviving (snd zapped))
+      where
+        zapped =
+          foldl' (zap best (secondHalf best) surviving) preZapped bestLines
 
 firstHalf :: Pos -> Pos -> Bool
 firstHalf (V2 a b) (V2 c d) = (a == c && d < b) || c > a
@@ -98,23 +101,24 @@ firstHalf (V2 a b) (V2 c d) = (a == c && d < b) || c > a
 secondHalf :: Pos -> Pos -> Bool
 secondHalf (V2 a b) (V2 c d) = (a == c && d > b) || c < a
 
-zap :: Pos -> (Pos -> Bool) -> [Pos] -> Line -> [Pos] -> [Pos]
-zap best half surviving lineOfFire preZapped
-  | length preZapped == numBet = preZapped
-  | otherwise = zapped
+zap ::
+     Pos -> (Pos -> Bool) -> Set Pos -> (Pos, Set Pos) -> Line -> (Pos, Set Pos)
+zap best half surviving (last, zapped) lineOfFire
+  | size zapped == numBet = (last, zapped)
+  | otherwise = (new, insert new zapped)
   where
-    inLine = filter (aligned lineOfFire half) surviving
-    zapped
-      | null inLine = preZapped
+    inLine = St.filter (aligned lineOfFire half) surviving
+    new
+      | null inLine = last
       | otherwise =
-        (head . filter (\x -> not . any (between best x) $ inLine) $ inLine) :
-        preZapped
+        head . toList . St.filter (\x -> not . any (between best x) $ inLine) $
+        inLine
 
 buildMap :: String -> AstMap
 buildMap =
   concat .
-  zipWith (\a -> map (`V2` a)) [0 ..] .
-  map (map fst . filter ((== '#') . snd) . zip [0 ..]) . lines
+  zipWith (\a -> L.map (`V2` a)) [0 ..] .
+  L.map (L.map fst . L.filter ((== '#') . snd) . zip [0 ..]) . lines
 
 part1 :: Bool -> String -> String
 part1 _ = show . findBest . allLines . buildMap
