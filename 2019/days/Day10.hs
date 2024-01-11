@@ -1,41 +1,44 @@
-{-# LANGUAGE TupleSections #-}
-
 module Day10
   ( part1
   , part2
   ) where
 
-import           Data.List (group, sort, tails)
+import           Data.List (group, groupBy, nub, sort, sortBy, tails)
 import           Linear.V2 (V2 (..))
 
 type Pos = V2 Int
 
 type AstMap = [Pos]
 
-isVisible :: AstMap -> Pos -> Pos -> Bool
-isVisible astmap from@(V2 xf yf) to@(V2 xt yt) =
-  from /= to && (not . any curBetween $ astmap)
-  where
-    curLine = line from to
-    curBetween = between curLine from to
+type Line = (Maybe Slope, Offset)
 
-line :: Pos -> Pos -> Pos -> Bool
-line from@(V2 xf yf) to@(V2 xt yt) (V2 a b)
-  | xf == xt = a == xf
-  | otherwise = slope * fromIntegral a + offset == fromIntegral b
+type Slope = Rational
+
+type Offset = Rational
+
+line :: Pos -> Pos -> Line
+line from@(V2 xf yf) to@(V2 xt yt)
+  | xf == xt = (Nothing, fromIntegral xf)
+  | otherwise = (Just slope, offset)
   where
     slope = fromIntegral (yf - yt) / fromIntegral (xf - xt) :: Rational
     offset = fromIntegral yf - slope * fromIntegral xf
 
-between :: (Pos -> Bool) -> Pos -> Pos -> Pos -> Bool
-between curLine from@(V2 xf yf) to@(V2 xt yt) pos@(V2 a b) =
-  pos /= from &&
-  pos /= to && curLine pos && xm <= a && a <= xM && ym <= b && b <= yM
+between :: Pos -> Pos -> Pos -> Bool
+between from@(V2 xf yf) to@(V2 xt yt) pos@(V2 a b) =
+  pos /= from && pos /= to && xm <= a && a <= xM && ym <= b && b <= yM
   where
     xm = min xf xt
     xM = max xf xt
     ym = min yf yt
     yM = max yf yt
+
+selectVisible :: [(Pos, Pos)] -> [Pos]
+selectVisible aList =
+  unpair . filter (\(a, b) -> not . any (between a b) $ nubbed) $ aList
+  where
+    nubbed = nub . unpair $ aList
+    unpair = concatMap (\(a, b) -> [a, b])
 
 findBest :: AstMap -> Int
 findBest astMap =
@@ -43,9 +46,13 @@ findBest astMap =
   map length .
   group .
   sort .
-  concatMap (\(a, b) -> [a, b]) .
-  filter (uncurry (isVisible astMap)) .
-  concat . zipWith (\a b -> map (a, ) b) (init astMap) $
+  concatMap (selectVisible . map (\(a, b, _) -> (a, b))) .
+  groupBy (\(_, _, a) (_, _, b) -> a == b) .
+  sortBy (\(_, _, a) (_, _, b) -> compare a b) .
+  concat .
+  zipWith
+    (\a b -> map (\x -> (a, x, line a x)) . filter (/= a) $ b)
+    (init astMap) $
   tails astMap
 
 buildMap :: String -> AstMap
