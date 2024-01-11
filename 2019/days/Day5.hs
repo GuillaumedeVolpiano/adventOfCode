@@ -1,9 +1,15 @@
-module Day5 (part1, part2) where
+module Day5
+  ( part1
+  , part2
+  ) where
 
-import Helpers.Parsers
+import           Intcode (execIntcode, initialise, sendInput)
 
-part1 :: Bool -> String -> String
-part1 _ _ = "Part 1"
+test :: Int -> String -> Int
+test inp = head . execIntcode . sendInput inp . initialise
+
+part1 :: Bool -> String -> String
+part1 _ = show . test 1
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ = show . test 5
