@@ -3,11 +3,14 @@ module Day10
   , part2
   ) where
 
-import           Data.List (group, groupBy, maximumBy, nub, sort, sortBy, tails)
-import           Data.List as L (filter, map)
-import           Data.Set  as St (Set, delete, difference, empty, filter,
-                                  foldl', fromList, insert, map, size, toList)
-import           Linear.V2 (V2 (..))
+import           Data.List     (group, groupBy, maximumBy, nub, sort, sortBy,
+                                tails)
+import           Data.List     as L (filter, map)
+import           Data.MultiSet as MS (MultiSet, foldOccur, fromList, map)
+import           Data.Set      as St (Set, delete, difference, empty, filter,
+                                      foldl', fromList, insert, map, size,
+                                      toList)
+import           Linear.V2     (V2 (..))
 
 type Pos = V2 Int
 
@@ -47,7 +50,7 @@ selectVisible :: [(Pos, Pos)] -> [Pos]
 selectVisible aList =
   unpair . L.filter (\(a, b) -> not . any (between a b) $ nubbed) $ aList
   where
-    nubbed = fromList . unpair $ aList
+    nubbed = St.fromList . unpair $ aList
     unpair = concatMap (\(a, b) -> [a, b])
 
 allLines :: AstMap -> [(Pos, Pos, Line)]
@@ -58,27 +61,33 @@ allLines astMap =
     (init astMap) $
   tails astMap
 
-grouped :: [(Pos, Pos, Line)] -> [[Pos]]
+grouped :: [(Pos, Pos, Line)] -> MultiSet Pos
 grouped =
-  group .
-  sort .
+  MS.fromList .
   concatMap (selectVisible . L.map (\(a, b, _) -> (a, b))) .
   groupBy (\(_, _, a) (_, _, b) -> a == b) .
   sortBy (\(_, _, a) (_, _, b) -> compare a b)
 
 findBest :: [(Pos, Pos, Line)] -> Int
-findBest = maximum . L.map length . grouped
+findBest = foldOccur maxOccur 0 . grouped
+
+maxOccur :: Pos -> Int -> Int -> Int
+maxOccur _ = max
+
+maxByOccur :: Pos -> Int -> (Pos, Int) -> (Pos, Int)
+maxByOccur pos occur (bestPos, bestOccur)
+  | occur > bestOccur = (pos, occur)
+  | otherwise = (bestPos, bestOccur)
 
 findZapped :: AstMap -> Int
-findZapped astMap = score . zapPos (0, empty) . delete best . fromList $ astMap
+findZapped astMap =
+  score . zapPos (0, empty) . delete best . St.fromList $ astMap
   where
     score (V2 x y) = 100 * x + y
     linedUp = allLines astMap
-    best =
-      head . maximumBy (\a b -> compare (length a) (length b)) . grouped $
-      linedUp
+    best = fst . foldOccur maxByOccur (V2 0 0, 0) . grouped $ linedUp
     bestLines =
-      fromList .
+      St.fromList .
       L.map (\(_, _, c) -> c) . L.filter (\(a, b, _) -> a == best || b == best) $
       linedUp
     zapPos preZapped surviving
@@ -87,7 +96,6 @@ findZapped astMap = score . zapPos (0, empty) . delete best . fromList $ astMap
       where
         zapped =
           foldl' (zap best (firstHalf best) surviving) preZapped bestLines
-    zapNeg :: (Pos, Set Pos) -> Set Pos -> Pos
     zapNeg preZapped surviving
       | length preZapped == numBet = fst preZapped
       | otherwise = zapPos zapped (difference surviving (snd zapped))
