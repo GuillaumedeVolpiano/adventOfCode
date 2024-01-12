@@ -46,7 +46,7 @@ executable aoc2019
                    , hashable, lens, linear, megaparsec, monad-loops, mtl
                    , multiset, parallel, psqueues, split, text, time, timeit
                    , unordered-containers, vector
-    ghc-options: -threaded
+    ghc-options: -O1 -threaded
     default-language: Haskell2010
 
 executable aoc2020
@@ -94,9 +94,9 @@ executable aoc2022
 --
 --    -- LANGUAGE extensions used by modules in this package.
 --    -- other-extensions:
-    build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl,
-                    data-clist, directory, hashable, linear, megaparsec
-					, psqueues, regex-tdfa, split, timeit, time
+    build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl
+                    , data-clist, directory, hashable, linear, megaparsec
+                    , psqueues, regex-tdfa, split, timeit, time
     default-language: Haskell2010
 --
 executable aoc

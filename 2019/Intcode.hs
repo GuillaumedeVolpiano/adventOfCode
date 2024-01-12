@@ -1,5 +1,6 @@
 module Intcode
   ( Intcode
+  , clearOutput
   , evalIntcode
   , execIntcode
   , halted
@@ -9,6 +10,8 @@ module Intcode
   , runIntcode
   , memory
   , sendInput
+  , setMemory
+  , toStart
   , update
   ) where
 
@@ -159,6 +162,9 @@ threeParsOp modes op = do
 addOutput :: Int -> Intcode -> Intcode
 addOutput val intcode = intcode {output = val : output intcode}
 
+clearOutput :: Intcode -> Intcode
+clearOutput intcode = intcode { output = [] }
+
 firstInput :: Intcode -> Maybe Int
 firstInput intcode
   | isNothing unconsed = Nothing
@@ -171,6 +177,12 @@ movePos pos intcode = intcode {pointer = pos}
 
 setHalted :: Bool -> Intcode -> Intcode
 setHalted isHalted intcode = intcode {halted = isHalted}
+
+setMemory :: Int -> Int -> Intcode -> Intcode
+setMemory pos val intcode = intcode { memory = insert pos val . memory $ intcode }
+
+toStart :: Intcode -> Intcode
+toStart intcode = intcode {pointer = 0, output = [], halted = False}
 
 unloadInput :: Intcode -> Intcode
 unloadInput intcode = intcode {input = tail . input $ intcode}
