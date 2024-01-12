@@ -21,6 +21,8 @@ adventURL = "https://adventofcode.com/"
 
 testPath = "/adventOfCode/test/"
 
+inputPath = "/adventOfCode/input/"
+
 proxyPath = "/adventOfCode/proxy"
 
 preciseTimeIt :: (MonadIO m, Show a) => Int -> m a -> m a
@@ -63,10 +65,11 @@ parseCookie path = do
 retrieveInput :: Int -> Int -> Bool -> Bool -> IO String
 retrieveInput year day test withProxy = do
   home <- getHomeDirectory
-  if test
-    then readFile $
-         home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
-    else remoteInput year day withProxy
+  let path
+        | test = testPath
+        | otherwise = inputPath
+  readFile $
+         home ++ path ++ show year ++ "/day" ++ show day ++ ".txt"
 
 remoteInput :: Int -> Int -> Bool -> IO String
 remoteInput year day withProxy = do
