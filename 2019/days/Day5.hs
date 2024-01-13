@@ -3,10 +3,10 @@ module Day5
   , part2
   ) where
 
-import           Intcode (execIntcode, initialise, sendInput)
+import           Intcode (initialise, outputIntcode, sendInput)
 
 test :: Int -> String -> Int
-test inp = head . execIntcode . sendInput inp . initialise
+test inp = head . outputIntcode . sendInput inp . initialise
 
 part1 :: Bool -> String -> String
 part1 _ = show . test 1
