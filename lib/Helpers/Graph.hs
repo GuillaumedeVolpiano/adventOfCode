@@ -11,6 +11,7 @@ module Helpers.Graph
   , east
   , west
   , north
+  , origin
   , south
   , dirs
   , neighbours
@@ -40,38 +41,44 @@ east = V2 1 0
 
 west = V2 (-1) 0
 
+origin :: V2 Int
+origin = V2 0 0
+
 dirs = [north, south, east, west]
 
-dicToGraph :: Map String [(String, a)] -> Gr String a
+dicToGraph :: (Eq a, Ord a) => Map a [(a, b)] -> Gr a b
 dicToGraph = assocsToGraph . assocs
 
-assocsToGraph :: [(String, [(String, a)])] -> Gr String a
+assocsToGraph :: (Eq a, Ord a) => [(a, [(a, b)])] -> Gr a b
 assocsToGraph ass = mkGraph n (edges n ass)
   where
     n = nodes ass
 
-assocsToReverseGraph :: [(String, [(String, a)])] -> Gr String a
+assocsToReverseGraph :: (Eq a, Ord a) => [(a, [(a, b)])] -> Gr a b
 assocsToReverseGraph ass = mkGraph n (reverseEdges n ass)
   where
     n = nodes ass
 
-assocsToDigraph :: (Eq a) => [(String, [(String, a)])] -> Gr String a
+assocsToDigraph ::
+     (Eq a, Ord a)
+  => (Eq b) =>
+       [(a, [(a, b)])] -> Gr a b
 assocsToDigraph ass = mkGraph n diEdges
   where
     n = nodes ass
     diEdges = nub $ edges n ass ++ reverseEdges n ass
 
-nodes :: [(String, [(String, a)])] -> [LNode String]
+nodes :: (Eq a) => [(a, [(a, b)])] -> [LNode a]
 nodes ass = zip [0 ..] . nub $ map fst ass ++ map fst (concatMap snd ass)
 
-edges :: [LNode String] -> [(String, [(String, a)])] -> [LEdge a]
+edges :: (Ord a) => [LNode a] -> [(a, [(a, b)])] -> [LEdge b]
 edges n =
   map (\(a, (b, c)) -> (labelToNode ! a, labelToNode ! b, c)) .
   concatMap (\(a, b) -> map (a, ) b)
   where
     labelToNode = fromList . map (\(a, b) -> (b, a)) $ n
 
-reverseEdges :: [LNode String] -> [(String, [(String, a)])] -> [LEdge a]
+reverseEdges :: (Ord a) => [LNode a] -> [(a, [(a, b)])] -> [LEdge b]
 reverseEdges n =
   map (\(a, (b, c)) -> (labelToNode ! b, labelToNode ! a, c)) .
   concatMap (\(a, b) -> map (a, ) b)
