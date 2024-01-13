@@ -3,9 +3,11 @@ module Intcode
   , clearOutput
   , evalIntcode
   , execIntcode
+  , execASCIIcode
   , halted
   , initialise
   , initialiseChain
+  , runASCIIcode
   , runChain
   , runIntcode
   , memory
@@ -17,6 +19,7 @@ module Intcode
 
 import           Control.Monad.State (State, evalState, execState, get, gets,
                                       modify, put, runState)
+import           Data.Char           (chr)
 import           Data.IntMap         (IntMap, findWithDefault, fromList, insert,
                                       (!))
 import           Data.List           (uncons, unfoldr)
@@ -51,8 +54,16 @@ evalIntcode = evalState execute
 execIntcode :: Intcode -> [Int]
 execIntcode = output . execState execute
 
+execASCIIcode :: Intcode -> String
+execASCIIcode = asciiConverter . output . execState execute
+
 runIntcode :: Intcode -> ([Int], Intcode)
 runIntcode intcode = (output ran, ran)
+  where
+    ran = execState execute intcode
+
+runASCIIcode :: Intcode -> (String, Intcode)
+runASCIIcode intcode = (asciiConverter . output $ ran, ran)
   where
     ran = execState execute intcode
 
@@ -163,7 +174,7 @@ addOutput :: Int -> Intcode -> Intcode
 addOutput val intcode = intcode {output = val : output intcode}
 
 clearOutput :: Intcode -> Intcode
-clearOutput intcode = intcode { output = [] }
+clearOutput intcode = intcode {output = []}
 
 firstInput :: Intcode -> Maybe Int
 firstInput intcode
@@ -179,7 +190,7 @@ setHalted :: Bool -> Intcode -> Intcode
 setHalted isHalted intcode = intcode {halted = isHalted}
 
 setMemory :: Int -> Int -> Intcode -> Intcode
-setMemory pos val intcode = intcode { memory = insert pos val . memory $ intcode }
+setMemory pos val intcode = intcode {memory = insert pos val . memory $ intcode}
 
 toStart :: Intcode -> Intcode
 toStart intcode = intcode {pointer = 0, output = [], halted = False}
@@ -254,3 +265,6 @@ testOp :: (Int -> Int -> Bool) -> Int -> Int -> Int
 testOp test v1 v2
   | test v1 v2 = 1
   | otherwise = 0
+
+asciiConverter :: [Int] -> String
+asciiConverter = reverse . map chr
