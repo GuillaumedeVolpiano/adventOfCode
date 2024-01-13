@@ -9,7 +9,8 @@ import           Data.Either          (fromRight)
 import           Data.HashMap.Lazy    (HashMap, empty, fromList, intersection,
                                        keys, union, (!))
 import           Data.List            (intersect)
-import           Helpers.Parsers      (Parser, Pos)
+import           Helpers.Graph        (Pos)
+import           Helpers.Parsers      (Parser)
 import           Linear.V2            (V2 (..))
 import           Linear.Vector        ((*^))
 import           Text.Megaparsec      (eof, optional, parse, takeWhile1P, try,

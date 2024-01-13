@@ -11,7 +11,8 @@ import           Data.Maybe          (Maybe (Just, Nothing), fromJust, isJust)
 import           Data.Set            as St (Set, empty, filter, findMax,
                                             fromList, insert, intersection, map,
                                             member, partition, size, union)
-import           Helpers.Parsers     (Pos, boolArrayFromString)
+import           Helpers.Graph       (Pos)
+import           Helpers.Parsers     (boolArrayFromString)
 import           Linear.V2           (V2 (..))
 
 import           Data.List.Split     (chunksOf)

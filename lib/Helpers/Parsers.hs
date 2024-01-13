@@ -2,7 +2,6 @@
 
 module Helpers.Parsers
   ( Parser
-  , Pos
   , alnum
   , alpha
   , alphaNum
