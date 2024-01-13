@@ -6,7 +6,7 @@ module Day11
 import           Data.HashMap.Lazy as M (HashMap, findWithDefault, insert, keys,
                                          singleton, size)
 import           Data.List.Split   (chunksOf)
-import           Helpers.Parsers   (Pos)
+import           Helpers.Graph     (Pos)
 import           Intcode           (Intcode, halted, initialise, runIntcode,
                                     sendInput)
 import           Linear.V2         (V2 (..))
