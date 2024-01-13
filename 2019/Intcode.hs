@@ -3,7 +3,8 @@ module Intcode
   , clearOutput
   , evalIntcode
   , execIntcode
-  , execASCIIcode
+  , outputIntcode
+  , outputASCIIcode
   , halted
   , initialise
   , initialiseChain
@@ -11,6 +12,7 @@ module Intcode
   , runChain
   , runIntcode
   , memory
+  , sendASCIIInput
   , sendInput
   , setMemory
   , toStart
@@ -19,7 +21,7 @@ module Intcode
 
 import           Control.Monad.State (State, evalState, execState, get, gets,
                                       modify, put, runState)
-import           Data.Char           (chr)
+import           Data.Char           (chr, ord)
 import           Data.IntMap         (IntMap, findWithDefault, fromList, insert,
                                       (!))
 import           Data.List           (uncons, unfoldr)
@@ -51,11 +53,14 @@ type Memory = IntMap Int
 evalIntcode :: Intcode -> Int
 evalIntcode = evalState execute
 
-execIntcode :: Intcode -> [Int]
-execIntcode = output . execState execute
+outputIntcode :: Intcode -> [Int]
+outputIntcode = output . execState execute
 
-execASCIIcode :: Intcode -> String
-execASCIIcode = asciiConverter . output . execState execute
+execIntcode :: Intcode -> Intcode
+execIntcode = execState execute
+
+outputASCIIcode :: Intcode -> String
+outputASCIIcode = asciiConverter . output . execState execute
 
 runIntcode :: Intcode -> ([Int], Intcode)
 runIntcode intcode = (output ran, ran)
@@ -256,6 +261,9 @@ initialiseChain :: String -> [Int] -> [Intcode]
 initialiseChain instructions = map startMachine
   where
     startMachine x = execState execute . sendInput x . initialise $ instructions
+
+sendASCIIInput :: String -> Intcode -> Intcode
+sendASCIIInput ascii intcode = intcode {input = map ord ascii ++ input intcode}
 
 sendInput :: Int -> Intcode -> Intcode
 sendInput val intcode = intcode {input = val : input intcode}
