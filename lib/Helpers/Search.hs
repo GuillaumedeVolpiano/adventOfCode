@@ -11,6 +11,7 @@ module Helpers.Search
   , dijkstraGoalVal
   , dijkstraAll
   , dijkstraMech
+  , dijkstraUncertainGoalDist
   , findPattern
   , floydWarshall
   , floodFill
@@ -105,18 +106,13 @@ dfsBest (node:ns) curBest neighbours checkBest seen
 
 -- Dijkstra
 dijkstraGoalVal ::
-     (Hashable k, Ord k, Show k, Num p, Ord p)
-  => k
-  -> p
-  -> (k -> [(k, p)])
-  -> k
-  -> p
+     (Hashable k, Ord k, Num p, Ord p) => k -> p -> (k -> [(k, p)]) -> k -> p
 dijkstraGoalVal startKey startDist neighbours goal =
   fromJust . M.lookup goal . fst $
   dijkstraGoal startKey startDist neighbours (== goal)
 
 dijkstraGoal ::
-     (Hashable k, Ord k, Show k, Num p, Ord p)
+     (Hashable k, Ord k, Num p, Ord p)
   => k
   -> p
   -> (k -> [(k, p)])
@@ -130,8 +126,26 @@ dijkstraGoal startKey startDist neighbours =
     M.empty
     neighbours
 
-dijkstraAll ::
+dijkstraUncertainGoalDist ::
      (Hashable k, Ord k, Show k, Num p, Ord p)
+  => k
+  -> p
+  -> (k -> [(k, p)])
+  -> (k -> Bool)
+  -> p
+dijkstraUncertainGoalDist startKey startDist neighbours isGoal =
+  dists ! fromJust goal
+  where
+    (goal, (dists, _)) =
+      dijkstraMech
+        (Q.singleton startKey startDist startKey)
+        (M.singleton startKey startDist)
+        M.empty
+        neighbours
+        isGoal
+
+dijkstraAll ::
+     (Hashable k, Ord k, Num p, Ord p)
   => k
   -> p
   -> (k -> [(k, p)])
@@ -140,23 +154,23 @@ dijkstraAll startKey startDist neighbours =
   dijkstraGoal startKey startDist neighbours (const False)
 
 dijkstraMech ::
-     (Hashable k, Ord k, Show k, Num p, Ord p)
+     (Hashable k, Ord k, Num p, Ord p)
   => HashPSQ k p k
   -> Map k p
   -> Map k k
   -> (k -> [(k, p)])
   -> (k -> Bool)
-  -> (k, (Map k p, Map k k))
+  -> (Maybe k, (Map k p, Map k k))
 dijkstraMech queue dists paths neighbours isGoal
-  | Q.null queue = error "Goal not found"
-  | isGoal curKey = (curKey, (dists, paths))
+  | Q.null queue = (Nothing, (dists, paths))
+  | isGoal curKey = (Just curKey, (dists, paths))
   | otherwise = dijkstraMech newQueue newDists newPaths neighbours isGoal
   where
     (curKey, estDist, _, rest) = fromJust (minView queue)
     toConsider = mapMaybe consider (neighbours curKey)
-    newQueue = foldl (\a (b, c) -> Q.insert b c b a) rest toConsider
-    newDists = foldl (\a (b, c) -> M.insert b c a) dists toConsider
-    newPaths = foldl (\a (b, _) -> M.insert b curKey a) paths toConsider
+    newQueue = foldr (\(b, c) -> Q.insert b c b) rest toConsider
+    newDists = foldr (uncurry M.insert) dists toConsider
+    newPaths = foldr (\(b, _) -> M.insert b curKey) paths toConsider
     consider (aKey, anEdge)
       | not (M.member aKey dists) || estDist + anEdge < dists ! aKey =
         Just (aKey, estDist + anEdge)

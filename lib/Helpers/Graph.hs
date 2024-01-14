@@ -2,7 +2,8 @@
 {-# LANGUAGE TupleSections    #-}
 
 module Helpers.Graph
-  ( assocsToGraph
+  ( Gr
+  , assocsToGraph
   , assocsToReverseGraph
   , assocsToDigraph
   , dicToGraph
@@ -15,19 +16,25 @@ module Helpers.Graph
   , south
   , dirs
   , neighbours
+  , unfoldAssocs
   ) where
 
 import           Data.Array.IArray                 (IArray)
 import           Data.Array.Unboxed                (UArray, bounds, inRange)
+import           Data.Bifunctor                    (first)
 import           Data.Graph.Inductive.Graph        (Graph, LEdge, LNode, Node,
                                                     mkGraph)
 import           Data.Graph.Inductive.PatriciaTree (Gr)
 import           Data.GraphViz                     (DotGraph, Labellable,
                                                     graphToDot, printDotGraph,
                                                     quickParams)
+import           Data.Hashable                     (Hashable)
+import           Data.HashSet                      (HashSet, insert, member)
 import           Data.List                         (concatMap, nub)
 import           Data.Map                          (Map, assocs, elems,
                                                     fromList, keys, (!))
+import           Data.Sequence                     (Seq ((:|>)),
+                                                    ViewL (EmptyL, (:<)), viewl)
 import           Data.Text.Lazy                    (Text)
 import           Linear.V2                         (V2 (..))
 
@@ -92,3 +99,27 @@ neighbours :: (IArray UArray a) => UArray Pos a -> Pos -> [Pos]
 neighbours a p = filter (inRange b) . map (p +) $ dirs
   where
     b = bounds a
+
+-- this function unfoldr·s a pair made of a sequence and a hashset (usually a
+-- singleton) into a list that can be plugged into one of the assocsTo
+-- functions. The produced Graph will be of type Gr b c. The additional arguments
+-- it takes are a function that can transform an element of the sequence in a
+-- list of pairs of sequence elements and edge values based on the set of
+-- node labels already seen (HashSet b -> a -> [(a, c)]), and a function that
+-- can transform a sequence element into a set element (a -> b)
+unfoldAssocs ::
+     (Eq a, Hashable b)
+  => (HashSet b -> a -> [(a, c)])
+  -> (a -> b)
+  -> (Seq a, HashSet b)
+  -> Maybe ((b, [(b, c)]), (Seq a, HashSet b))
+unfoldAssocs toConsider see (toSee, seen)
+  | decons == EmptyL = Nothing
+  | otherwise =
+    Just ((see curVal, map (first see) consNext), (newToSee, newSeen))
+  where
+    decons = viewl toSee
+    (curVal :< rest) = decons
+    consNext = toConsider seen curVal
+    newToSee = foldr (flip (:|>) . fst) rest consNext
+    newSeen = foldr (insert . see . fst) seen consNext
