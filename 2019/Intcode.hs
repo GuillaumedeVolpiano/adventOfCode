@@ -14,6 +14,7 @@ module Intcode
   , memory
   , sendASCIIInput
   , sendInput
+  , sendMultInput
   , setMemory
   , toStart
   , update
@@ -263,10 +264,13 @@ initialiseChain instructions = map startMachine
     startMachine x = execState execute . sendInput x . initialise $ instructions
 
 sendASCIIInput :: String -> Intcode -> Intcode
-sendASCIIInput ascii intcode = intcode {input = map ord ascii ++ input intcode}
+sendASCIIInput ascii intcode = intcode {input = input intcode ++ map ord ascii}
 
 sendInput :: Int -> Intcode -> Intcode
-sendInput val intcode = intcode {input = val : input intcode}
+sendInput val intcode = intcode {input = input intcode ++ [val]}
+
+sendMultInput :: [Int] -> Intcode -> Intcode
+sendMultInput multInputs intcode = intcode {input = input intcode ++ multInputs}
 
 --helpers
 testOp :: (Int -> Int -> Bool) -> Int -> Int -> Int
