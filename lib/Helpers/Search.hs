@@ -106,7 +106,12 @@ dfsBest (node:ns) curBest neighbours checkBest seen
 
 -- Dijkstra
 dijkstraGoalVal ::
-     (Hashable k, Ord k, Num p, Ord p) => k -> p -> (k -> [(k, p)]) -> k -> p
+     (Hashable k, Ord k, Show k, Show p, Num p, Ord p)
+  => k
+  -> p
+  -> (k -> [(k, p)])
+  -> k
+  -> p
 dijkstraGoalVal startKey startDist neighbours goal =
   fromJust . M.lookup goal . fst $
   dijkstraGoal startKey startDist neighbours (== goal)
