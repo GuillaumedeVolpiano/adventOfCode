@@ -264,7 +264,7 @@ initialiseChain instructions = map startMachine
     startMachine x = execState execute . sendInput x . initialise $ instructions
 
 sendASCIIInput :: String -> Intcode -> Intcode
-sendASCIIInput ascii intcode = intcode {input = input intcode ++ map ord ascii}
+sendASCIIInput = sendMultInput . map ord
 
 sendInput :: Int -> Intcode -> Intcode
 sendInput val intcode = intcode {input = input intcode ++ [val]}
