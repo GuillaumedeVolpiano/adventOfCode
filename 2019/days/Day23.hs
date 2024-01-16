@@ -11,8 +11,6 @@ import           Data.List.Split (chunksOf)
 import           Intcode         (Intcode, clearOutput, initialise, input,
                                   runIntcode, sendInput, sendMultInput)
 
-import           Debug.Trace
-
 type Network = [([Packet], Intcode)]
 
 type Packet = (Address, [Int])
@@ -27,7 +25,7 @@ isIdle :: Network -> Bool
 isIdle = all (\x -> null (input . snd $ x) && null (fst x))
 
 packetise :: [Int] -> [Packet]
-packetise = map (\[a, b, c] -> (c, [b, a])) . chunksOf 3
+packetise = map (\[a, b, c] -> (a, [b, c])) . chunksOf 3 . reverse
 
 initialiseNetwork :: String -> Network
 initialiseNetwork string =
@@ -49,7 +47,7 @@ extractPackets pack = (natPacket, fromList packets)
     natPackets = map snd . filter ((== 255) . fst) $ packets
     natPacket
       | null natPackets = []
-      | otherwise = take 2 . head $ natPackets
+      | otherwise = reverse . take 2 . reverse . head $ natPackets
 
 receiveSend :: Network -> Int
 receiveSend network
