@@ -37,11 +37,12 @@ import           System.Console.CmdArgs.Implicit (Data, Typeable, args, cmdArgs,
 
 data Arguments =
   Arguments
-    { day      :: Int
-    , test     :: Bool
-    , local :: Bool
-    , proxy    :: Bool
-    , wallTime :: Bool
+    { day         :: Int
+    , test        :: Bool
+    , local       :: Bool
+    , proxy       :: Bool
+    , wallTime    :: Bool
+    , interactive :: Bool
     }
   deriving (Show, Data, Typeable)
 
@@ -78,6 +79,8 @@ solver =
     , (25, (Day25.part1, Day25.part2))
     ]
 
+interSolver = fromList [(25, Day25.interaction)]
+
 main :: IO ()
 main = do
   time <- getCurrentTime
@@ -91,6 +94,7 @@ main = do
           , test = def &= help "Run the test suite? Defaults to True if used"
           , proxy = def &= help "Use a proxy? Defaults to True if used"
           , wallTime = def &= help "Report wall Time rather than CPU time"
+          , interactive = def &= help "Run interactively"
           }
   args <- cmdArgs arguments
   let year = 2019
@@ -100,9 +104,13 @@ main = do
           _ -> day args
   input <- retrieveInput year theDay (test args) (local args) (proxy args)
   let (solve1, solve2) = solver ! theDay
-  let timer =
+      timer =
         if wallTime args
           then wallTimeIt
           else customPreciseTimeIt
-  timer "Part 1." 4 . putStrLn $ solve1 (test args) input
-  timer "Part 2." 4 . putStrLn $ solve2 (test args) input
+      result
+        | interactive args = interSolver ! theDay $ input
+        | otherwise = do
+          timer "Part 1." 4 . putStrLn $ solve1 (test args) input
+          timer "Part 2." 4 . putStrLn $ solve2 (test args) input
+  result
