@@ -8,6 +8,7 @@ module Intcode
   , halted
   , initialise
   , initialiseChain
+  , input
   , runASCIIcode
   , runChain
   , runIntcode
