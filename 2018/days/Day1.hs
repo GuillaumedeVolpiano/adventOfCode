@@ -5,7 +5,6 @@ module Day1
 
 import           Data.IntSet     (IntSet, empty, insert, member)
 import           Data.Sequence   (Seq ((:<|), (:|>)), fromList)
-import           Helpers.Parsers
 
 findRepeat :: IntSet -> Int -> Seq Int -> Int
 findRepeat seen cur (val :<| rest)
