@@ -1,9 +1,20 @@
-module Day1 (part1, part2) where
+module Day1
+  ( part1
+  , part2
+  ) where
 
-import Helpers.Parsers
+import           Data.IntSet     (IntSet, empty, insert, member)
+import           Data.Sequence   (Seq ((:<|), (:|>)), fromList)
+import           Helpers.Parsers
 
-part1 :: Bool -> String -> String
-part1 _ _ = "Part 1"
+findRepeat :: IntSet -> Int -> Seq Int -> Int
+findRepeat seen cur (val :<| rest)
+  | cur `member` seen = cur
+  | otherwise = findRepeat (insert cur seen) (cur + val) (rest :|> val)
+
+part1 :: Bool -> String -> String
+part1 _ = show . sum . map (read . filter (/= '+')) . lines
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  show . findRepeat empty 0 . fromList . map (read . filter (/= '+')) . lines
