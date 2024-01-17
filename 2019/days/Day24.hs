@@ -6,18 +6,15 @@ module Day24
 import           Data.Array.Unboxed (UArray, indices, (!))
 import           Data.Bits          (bit, clearBit, popCount, setBit, testBit,
                                      (.&.), (.|.))
-import           Data.IntMap        as M (IntMap, alter, findWithDefault,
-                                          insert, keys, map, singleton)
-import           Data.IntSet        as St (IntSet, empty, fromList, insert,
-                                           member, toList, unions)
-import           Data.List          as L (map)
+import           Data.IntSet        (IntSet, empty, fromList, insert, member,
+                                     toList, unions)
 import           Data.Maybe         (Maybe (Just, Nothing), mapMaybe)
 import           Helpers.Graph      (Pos)
 import           Helpers.Parsers    (boolArrayFromString)
 
 type Bugs = Int
 
-type RecurBugs = IntMap Bugs
+type RecurBugs = [Bugs]
 
 birth :: String -> Bugs
 birth = foldr bitify 0
@@ -28,41 +25,44 @@ birth = foldr bitify 0
       | a == '\n' = b
 
 recurGol :: RecurBugs -> RecurBugs
-recurGol rBugs = foldr (\d -> alter (newVal d) d) rBugs activeDepths
+recurGol rBugs
+  | recGol 0 0 (head rBugs) == 0 = rGol (0 : rBugs)
+  | otherwise = recGol 0 0 (head rBugs) : rGol (0 : rBugs)
+
+recGol :: Bugs -> Bugs -> Bugs -> Bugs
+recGol a b c = foldr (status a b c) b $ [0 .. 11] ++ [13 .. 24]
+
+rGol :: RecurBugs -> RecurBugs
+rGol [a]
+  | recGol a 0 0 == 0 = []
+  | otherwise = [recGol a 0 0]
+rGol [a, b] = recGol a b 0 : rGol [b]
+rGol (a:b:c:xs) = recGol a b c : rGol (b : c : xs)
+
+status :: Bugs -> Bugs -> Bugs -> Int -> Bugs -> Bugs
+status a b c n v
+  | (b `testBit` n && bugMask a b c n == 1) ||
+      (not (b `testBit` n) && bugMask a b c n `elem` [1, 2]) = v `setBit` n
+  | otherwise = v `clearBit` n
   where
-    status depth n v
-      | (bugs depth `testBit` n && bugMask depth n == 1) ||
-          (not (bugs depth `testBit` n) && bugMask depth n `elem` [1, 2]) =
-        v `setBit` n
-      | otherwise = v `clearBit` n
-    bugMask depth n = left depth n + right depth n + up depth n + down depth n
-    left depth n
-      | n `mod` 5 == 0 = bitify (external depth) 11
-      | n == 13 = sum . L.map (bitify (internal depth)) $ [4, 9, 14, 19, 24]
-      | otherwise = popCount $ bit (n - 1) .&. bugs depth
-    right depth n
-      | n `mod` 5 == 4 = bitify (external depth) 13
-      | n == 11 = sum . L.map (bitify (internal depth)) $ [0, 5, 10, 15, 20]
-      | otherwise = popCount $ bit (n + 1) .&. bugs depth
-    up depth n
-      | n < 5 = bitify (external depth) 7
-      | n == 17 = sum . L.map (bitify (internal depth)) $ [20, 21, 22, 23, 24]
-      | otherwise = popCount $ bit (n - 5) .&. bugs depth
-    down depth n
-      | n > 19 = bitify (external depth) 17
-      | n == 7 = sum . L.map (bitify (internal depth)) $ [0, 1, 2, 3, 4]
-      | otherwise = popCount $ bit (n + 5) .&. bugs depth
-    external depth = findWithDefault 0 (depth + 1) rBugs
-    internal depth = findWithDefault 0 (depth - 1) rBugs
-    bugs depth = findWithDefault 0 depth rBugs
+    bugMask a b c n = left a b c n + right a b c n + up a b c n + down a b c n
+    left a b c n
+      | n `mod` 5 == 0 = bitify a 11
+      | n == 13 = sum . map (bitify c) $ [4, 9, 14, 19, 24]
+      | otherwise = popCount $ bit (n - 1) .&. b
+    right a b c n
+      | n `mod` 5 == 4 = bitify a 13
+      | n == 11 = sum . map (bitify c) $ [0, 5, 10, 15, 20]
+      | otherwise = popCount $ bit (n + 1) .&. b
+    up a b c n
+      | n < 5 = bitify a 7
+      | n == 17 = sum . map (bitify c) $ [20, 21, 22, 23, 24]
+      | otherwise = popCount $ bit (n - 5) .&. b
+    down a b c n
+      | n > 19 = bitify a 17
+      | n == 7 = sum . map (bitify c) $ [0, 1, 2, 3, 4]
+      | otherwise = popCount $ bit (n + 5) .&. b
     bitify bugLayer val = popCount $ bugLayer .&. bit val
-    golLayer depth = foldr (status depth) (bugs depth) $ [0 .. 11] ++ [13 .. 24]
-    newVal depth _
-      | golLayer depth == 0 = Nothing
-      | otherwise = Just $ golLayer depth
-    activeDepths =
-      toList . unions . L.map (\d -> fromList . L.map (d +) $ [-1, 0, 1]) . keys $
-      rBugs
 
 gol :: Bugs -> Bugs
 gol bugs = foldr status bugs [0 .. 24]
@@ -90,15 +90,14 @@ gol bugs = foldr status bugs [0 .. 24]
 biodiversity :: IntSet -> Bugs -> Bugs
 biodiversity seen bugs
   | bugs `member` seen = bugs
-  | otherwise = biodiversity (St.insert bugs seen) $ gol bugs
+  | otherwise = biodiversity (insert bugs seen) $ gol bugs
 
 part1 :: Bool -> String -> String
 part1 _ = show . biodiversity empty . birth
 
 part2 :: Bool -> String -> String
 part2 test =
-  show .
-  sum . M.map popCount . (!! time) . iterate recurGol . singleton 0 . birth
+  show . sum . map popCount . (!! time) . iterate recurGol . (: []) . birth
   where
     time
       | test = 10
