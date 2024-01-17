@@ -75,7 +75,7 @@ part1 _ input = show dijkVal
     blocks = digitArrayFromString input
     startPos = Crucible start east 0
     (start, endGoal) = bounds blocks
-    (actualGoal, (dijVals, _)) =
+    (Just actualGoal, (dijVals, _)) =
       dijkstraMech
         (Q.singleton startPos 0 startPos)
         (M.singleton startPos 0)
@@ -91,7 +91,7 @@ part2 _ input = show dijkVal
     startPosEast = Crucible start east 0
     startPosSouth = Crucible start south 0
     (start, endGoal) = bounds blocks
-    (actualGoal, (dijVals, _)) =
+    (Just actualGoal, (dijVals, _)) =
       dijkstraMech
         (Q.insert startPosEast 0 startPosEast $
          Q.singleton startPosSouth 0 startPosSouth)
