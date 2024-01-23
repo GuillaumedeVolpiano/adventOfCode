@@ -1,9 +1,24 @@
-module Day5 (part1, part2) where
+module Day5
+  ( part1
+  , part2
+  ) where
 
-import Helpers.Parsers
+import           Data.Char (ord, toUpper)
 
-part1 :: Bool -> String -> String
-part1 _ _ = "Part 1"
+react :: String -> String -> Int
+react a b
+  | null b = length a
+  | null a = react [head b] $ tail b
+  | abs (ord (head a) - ord (head b)) == 32 = react (tail a) $ tail b
+  | otherwise = react (head b : a) $ tail b
+
+reactPruned :: String -> Int
+reactPruned polymer =
+  minimum . map (\p -> react "" . filter (`notElem` p) $ polymer) $
+  [[x, toUpper x] | x <- ['a' .. 'z']]
+
+part1 :: Bool -> String -> String
+part1 _ = show . react "" . filter (/= '\n')
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ = show . reactPruned . filter (/= '\n')
