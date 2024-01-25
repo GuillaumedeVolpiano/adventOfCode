@@ -11,3 +11,5 @@ dist-newstyle
 *.svg
 input/*
 input/*/*
+test/*
+test/*/*
