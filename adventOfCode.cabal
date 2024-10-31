@@ -41,7 +41,7 @@ executable aoc2018
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends: arithmoi, array, base ^>=4.16.4.0, cmdargs, containers 
+    build-depends: arithmoi, array, base , cmdargs, containers 
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, lens, linear, megaparsec, monad-loops, mtl
                    , multiset, parallel, psqueues, split, text, time, timeit
@@ -60,7 +60,7 @@ executable aoc2019
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends: arithmoi, array, base ^>=4.16.4.0, cmdargs, containers 
+    build-depends: arithmoi, array, base , cmdargs, containers 
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, lens, linear, megaparsec, monad-loops, mtl
                    , multiset, parallel, psqueues, split, text, time, timeit
@@ -78,7 +78,7 @@ executable aoc2020
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends: arithmoi, array, base ^>=4.16.4.0, cmdargs, containers 
+    build-depends: arithmoi, array, base , cmdargs, containers 
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, linear, megaparsec, monad-loops, mtl, parallel
                    , psqueues, split, text, time, timeit, unordered-containers
@@ -97,7 +97,7 @@ executable aoc2021
 
    -- LANGUAGE extensions used by modules in this package.
    -- other-extensions:
-    build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl
+    build-depends: array, base , cmdargs, containers, curl
                    , data-clist, directory, fgl, graphviz, hashable, linear
                    , megaparsec, mtl, multiset, psqueues, regex-tdfa, split
                    , text, timeit, time, unordered-containers
@@ -113,13 +113,13 @@ executable aoc2022
 --
 --    -- LANGUAGE extensions used by modules in this package.
 --    -- other-extensions:
-    build-depends: array, base ^>=4.16.4.0, cmdargs, containers, curl
+    build-depends: array, base, cmdargs, containers, curl
                     , data-clist, directory, hashable, linear, megaparsec
                     , psqueues, regex-tdfa, split, timeit, time
                     , unordered-containers
     default-language: Haskell2010
 --
-executable aoc
+executable aoc2023
     main-is:          Main.hs
     hs-source-dirs: 2023 2023/days, lib
     other-modules: Helpers.General, Helpers.Graph, Helpers.Maths, Helpers.Parsers, Helpers.Search
@@ -129,7 +129,7 @@ executable aoc
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends: arithmoi, array, base ^>=4.16.4.0, cmdargs, containers 
+    build-depends: arithmoi, array, base, cmdargs, containers 
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, linear, megaparsec, parallel, parser-combinators
                    , psqueues, regex-pcre, regex-tdfa, split, text, time, timeit

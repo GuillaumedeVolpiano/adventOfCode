@@ -5,6 +5,8 @@ module Helpers.Search
   , astarVal
   , bfs
   , bfsDist
+  , bfsSafe
+  , bfsSafeDist
   , dfs
   , dfsBest
   , dijkstraGoal
@@ -31,7 +33,6 @@ import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
                                       singleton, takeWhileL, (!?))
 import           Data.Set      as St (Set, empty, insert, member, notMember,
                                       singleton)
-
 type NodeFromVertex node key = G.Vertex -> (node, key, [key])
 
 type VertexFromKey a = a -> Maybe G.Vertex
@@ -65,20 +66,55 @@ bfsDist :: Ord a => a -> (a -> [a]) -> (a -> Bool) -> Int
 -- we need to reduce the distance by one because the path includes both the
 -- starting point and the goal
 bfsDist start neighbours =
-  (+) (-1) .
-  L.length . bfs (Sq.singleton start) (St.singleton start) M.empty neighbours
+  (+) (-1)
+    . L.length
+    . bfs (Sq.singleton start) (St.singleton start) M.empty neighbours
 
-bfs :: Ord a => Seq a -> Set a -> Map a a -> (a -> [a]) -> (a -> Bool) -> [a]
+bfs ::
+     Ord a
+  => Seq a
+  -> Set a
+  -> Map a a
+  -> (a -> [a])
+  -> (a -> Bool)
+  -> [a]
 bfs toSee seen paths neighbours isGoal
-  | Sq.null toSee = error "goal not found"
-  | isGoal curPos = reconstructPath curPos paths
-  | otherwise = bfs toSeeNext newSeen newPaths neighbours isGoal
+  | isNothing result = error "goal not found"
+  | otherwise = fromJust result
+  where
+    result = bfsSafe toSee seen paths neighbours isGoal
+
+bfsSafe ::
+     Ord a
+  => Seq a
+  -> Set a
+  -> Map a a
+  -> (a -> [a])
+  -> (a -> Bool)
+  -> Maybe [a]
+bfsSafe toSee seen paths neighbours isGoal
+  | Sq.null toSee = Nothing
+  | isGoal curPos = Just $ reconstructPath curPos paths
+  | otherwise =
+    bfsSafe toSeeNext newSeen newPaths neighbours isGoal
   where
     (curPos :<| rest) = toSee
     toConsider = filter (`St.notMember` seen) . neighbours $ curPos
     toSeeNext = foldl (:|>) rest toConsider
     newSeen = foldl (flip St.insert) seen toConsider
     newPaths = foldl (\a b -> M.insert b curPos a) paths toConsider
+
+bfsSafeDist :: Ord a => a -> (a -> [a]) -> (a -> Bool) -> Maybe Int
+-- we need to reduce the distance by one because the path includes both the
+-- starting point and the goal
+bfsSafeDist start neighbours isGoal =
+  (+ (-1)) . L.length
+    <$> bfsSafe
+          (Sq.singleton start)
+          (St.singleton start)
+          M.empty
+          neighbours
+          isGoal
 
 reconstructPath :: Ord a => a -> Map a a -> [a]
 reconstructPath curPos paths
@@ -101,8 +137,8 @@ dfsBest (node:ns) curBest neighbours checkBest seen
       (neighbours node curBest ++ ns)
       (checkBest node curBest)
       neighbours
-      checkBest $
-    St.insert node seen
+      checkBest
+      $ St.insert node seen
 
 -- Dijkstra
 dijkstraGoalVal ::
@@ -113,8 +149,8 @@ dijkstraGoalVal ::
   -> k
   -> p
 dijkstraGoalVal startKey startDist neighbours goal =
-  fromJust . M.lookup goal . fst $
-  dijkstraGoal startKey startDist neighbours (== goal)
+  fromJust . M.lookup goal . fst
+    $ dijkstraGoal startKey startDist neighbours (== goal)
 
 dijkstraGoal ::
      (Hashable k, Ord k, Num p, Ord p)
@@ -124,12 +160,12 @@ dijkstraGoal ::
   -> (k -> Bool)
   -> (Map k p, Map k k)
 dijkstraGoal startKey startDist neighbours =
-  snd .
-  dijkstraMech
-    (Q.singleton startKey startDist startKey)
-    (M.singleton startKey startDist)
-    M.empty
-    neighbours
+  snd
+    . dijkstraMech
+        (Q.singleton startKey startDist startKey)
+        (M.singleton startKey startDist)
+        M.empty
+        neighbours
 
 dijkstraUncertainGoalDist ::
      (Hashable k, Ord k, Show k, Num p, Ord p)
@@ -262,8 +298,8 @@ findPattern startPoint minSize boolTest cycle
     pruned = Sq.drop startPoint cycle
     (orVal :<| rest) = pruned
     potPatternLength =
-      minSize +
-      Sq.length (takeWhileL (not . boolTest orVal) $ Sq.drop minSize pruned)
+      minSize
+        + Sq.length (takeWhileL (not . boolTest orVal) $ Sq.drop minSize pruned)
     testPattern = boolTest orVal . fromJust $ pruned !? (2 * potPatternLength)
 
 -- FloodFill
