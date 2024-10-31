@@ -4,9 +4,9 @@ module Day15
   ) where
 
 import           Data.Array.Unboxed (UArray, assocs, ixmap)
-import           Data.List          as L (filter, minimumBy, unfoldr)
+import           Data.List          as L (filter, minimumBy, sortBy, unfoldr)
 import           Data.Map           as M (Map, delete, elems, empty, filter,
-                                          foldlWithKey, fromList, insert, keys,
+                                          filterWithKey, fromList, insert, keys,
                                           lookup, member, notMember, (!))
 import           Data.Maybe         (isJust, mapMaybe)
 import           Data.Ord           (comparing)
@@ -17,12 +17,19 @@ import           Helpers.Parsers    (arrayFromString)
 import           Helpers.Search     (bfsSafe, bfsSafeDist)
 import           Linear.V2          (V2 (..))
 
+import           Data.List.Split    (chunksOf)
 import           Debug.Trace
 
-data Fighter
-  = Goblin AP HP
-  | Elf AP HP
-  deriving (Show)
+data Fighter = Fighter
+  { unit :: Unit
+  , ap   :: AP
+  , hp   :: HP
+  } deriving (Show)
+
+data Unit
+  = Elf
+  | Goblin
+  deriving (Show, Eq)
 
 type AP = Int
 
@@ -40,51 +47,42 @@ hitPoints = 200
 
 attackPower = 3
 
--- applying the (V2 x y -> V2 y x) symmetry to [north, west, east, south]
-dirs = [west, north, south, east]
+dirs = [north, west, east, south]
 
 isGoblin :: Fighter -> Bool
-isGoblin (Goblin _ _) = True
-isGoblin _            = False
+isGoblin = (== Goblin) . unit
 
 isElf :: Fighter -> Bool
 isElf = not . isGoblin
 
 isDead :: Fighter -> Bool
-isDead (Goblin _ hp) = hp < 1
-isDead (Elf _ hp)    = hp < 1
+isDead = (< 1) . hp
 
 hurt :: AP -> Fighter -> Fighter
-hurt ap (Goblin a h) = Goblin a (h - ap)
-hurt ap (Elf a h)    = Elf a (h - ap)
+hurt ap f = f {hp = hp f - ap}
 
-getAP :: Fighter -> AP
-getAP (Goblin ap _) = ap
-getAP (Elf ap _)    = ap
+enemies :: Pos -> Fighters -> Fighters
+enemies pos fighters
+  | isGoblin (fighters ! pos) = M.filter isElf fighters
+  | otherwise = M.filter isGoblin fighters
 
-getHP :: Fighter -> HP
-getHP (Goblin _ hp) = hp
-getHP (Elf _ hp)    = hp
+readingOrder :: Pos -> Pos -> Ordering
+readingOrder (V2 x0 y0) (V2 x1 y1) = compare y0 y1 `mappend` compare x0 x1
 
-enemy :: Fighter -> Fighter -> Bool
-enemy f
-  | isGoblin f = isElf
-  | otherwise = isGoblin
+targetOrder :: Fighters -> Pos -> Pos -> Ordering
+targetOrder f p1 p2 =
+  compare (hp $ f ! p1) (hp $ f ! p2) `mappend` readingOrder p1 p2
 
 fightersCave :: AP -> UArray Pos Char -> State
 fightersCave ap array = (M.fromList fighters, S.fromList cave, False)
   where
-    -- we apply a (V2 x y -> V2 y x) symmetry so that vectors get sorted by x
-    -- first, then by y, as per the reading order.
-    cave =
-      map ((\(V2 x y) -> V2 y x) . fst) . L.filter ((== '#') . snd) . assocs
-        $ array
+    cave = map fst . L.filter ((== '#') . snd) . assocs $ array
     fighters =
       map
-        (\(V2 x y, c) ->
+        (\(p, c) ->
            if c == 'E'
-             then (V2 y x, Elf ap hitPoints)
-             else (V2 y x, Goblin attackPower hitPoints))
+             then (p, Fighter Elf ap hitPoints)
+             else (p, Fighter Goblin attackPower hitPoints))
         . L.filter (flip elem "EG" . snd)
         . assocs
         $ array
@@ -95,67 +93,73 @@ doTurn (fighters, cave, ended)
   | otherwise = Just (newFighters, (newFighters, cave, newEnded))
   where
     (newFighters, newEnded) =
-      foldlWithKey (move cave) (fighters, ended) fighters
+      foldr (move cave) (fighters, ended) . sortBy (flip readingOrder) . keys
+        $ fighters
 
-move :: Cave -> (Fighters, Ended) -> Pos -> Fighter -> (Fighters, Ended)
-move cave (fighters, ended) p f
-  | ended || null enemies = (fighters, True)
-  | M.notMember p fighters = (fighters, False)
-  | any
-      ((\x -> M.member x fighters && (enemy f . (!) fighters $ x)) . (p +))
-      dirs = (attack cave p f fighters, False)
-  | null targetList = (fighters, False)
-  | otherwise =
-    (attack cave dest f . insert dest f . delete p $ fighters, False)
+render :: Fighters -> Cave -> String
+render fighters cave =
+  unlines . chunksOf (mY + 1) $ [rc x y | y <- [0 .. mY], x <- [0 .. mX]]
   where
-    enemies = keys . M.filter (enemy f) $ fighters
-    destList = (+) <$> dirs <*> enemies
+    (V2 mX mY) = maximum cave
+    rc x y
+      | M.member (V2 x y) fighters && isElf (fighters ! V2 x y) = 'E'
+      | M.member (V2 x y) fighters = 'G'
+      | S.notMember (V2 x y) cave = '.'
+      | otherwise = '#'
+
+move :: Cave -> Pos -> (Fighters, Ended) -> (Fighters, Ended)
+move cave p (fighters, ended)
+  -- we're already done
+  | ended = (fighters, True)
+  -- fighter is dead
+  | M.notMember p fighters = (fighters, ended)
+  -- no enemies left. We're done
+  | null enemyFighters = (fighters, True)
+  -- we can reach a target. No need to move.
+  | p `elem` destList = (attack cave p fighters, ended)
+  -- no reachable target. Don't move.
+  | null targetList = (fighters, ended)
+  -- Let's move and then see if we can attack.
+  | otherwise = (attack cave dest . insert dest f . delete p $ fighters, ended)
+  where
+    f = fighters ! p
+    enemyFighters = sortBy readingOrder . keys . enemies p $ fighters
+    destList = (+) <$> enemyFighters <*> dirs
     inRange = L.filter walkable destList
     targetList =
-      mapMaybe
-        (\x ->
-           bfsSafe (Sq.singleton p) (S.singleton p) M.empty neighbours (== x))
-        inRange
+      L.filter (isJust . snd) . map (\x -> (x, bfsSafeDist p neighbours (== x)))
+        $ inRange
+    minDist = minimum . map snd $ targetList
     target =
-      head
-        . minimumBy
-            (\a b ->
-               (if length a == length b
-                  then compare (head a) (head b)
-                  else compare (length a) (length b)))
+      minimumBy readingOrder . map fst . L.filter ((== minDist) . snd)
         $ targetList
     dest =
       fst
         . minimumBy
-            (\(x0, y0) (x1, y1) ->
-               if y0 == y1
-                 then compare x0 x1
-                 else compare y0 y1)
+            (\(x0, y0) (x1, y1) -> compare y0 y1 `mappend` readingOrder x0 x1)
         . L.filter (isJust . snd)
-        . map ((\x -> (x, bfsSafeDist x neighbours (== target))) . (p +))
-        . L.filter (walkable . (p +))
+        . map (\x -> (x, bfsSafeDist x neighbours (== target)))
+        . L.filter walkable . map (p +)
         $ dirs
     walkable :: Pos -> Bool
     walkable x = M.notMember x fighters && S.notMember x cave
     neighbours :: Pos -> [Pos]
     neighbours pos = L.filter walkable . map (+ pos) $ dirs
 
-attack :: Cave -> Pos -> Fighter -> Fighters -> Fighters
-attack cave p f fighters
+attack :: Cave -> Pos -> Fighters -> Fighters
+attack cave p fighters
   | null targets = fighters
   | isDead newTarget = delete targetPos fighters
   | otherwise = insert targetPos newTarget fighters
   where
-    targets =
-      L.filter (\x -> M.member x fighters && (enemy f . (!) fighters $ x))
-        . map (p +)
-        $ dirs
-    targetPos = minimumBy (comparing (getHP . (!) fighters)) targets
+    f = fighters ! p
+    targets = L.filter (`member` enemies p fighters) . map (p +) $ dirs
+    targetPos = minimumBy (targetOrder fighters) targets
     target = fighters ! targetPos
-    newTarget = hurt (getAP f) target
+    newTarget = hurt (ap f) target
 
 score :: [Fighters] -> Int
-score rounds = (length rounds - 1) * (foldr ((+) . getHP) 0 . last $ rounds)
+score rounds = (length rounds - 1) * (foldr ((+) . hp) 0 . last $ rounds)
 
 part1 :: Bool -> String -> String
 part1 _ =
