@@ -4,14 +4,18 @@ module Day15
   ) where
 
 import           Data.Array.Unboxed (UArray, assocs, ixmap)
-import           Data.List          as L (filter, minimumBy, sortBy, unfoldr)
-import           Data.Map           as M (Map, delete, elems, empty, filter,
-                                          filterWithKey, fromList, insert, keys,
-                                          lookup, member, notMember, (!))
+import           Data.Function.HT   (compose2)
+import           Data.List          as L (filter, foldl', minimumBy, sortBy,
+                                          unfoldr)
+import           Data.Map           as M (Map, delete, elems, filter,
+                                          filterWithKey, foldlWithKey, fromList,
+                                          insert, keys, lookup, member,
+                                          notMember, (!))
 import           Data.Maybe         (isJust, mapMaybe)
 import           Data.Ord           (comparing)
 import           Data.Sequence      as Sq (singleton)
-import           Data.Set           as S (Set, fromList, notMember, singleton)
+import           Data.Set           as S (Set, empty, fromList, insert, member,
+                                          notMember, singleton)
 import           Helpers.Graph      (Pos, east, north, south, west)
 import           Helpers.Parsers    (arrayFromString)
 import           Helpers.Search     (bfsSafe, bfsSafeDist)
@@ -24,12 +28,19 @@ data Fighter = Fighter
   { unit :: Unit
   , ap   :: AP
   , hp   :: HP
-  } deriving (Show)
+  }
 
 data Unit
   = Elf
   | Goblin
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Unit where
+  show Elf = "E("
+  show _   = "G("
+
+instance Show Fighter where
+  show f = show (unit f) ++ show (hp f) ++ ")"
 
 type AP = Int
 
@@ -37,11 +48,13 @@ type HP = Int
 
 type Cave = Set Pos
 
+type Killed = Set Pos
+
 type Fighters = Map Pos Fighter
 
 type Ended = Bool
 
-type State = (Fighters, Cave, Ended)
+type State = (Int, Fighters, Cave, Ended)
 
 hitPoints = 200
 
@@ -55,6 +68,11 @@ isGoblin = (== Goblin) . unit
 isElf :: Fighter -> Bool
 isElf = not . isGoblin
 
+isEnemy :: Fighter -> Fighter -> Bool
+isEnemy f
+  | isElf f = isGoblin
+  | otherwise = isElf
+
 isDead :: Fighter -> Bool
 isDead = (< 1) . hp
 
@@ -62,9 +80,7 @@ hurt :: AP -> Fighter -> Fighter
 hurt ap f = f {hp = hp f - ap}
 
 enemies :: Pos -> Fighters -> Fighters
-enemies pos fighters
-  | isGoblin (fighters ! pos) = M.filter isElf fighters
-  | otherwise = M.filter isGoblin fighters
+enemies pos fighters = M.filter (isEnemy (fighters ! pos)) fighters
 
 readingOrder :: Pos -> Pos -> Ordering
 readingOrder (V2 x0 y0) (V2 x1 y1) = compare y0 y1 `mappend` compare x0 x1
@@ -74,7 +90,7 @@ targetOrder f p1 p2 =
   compare (hp $ f ! p1) (hp $ f ! p2) `mappend` readingOrder p1 p2
 
 fightersCave :: AP -> UArray Pos Char -> State
-fightersCave ap array = (M.fromList fighters, S.fromList cave, False)
+fightersCave ap array = (1, M.fromList fighters, S.fromList cave, False)
   where
     cave = map fst . L.filter ((== '#') . snd) . assocs $ array
     fighters =
@@ -88,17 +104,21 @@ fightersCave ap array = (M.fromList fighters, S.fromList cave, False)
         $ array
 
 doTurn :: State -> Maybe (Fighters, State)
-doTurn (fighters, cave, ended)
+doTurn (turn, fighters, cave, ended)
   | ended = Nothing
-  | otherwise = Just (newFighters, (newFighters, cave, newEnded))
+  | otherwise =
+    trace
+      ("Round: " ++ show turn ++ "\n" ++ render newFighters cave ++ "\n")
+      Just
+      (newFighters, (turn + 1, newFighters, cave, newEnded))
   where
-    (newFighters, newEnded) =
-      foldr (move cave) (fighters, ended) . sortBy (flip readingOrder) . keys
+    ((newFighters, _), newEnded) =
+      foldl' (move cave) ((fighters, empty), ended) . sortBy readingOrder . keys
         $ fighters
 
 render :: Fighters -> Cave -> String
 render fighters cave =
-  unlines . chunksOf (mY + 1) $ [rc x y | y <- [0 .. mY], x <- [0 .. mX]]
+  unlines . insertFighters . chunksOf (mX + 1) $ [rc x y | y <- [0 .. mY], x <- [0 .. mX]]
   where
     (V2 mX mY) = maximum cave
     rc x y
@@ -106,26 +126,33 @@ render fighters cave =
       | M.member (V2 x y) fighters = 'G'
       | S.notMember (V2 x y) cave = '.'
       | otherwise = '#'
+    insertFighters l =
+      foldlWithKey
+        (\xs (V2 _ y) f -> insertFighterAt y (" " ++ show f ++ ",") xs)
+        l
+        fighters
+    insertFighterAt :: Int -> String -> [String] -> [String]
+    insertFighterAt y unit l = before ++ (there ++ unit) : after
+      where
+        (before, there:after) = splitAt y l
 
-move :: Cave -> Pos -> (Fighters, Ended) -> (Fighters, Ended)
-move cave p (fighters, ended)
+move ::
+     Cave -> ((Fighters, Killed), Ended) -> Pos -> ((Fighters, Killed), Ended)
+move cave ((fighters, killed), ended) p
   -- we're already done
-  | ended = (fighters, True)
+  | ended = ((fighters, killed), True)
   -- fighter is dead
-  | M.notMember p fighters = (fighters, ended)
+  | p `S.member` killed = ((fighters, killed), ended)
   -- no enemies left. We're done
-  | null enemyFighters = (fighters, True)
-  -- we can reach a target. No need to move.
-  | p `elem` destList = (attack cave p fighters, ended)
-  -- no reachable target. Don't move.
-  | null targetList = (fighters, ended)
-  -- Let's move and then see if we can attack.
-  | otherwise = (attack cave dest . insert dest f . delete p $ fighters, ended)
+  | null enemyFighters = trace (show p) ((fighters, killed), True)
+  -- check move then attack
+  | otherwise = trace (show p) (attack cave newPos newFighters killed, ended)
   where
-    f = fighters ! p
     enemyFighters = sortBy readingOrder . keys . enemies p $ fighters
     destList = (+) <$> enemyFighters <*> dirs
+    walkable x = M.notMember x fighters && S.notMember x cave
     inRange = L.filter walkable destList
+    neighbours pos = L.filter walkable . map (+ pos) $ dirs
     targetList =
       L.filter (isJust . snd) . map (\x -> (x, bfsSafeDist p neighbours (== x)))
         $ inRange
@@ -135,27 +162,29 @@ move cave p (fighters, ended)
         $ targetList
     dest =
       fst
-        . minimumBy
-            (\(x0, y0) (x1, y1) -> compare y0 y1 `mappend` readingOrder x0 x1)
+        . minimumBy (comparing snd `mappend` compose2 readingOrder fst)
         . L.filter (isJust . snd)
-        . map (\x -> (x, bfsSafeDist x neighbours (== target)))
-        . L.filter walkable . map (p +)
+        . map (\x -> (x, bfsSafeDist target neighbours (== x)))
+        . L.filter walkable
+        . map (p +)
         $ dirs
-    walkable :: Pos -> Bool
-    walkable x = M.notMember x fighters && S.notMember x cave
-    neighbours :: Pos -> [Pos]
-    neighbours pos = L.filter walkable . map (+ pos) $ dirs
-
-attack :: Cave -> Pos -> Fighters -> Fighters
-attack cave p fighters
-  | null targets = fighters
-  | isDead newTarget = delete targetPos fighters
-  | otherwise = insert targetPos newTarget fighters
-  where
     f = fighters ! p
-    targets = L.filter (`member` enemies p fighters) . map (p +) $ dirs
+    (newPos, newFighters)
+      -- if we don't have a target or are already in range, don't move
+      | null targetList || p `elem` destList = (p, fighters)
+      -- otherwise, make a step
+      | otherwise = (dest, M.insert dest f . delete p $ fighters)
+
+attack :: Cave -> Pos -> Fighters -> Killed -> (Fighters, Killed)
+attack cave p fighters killed
+  | null targets = (fighters, killed)
+  | isDead newTarget = (delete targetPos fighters, S.insert targetPos killed)
+  | otherwise = (M.insert targetPos newTarget fighters, killed)
+  where
+    targets = L.filter (`M.member` enemies p fighters) . map (p +) $ dirs
     targetPos = minimumBy (targetOrder fighters) targets
     target = fighters ! targetPos
+    f = fighters ! p
     newTarget = hurt (ap f) target
 
 score :: [Fighters] -> Int

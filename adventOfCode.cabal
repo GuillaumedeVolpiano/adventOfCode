@@ -45,7 +45,7 @@ executable aoc2018
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, lens, linear, megaparsec, monad-loops, mtl
                    , multiset, parallel, psqueues, split, text, time, timeit
-                   , unordered-containers, vector
+                   , unordered-containers, utility-ht, vector
     ghc-options: -O1 -threaded
     default-language: Haskell2010
 
