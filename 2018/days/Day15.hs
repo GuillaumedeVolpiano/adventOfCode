@@ -58,6 +58,8 @@ type Fighters = Set Fighter
 
 type Ended = Bool
 
+type DeadElf = Bool
+
 type State = (Fighters, Cave, Ended)
 
 hitPoints = 200
@@ -109,22 +111,22 @@ doTurn (fighters, cave, ended)
   | ended = Nothing
   | otherwise = Just (newFighters, (newFighters, cave, newEnded))
   where
-    (newFighters, newEnded) = doMoves ((empty, fighters), ended)
-    doMoves :: ((Fighters, Fighters), Bool) -> (Fighters, Bool)
-    doMoves ((seen, toSee), hasEnded)
+    (newFighters, newEnded) = doMoves ((empty, fighters, False), ended)
+    doMoves :: ((Fighters, Fighters, Bool), Bool) -> (Fighters, Bool)
+    doMoves ((seen, toSee, _), hasEnded)
       -- No enemies left
       | hasEnded = (seen `union` toSee, hasEnded)
       -- All fighters have moved
       | S.null toSee = (seen, hasEnded)
       -- move the next fighter
-      | otherwise = doMoves . move cave seen toSee $ ended
+      | otherwise = doMoves . move cave seen $ toSee
 
-move :: Cave -> Fighters -> Fighters -> Bool -> ((Fighters, Fighters), Ended)
-move cave seen toSee ended
+move :: Cave -> Fighters -> Fighters -> ((Fighters, Fighters, DeadElf), Ended)
+move cave seen toSee
   -- no enemies left. We're done
-  | S.null enemyFighters = ((seen, toSee), True)
+  | S.null enemyFighters = ((seen, toSee, False), True)
   -- check move then attack
-  | otherwise = (attack cave newFighter seen remain, ended)
+  | otherwise = (attack cave newFighter seen remain, False)
   where
     -- Current fighter is the first one, in reading order, that hasn't moved
     -- yet.
@@ -181,14 +183,15 @@ move cave seen toSee ended
       -- otherwise, make a step
       | otherwise = f {pos = dest}
 
-attack :: Cave -> Fighter -> Fighters -> Fighters -> (Fighters, Fighters)
+attack ::
+     Cave -> Fighter -> Fighters -> Fighters -> (Fighters, Fighters, DeadElf)
 attack cave f moved toMove
   -- we can't reach an enemy. Just add our fighter to the list of those that
   -- have moved.
-  | S.null targets = (insert f moved, toMove)
+  | S.null targets = (insert f moved, toMove, False)
   -- otherwise we hurt a target, which can have moved or not, and just add our
   -- fighter to the moved set.
-  | otherwise = (insert f newMoved, newToMove)
+  | otherwise = (insert f newMoved, newToMove, isDead newTarget && isGoblin f)
   where
     -- Enemies in range can have moved or not.
     enemyList = enemies f . union moved $ toMove
@@ -221,9 +224,37 @@ attack cave f moved toMove
 score :: [Fighters] -> Int
 score rounds = (length rounds - 1) * (foldr ((+) . hp) 0 . last $ rounds)
 
+doTurnNoDeadElf :: State -> Maybe ((Fighters, Ended), State)
+doTurnNoDeadElf (fighters, cave, ended)
+  | ended = Nothing
+  | deadElf = Nothing
+  | otherwise = Just ((newFighters, newEnded), (newFighters, cave, newEnded))
+  where
+    (newFighters, deadElf, newEnded) = doMoves ((empty, fighters, False), ended)
+    doMoves ::
+         ((Fighters, Fighters, DeadElf), Ended) -> (Fighters, DeadElf, Ended)
+    doMoves ((seen, toSee, deadElf), hasEnded)
+      -- we have a dead Elf, no need to continue
+      | deadElf = (seen `union` toSee, True, False)
+      -- No enemies left
+      | hasEnded = (seen `union` toSee, False, hasEnded)
+      -- All fighters have moved
+      | S.null toSee = (seen, deadElf, hasEnded)
+      -- move the next fighter
+      | otherwise = doMoves . move cave seen $ toSee
+
 part1 :: Bool -> String -> String
 part1 _ =
   show . score . unfoldr doTurn . fightersCave attackPower . arrayFromString
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ input =
+  show
+    . score
+    . L.map fst
+    . head
+    . L.filter (snd . last)
+    . L.map (\x -> unfoldr doTurnNoDeadElf . fightersCave x $ parsedInput)
+    $ [4 ..]
+  where
+    parsedInput = arrayFromString input
