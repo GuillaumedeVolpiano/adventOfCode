@@ -20,7 +20,6 @@ import           Helpers.Search     (bfsSafe, bfsSafeDist)
 import           Linear.V2          (V2 (..))
 
 import           Data.List.Split    (chunksOf)
-import           Debug.Trace
 
 data Fighter = Fighter
   { unit :: Unit
