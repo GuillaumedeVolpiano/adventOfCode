@@ -5,17 +5,15 @@ module Day15
 
 import           Data.Array.Unboxed (UArray, assocs, ixmap)
 import           Data.Function.HT   (compose2)
-import           Data.List          as L (filter, foldl', minimumBy, sortBy,
-                                          unfoldr)
-import           Data.Map           as M (Map, delete, elems, filter,
-                                          filterWithKey, foldlWithKey, fromList,
-                                          insert, keys, lookup, member,
-                                          notMember, (!))
+import           Data.List          as L (filter, foldl', map, minimumBy, null,
+                                          sortBy, unfoldr)
 import           Data.Maybe         (isJust, mapMaybe)
 import           Data.Ord           (comparing)
 import           Data.Sequence      as Sq (singleton)
-import           Data.Set           as S (Set, empty, fromList, insert, member,
-                                          notMember, singleton)
+import           Data.Set           as S (Set, delete, deleteFindMin, empty,
+                                          filter, fromList, insert, map, member,
+                                          notMember, null, singleton, toList,
+                                          union)
 import           Helpers.Graph      (Pos, east, north, south, west)
 import           Helpers.Parsers    (arrayFromString)
 import           Helpers.Search     (bfsSafe, bfsSafeDist)
@@ -28,6 +26,7 @@ data Fighter = Fighter
   { unit :: Unit
   , ap   :: AP
   , hp   :: HP
+  , pos  :: Pos
   }
 
 data Unit
@@ -42,19 +41,24 @@ instance Show Unit where
 instance Show Fighter where
   show f = show (unit f) ++ show (hp f) ++ ")"
 
+instance Eq Fighter where
+  f1 == f2 = pos f1 == pos f2 && unit f1 == unit f2 && hp f1 == hp f2
+
+-- Fighters are sorted in reading order
+instance Ord Fighter where
+  compare f1 f2 = readingOrder (pos f1) (pos f2)
+
 type AP = Int
 
 type HP = Int
 
 type Cave = Set Pos
 
-type Killed = Set Pos
-
-type Fighters = Map Pos Fighter
+type Fighters = Set Fighter
 
 type Ended = Bool
 
-type State = (Int, Fighters, Cave, Ended)
+type State = (Fighters, Cave, Ended)
 
 hitPoints = 200
 
@@ -79,113 +83,140 @@ isDead = (< 1) . hp
 hurt :: AP -> Fighter -> Fighter
 hurt ap f = f {hp = hp f - ap}
 
-enemies :: Pos -> Fighters -> Fighters
-enemies pos fighters = M.filter (isEnemy (fighters ! pos)) fighters
+enemies :: Fighter -> Fighters -> Fighters
+enemies f = S.filter (isEnemy f)
 
+-- reading order : Top to bottom, left to right
 readingOrder :: Pos -> Pos -> Ordering
 readingOrder (V2 x0 y0) (V2 x1 y1) = compare y0 y1 `mappend` compare x0 x1
 
-targetOrder :: Fighters -> Pos -> Pos -> Ordering
-targetOrder f p1 p2 =
-  compare (hp $ f ! p1) (hp $ f ! p2) `mappend` readingOrder p1 p2
-
 fightersCave :: AP -> UArray Pos Char -> State
-fightersCave ap array = (1, M.fromList fighters, S.fromList cave, False)
+fightersCave ap array = (fromList fighters, fromList cave, False)
   where
-    cave = map fst . L.filter ((== '#') . snd) . assocs $ array
+    cave = L.map fst . L.filter ((== '#') . snd) . assocs $ array
     fighters =
-      map
+      L.map
         (\(p, c) ->
            if c == 'E'
-             then (p, Fighter Elf ap hitPoints)
-             else (p, Fighter Goblin attackPower hitPoints))
+             then Fighter Elf ap hitPoints p
+             else Fighter Goblin attackPower hitPoints p)
         . L.filter (flip elem "EG" . snd)
         . assocs
         $ array
 
 doTurn :: State -> Maybe (Fighters, State)
-doTurn (turn, fighters, cave, ended)
+doTurn (fighters, cave, ended)
   | ended = Nothing
-  | otherwise =
-    trace
-      ("Round: " ++ show turn ++ "\n" ++ render newFighters cave ++ "\n")
-      Just
-      (newFighters, (turn + 1, newFighters, cave, newEnded))
+  | otherwise = Just (newFighters, (newFighters, cave, newEnded))
   where
-    ((newFighters, _), newEnded) =
-      foldl' (move cave) ((fighters, empty), ended) . sortBy readingOrder . keys
-        $ fighters
+    (newFighters, newEnded) = doMoves ((empty, fighters), ended)
+    doMoves :: ((Fighters, Fighters), Bool) -> (Fighters, Bool)
+    doMoves ((seen, toSee), hasEnded)
+      -- No enemies left
+      | hasEnded = (seen `union` toSee, hasEnded)
+      -- All fighters have moved
+      | S.null toSee = (seen, hasEnded)
+      -- move the next fighter
+      | otherwise = doMoves . move cave seen toSee $ ended
 
-render :: Fighters -> Cave -> String
-render fighters cave =
-  unlines . insertFighters . chunksOf (mX + 1) $ [rc x y | y <- [0 .. mY], x <- [0 .. mX]]
-  where
-    (V2 mX mY) = maximum cave
-    rc x y
-      | M.member (V2 x y) fighters && isElf (fighters ! V2 x y) = 'E'
-      | M.member (V2 x y) fighters = 'G'
-      | S.notMember (V2 x y) cave = '.'
-      | otherwise = '#'
-    insertFighters l =
-      foldlWithKey
-        (\xs (V2 _ y) f -> insertFighterAt y (" " ++ show f ++ ",") xs)
-        l
-        fighters
-    insertFighterAt :: Int -> String -> [String] -> [String]
-    insertFighterAt y unit l = before ++ (there ++ unit) : after
-      where
-        (before, there:after) = splitAt y l
-
-move ::
-     Cave -> ((Fighters, Killed), Ended) -> Pos -> ((Fighters, Killed), Ended)
-move cave ((fighters, killed), ended) p
-  -- we're already done
-  | ended = ((fighters, killed), True)
-  -- fighter is dead
-  | p `S.member` killed = ((fighters, killed), ended)
+move :: Cave -> Fighters -> Fighters -> Bool -> ((Fighters, Fighters), Ended)
+move cave seen toSee ended
   -- no enemies left. We're done
-  | null enemyFighters = trace (show p) ((fighters, killed), True)
+  | S.null enemyFighters = ((seen, toSee), True)
   -- check move then attack
-  | otherwise = trace (show p) (attack cave newPos newFighters killed, ended)
+  | otherwise = (attack cave newFighter seen remain, ended)
   where
-    enemyFighters = sortBy readingOrder . keys . enemies p $ fighters
-    destList = (+) <$> enemyFighters <*> dirs
-    walkable x = M.notMember x fighters && S.notMember x cave
+    -- Current fighter is the first one, in reading order, that hasn't moved
+    -- yet.
+    (f, remain) = deleteFindMin toSee
+    p = pos f
+    -- we need to consider all the other remaining fighters, whether they have
+    -- moved or not
+    others = seen `union` remain
+    enemyFighters = enemies f others
+    -- Find all the walkable positions adjacent to enemy fighters. We need a
+    -- list of all positions adjacent to be able to check if we are already
+    -- adjacent to one.
+    destList = (+) <$> (toList . S.map pos $ enemyFighters) <*> dirs
     inRange = L.filter walkable destList
-    neighbours pos = L.filter walkable . map (+ pos) $ dirs
+    -- A position is walkable if it's not occupied by a fighter, including our
+    -- current one, or part of the cave
+    walkable x =
+      x /= p && S.notMember x (S.map pos others) && S.notMember x cave
+    -- Identify all walkable squares next to a given position
+    neighbours pos = L.filter walkable . L.map (+ pos) $ dirs
+    -- Targets are all inRange squares that can be reached from the fighter's
+    -- position. We get pairs made of the position of the target and Maybe the length
+    -- of the shortest path, and we filter out the ones that are Nothing. We
+    -- need to build the targetList explicitely so we can check if it's empty.
     targetList =
-      L.filter (isJust . snd) . map (\x -> (x, bfsSafeDist p neighbours (== x)))
+      L.filter (isJust . snd)
+        . L.map (\x -> (x, bfsSafeDist p neighbours (== x)))
         $ inRange
-    minDist = minimum . map snd $ targetList
+    -- The target is the closest to the fighter's position. If we have more than
+    -- two at the same closest distance, we sort them by reading order of their
+    -- position.
     target =
-      minimumBy readingOrder . map fst . L.filter ((== minDist) . snd)
+      fst . minimumBy (comparing snd `mappend` compose2 readingOrder fst)
         $ targetList
+    -- Now we find the destination. For each walkable position next to our
+    -- position, we calculate the length of the shortest path, if it exists, to
+    -- our target. We know that at least one such shortest path exists because
+    -- we have a target. Once again, if we have more than one destination with
+    -- the same shortest distance to the target, we choose the first in reading
+    -- order.
     dest =
       fst
         . minimumBy (comparing snd `mappend` compose2 readingOrder fst)
         . L.filter (isJust . snd)
-        . map (\x -> (x, bfsSafeDist target neighbours (== x)))
+        . L.map (\x -> (x, bfsSafeDist target neighbours (== x)))
         . L.filter walkable
-        . map (p +)
+        . L.map (p +)
         $ dirs
-    f = fighters ! p
-    (newPos, newFighters)
-      -- if we don't have a target or are already in range, don't move
-      | null targetList || p `elem` destList = (p, fighters)
+    newFighter
+      -- if we don't have a target or are already in range, don't move. Checking
+      -- if we are already in range first as we don't need to build a targetList
+      -- if we are in range.
+      | p `elem` destList || L.null targetList = f
       -- otherwise, make a step
-      | otherwise = (dest, M.insert dest f . delete p $ fighters)
+      | otherwise = f {pos = dest}
 
-attack :: Cave -> Pos -> Fighters -> Killed -> (Fighters, Killed)
-attack cave p fighters killed
-  | null targets = (fighters, killed)
-  | isDead newTarget = (delete targetPos fighters, S.insert targetPos killed)
-  | otherwise = (M.insert targetPos newTarget fighters, killed)
+attack :: Cave -> Fighter -> Fighters -> Fighters -> (Fighters, Fighters)
+attack cave f moved toMove
+  -- we can't reach an enemy. Just add our fighter to the list of those that
+  -- have moved.
+  | S.null targets = (insert f moved, toMove)
+  -- otherwise we hurt a target, which can have moved or not, and just add our
+  -- fighter to the moved set.
+  | otherwise = (insert f newMoved, newToMove)
   where
-    targets = L.filter (`M.member` enemies p fighters) . map (p +) $ dirs
-    targetPos = minimumBy (targetOrder fighters) targets
-    target = fighters ! targetPos
-    f = fighters ! p
+    -- Enemies in range can have moved or not.
+    enemyList = enemies f . union moved $ toMove
+    adjacentPos = L.map (+ pos f) dirs
+    -- targets are enemies that are in a position adjacent to us.
+    targets = S.filter (flip elem adjacentPos . pos) enemyList
+    -- Our target is the enemy with the lowest HPs. If two targets have the same
+    -- lowest HPs, we break the tie by reading order.
+    target =
+      minimumBy (comparing hp `mappend` compose2 readingOrder pos) . toList
+        $ targets
+    movedTarget = target `member` moved
+    -- If we have a target, then attack it with our attack power.
     newTarget = hurt (ap f) target
+    newMoved
+      -- the target has moved and is dead
+      | movedTarget && isDead newTarget = delete target moved
+      -- the target has moved and is still alive
+      | movedTarget = insert newTarget . delete target $ moved
+      -- otherwise, no changes
+      | otherwise = moved
+    newToMove
+    -- the target hasn't moved yet, and is dead.
+      | not movedTarget && isDead newTarget = delete target toMove
+    -- the target hasn't moved yet and is still alive
+      | not movedTarget = insert newTarget . delete target $ toMove
+      -- otherwise, no changes
+      | otherwise = toMove
 
 score :: [Fighters] -> Int
 score rounds = (length rounds - 1) * (foldr ((+) . hp) 0 . last $ rounds)
