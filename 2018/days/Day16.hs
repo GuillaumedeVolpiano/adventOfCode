@@ -3,10 +3,10 @@ module Day16
   , part2
   ) where
 
+import           Computer        (Device, Instruction (..), execute)
 import           Helpers.Parsers
 
 import           Data.Bifunctor  (second)
-import           Data.Bits       ((.&.), (.|.))
 import           Data.IntMap     as M (IntMap, fromList, insert, (!))
 import           Data.List       as L (filter, foldl', groupBy, sortBy)
 import           Data.List.Split (splitOn)
@@ -14,28 +14,7 @@ import           Data.Ord        (comparing)
 import           Data.Set        as S (Set, difference, elemAt, filter,
                                        fromList, intersection, size)
 
-type Device = IntMap Int
-
 type Translator = IntMap Instruction
-
-data Instruction
-  = Addr
-  | Addi
-  | Mulr
-  | Muli
-  | Banr
-  | Bani
-  | Borr
-  | Bori
-  | Setr
-  | Seti
-  | Gtir
-  | Gtri
-  | Gtrr
-  | Eqir
-  | Eqri
-  | Eqrr
-  deriving (Show, Eq, Ord)
 
 instructions =
   S.fromList
@@ -58,38 +37,6 @@ instructions =
     ]
 
 initialDevice = M.fromList [(0, 0), (1, 0), (2, 0), (3, 0)]
-
-execute :: Instruction -> Int -> Int -> Int -> Device -> Device
-execute instruction a b c device = insert c (op instruction) device
-  where
-    op Addr = device ! a + device ! b
-    op Addi = device ! a + b
-    op Mulr = device ! a * device ! b
-    op Muli = device ! a * b
-    op Banr = device ! a .&. device ! b
-    op Bani = device ! a .&. b
-    op Borr = device ! a .|. device ! b
-    op Bori = device ! a .|. b
-    op Setr = device ! a
-    op Seti = a
-    op Gtir
-      | a > device ! b = 1
-      | otherwise = 0
-    op Gtri
-      | device ! a > b = 1
-      | otherwise = 0
-    op Gtrr
-      | device ! a > device ! b = 1
-      | otherwise = 0
-    op Eqir
-      | a == device ! b = 1
-      | otherwise = 0
-    op Eqri
-      | device ! a == b = 1
-      | otherwise = 0
-    op Eqrr
-      | device ! a == device ! b = 1
-      | otherwise = 0
 
 testGroup :: [String] -> (Int, Set Instruction)
 testGroup [a, b, c] =
