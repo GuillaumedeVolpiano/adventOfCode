@@ -3,7 +3,8 @@ module Day16
   , part2
   ) where
 
-import           Computer        (Device, Instruction (..), execute)
+import           Computer        (Device, Instruction (..), createDevice,
+                                  deviceFromList, execute, register)
 import           Helpers.Parsers
 
 import           Data.Bifunctor  (second)
@@ -36,7 +37,7 @@ instructions =
     , Eqrr
     ]
 
-initialDevice = M.fromList [(0, 0), (1, 0), (2, 0), (3, 0)]
+initialDevice = createDevice 4
 
 testGroup :: [String] -> (Int, Set Instruction)
 testGroup [a, b, c] =
@@ -45,14 +46,12 @@ testGroup [a, b, c] =
       (\inst -> execute inst x y z initialState == finalState)
       instructions)
   where
-    initialState =
-      M.fromList . zip [0 ..] . read . dropWhile (/= '[') $ a :: Device
-    finalState =
-      M.fromList . zip [0 ..] . read . dropWhile (/= '[') $ c :: Device
+    initialState = deviceFromList . read . dropWhile (/= '[') $ a
+    finalState = deviceFromList . read . dropWhile (/= '[') $ c
     [i, x, y, z] = map read . words $ b :: [Int]
 
 runTest :: [String] -> Int
-runTest [a, b] = device ! 0
+runTest [a, b] = register 0 device
   where
     device =
       foldl' (process instructMap) initialDevice
