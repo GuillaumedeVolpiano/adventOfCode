@@ -17,8 +17,6 @@ import           Helpers.Graph   (Pos, east, north, origin, south, west)
 import           Helpers.Search  (dijkstraGoalVal)
 import           Linear.V2       (V2 (..))
 
-import           Debug.Trace
-
 type Cave = Map Pos ErosionLevel
 
 type ErosionLevel = Int
@@ -94,24 +92,26 @@ erosionLevel test gi = (gi + depth test) `mod` 20183
 mkCave :: Bool -> Cave
 mkCave test = expandCave test (M.singleton origin 0) origin . target $ test
 
+-- we need a special version of a search algorithm as we update the cave on the
+-- fly. Dijkstra is very slow due to points very far from the target being
+-- closer in time than the target, so we use A* with a simple heuristics
+-- (Manhattan distance + time to switch equipment)
 explore ::
      Bool -> Cave -> HashPSQ Explorer Int Explorer -> Map Explorer Int -> Int
 explore test cave queue dists
   | Q.null queue = error "target not found"
   | curKey == destExplorer test = estDist
   | otherwise =
-    trace
-      (show curKey ++ " " ++ show estDist)
       explore
       test
       newCave
       newQueue
       newDists
   where
-    Just (curKey, estDist, _, rest) = minView queue
+    Just (curKey, _, _, rest) = minView queue
     curPos = pos curKey
-    newQueue = foldr (\(e, d) -> Q.insert e d e) rest toConsider
-    newDists = foldr (uncurry M.insert) dists toConsider
+    estDist = dists ! curKey
+    (newQueue, newDists) = foldr consider (rest, dists) toConsider
     nextPos =
       filter (\(V2 x y) -> x >= 0 && y >= 0) . map (curPos +)
         $ [north, south, east, west]
@@ -120,21 +120,29 @@ explore test cave queue dists
         . filter (`notMember` cave)
         $ nextPos
     toConsider =
-      mapMaybe
-        consider
-        ((switchEquipment, 7)
-           : (map (, 1)
-                . filter (accessible newCave)
-                . map (\x -> curKey {pos = x})
-                $ nextPos))
+      (switchEquipment, 7)
+        : (map (, 1)
+             . filter (accessible newCave)
+             . map (\x -> curKey {pos = x})
+             $ nextPos)
     switchEquipment =
       head
         . filter (\x -> x /= curKey && accessible cave x)
         . map (\e -> curKey {equipment = e})
         $ [Neither, Torch, Climbing]
-    consider (e, d)
-      | e `notMember` dists || estDist + d < dists ! e = Just (e, estDist + d)
-      | otherwise = Nothing
+    consider (e, d) (q, m)
+      | e `notMember` dists || estDist + d < dists ! e =
+        (Q.insert e (t + h) e q, M.insert e t m)
+      | otherwise = (q, m)
+      where
+        t = estDist + d
+        (V2 x y) = pos e
+        (V2 dx dy) = target test
+        h = abs (dx - x) + abs (dy - y) + s
+        s
+          | equipment e == Torch = 0
+          | (newCave ! pos e) `mod` 3 == 1 && equipment e == Neither = 14
+          | otherwise = 7
 
 accessible :: Cave -> Explorer -> Bool
 accessible cave explorer =
