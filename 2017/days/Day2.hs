@@ -1,9 +1,17 @@
-module Day2 (part1, part2) where
+module Day2
+  ( part1
+  , part2
+  ) where
 
-import Helpers.Parsers
+check :: [Int] -> Int
+check l = maximum l - minimum l
 
-part1 :: Bool -> String -> String
-part1 _ _ = "Part 1"
+divide :: [Int] -> Int
+divide l =
+  fst . head . filter (\(a, b) -> a /= 1 && b == 0) $ divMod <$> l <*> l
+
+part1 :: Bool -> String -> String
+part1 _ = show . sum . map (check . map read . words) . lines
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ = show . sum . map (divide . map read . words) . lines
