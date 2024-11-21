@@ -52,21 +52,23 @@ instance Ranged Nanobot where
   inRange ref test = distance (pos ref) (pos test) <= range ref
 
 instance Ranged Cube where
-  inRange (Cube (V3 ux uy uz) (V3 lx ly lz)) (Nanobot (V3 bx by bz) r) =
-    x + y + z <= r
-    where
-      x
-        | bx < ux = ux - bx
-        | bx > lx = bx - lx
-        | otherwise = 0
-      y
-        | by < uy = uy - by
-        | by > ly = by - ly
-        | otherwise = 0
-      z
-        | bz < uz = uz - bz
-        | bz > lz = bz - lz
-        | otherwise = 0
+  inRange cube (Nanobot p r) = distToCube cube p <= r
+
+distToCube :: Cube -> Pos -> Int
+distToCube (Cube (V3 ux uy uz) (V3 lx ly lz)) (V3 bx by bz) = x + y + z
+  where
+    x
+      | bx < ux = ux - bx
+      | bx > lx = bx - lx
+      | otherwise = 0
+    y
+      | by < uy = uy - by
+      | by > ly = by - ly
+      | otherwise = 0
+    z
+      | bz < uz = uz - bz
+      | bz > lz = bz - lz
+      | otherwise = 0
 
 manMagnitude :: Pos -> Int
 manMagnitude (V3 x y z) = abs x + abs y + abs z
@@ -75,7 +77,7 @@ distance :: Pos -> Pos -> Int
 distance p = manMagnitude . (-) p
 
 cubeDist :: Cube -> Int
-cubeDist (Cube a b) = min (manMagnitude a) (manMagnitude b)
+cubeDist = flip distToCube (V3 0 0 0)
 
 parseBot :: Parser Nanobot
 parseBot = do
