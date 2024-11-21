@@ -11,8 +11,6 @@ import           Data.Map           as M (Map, delete, empty, fromList, insert,
 import           Helpers.Parsers    (arrayFromString)
 import           Linear.V2          (V2 (..))
 
-import           Debug.Trace
-
 type Carts = Map Pos (Pos, Int)
 
 type Maze = UArray Pos Char

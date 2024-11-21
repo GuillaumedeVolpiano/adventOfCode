@@ -6,7 +6,6 @@ module Day14
 import           Data.Char     (digitToInt, intToDigit)
 import           Data.List     as L (isPrefixOf, length, tails)
 import           Data.Sequence as S (fromList, index, length, (><))
-import           Debug.Trace
 
 initialList = [3, 7]
 

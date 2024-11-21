@@ -17,7 +17,6 @@ import           Text.Megaparsec.Char (char, eol, printChar, string)
 
 import           Data.List.Split      (chunksOf)
 import           Data.Ord             (comparing)
-import           Debug.Trace
 
 data Reading
   = Flowing

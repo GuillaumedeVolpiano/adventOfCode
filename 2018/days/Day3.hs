@@ -14,8 +14,6 @@ import           Linear.V2            (V2 (..))
 import           Text.Megaparsec      (eof, many, optional, parse, takeWhile1P)
 import           Text.Megaparsec.Char (char, eol, string)
 
-import           Debug.Trace
-
 type Claim = (Id, Rec)
 
 type Rec = Set Pos

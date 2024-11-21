@@ -16,8 +16,6 @@ import           Text.Megaparsec      (eof, many, manyTill, optional, parse,
                                        sepBy, try, (<|>))
 import           Text.Megaparsec.Char (char, eol, string)
 
-import           Debug.Trace
-
 data Group = Group
   { system     :: System
   , units      :: Int

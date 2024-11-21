@@ -19,6 +19,7 @@ module Helpers.Parsers
   , nums
   , numsAsStrings
   , parseByLine
+  , parseInput
   , splitOnSpace
   ) where
 
@@ -36,6 +37,7 @@ import           Text.Megaparsec      (Parsec, eof, manyTill, optional, parse,
 import           Text.Megaparsec.Char (char, eol, printChar, string)
 
 type Parser = Parsec Void String
+
 type Pos = V2 Int
 
 -- the supplied parser must consume all the line, including the new line
@@ -67,7 +69,9 @@ digits = do
 
 nums :: (Num a, Read a) => Parser (Maybe a)
 nums = do
-  s <- optional . try $ do char '-'
+  s <-
+    optional . try $ do
+      char '-'
   i <- takeWhile1P Nothing isDigit
   d <-
     optional . try $ do
@@ -78,7 +82,9 @@ nums = do
 
 numsAsStrings :: Parser (Maybe String)
 numsAsStrings = do
-  s <- optional . try $ do char '-'
+  s <-
+    optional . try $ do
+      char '-'
   i <- takeWhile1P Nothing isDigit
   d <-
     optional . try $ do
