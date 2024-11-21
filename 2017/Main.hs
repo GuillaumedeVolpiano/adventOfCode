@@ -94,7 +94,7 @@ main = do
           , interactive = def &= help "Run interactively"
           }
   args <- cmdArgs arguments
-  let year = 2018
+  let year = 2017
       theDay =
         case day args of
           0 -> curDay
