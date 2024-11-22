@@ -8,8 +8,6 @@ module Day5
 import           Data.List     as L (unfoldr)
 import           Data.Sequence as S (Seq, adjust', fromList, lookup)
 
-import           Debug.Trace
-
 jump :: (Int -> Int) -> (Int, Seq Int) -> Maybe ((), (Int, Seq Int))
 jump op (pointer, offsets) =
   ((), ) . (, newOffsets) . (+) pointer <$> newPointer
