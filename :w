@@ -1,0 +1,12 @@
+module Day7
+  ( part1
+  , part2
+  ) where
+
+import           Helpers.Parsers (alphaNum)
+
+part1 :: Bool -> String -> String
+part1 _ = show . alphaNum
+
+part2 :: Bool -> String -> String
+part2 _ _ = "Part 2"
