@@ -11,8 +11,6 @@ import           Helpers.Parsers       (Parser, alpha, nums)
 import           Text.Megaparsec       (eof, optional, parse, try, (<|>))
 import           Text.Megaparsec.Char  (char, eol, string)
 
-import           Text.Megaparsec.Debug
-
 type Memory = Map Register Val
 
 type Register = String

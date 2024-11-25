@@ -6,8 +6,6 @@ module Day4
 import           Data.List   (sort)
 import           Data.Set    as S (fromList, size)
 
-import           Debug.Trace
-
 valid :: [String] -> Bool
 valid l = length l == (size . fromList $ l)
 
