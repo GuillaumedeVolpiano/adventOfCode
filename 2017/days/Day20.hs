@@ -9,8 +9,6 @@ import           Data.Ord        (comparing)
 import           Helpers.Parsers (numbers)
 import           Linear.V3       (V3 (..))
 
-import           Debug.Trace
-
 data Particle =
   Particle Pos Velocity Acceleration
   deriving (Show)
