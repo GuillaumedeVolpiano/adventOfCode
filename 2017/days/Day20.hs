@@ -39,7 +39,7 @@ move (Particle pos vel acc) = Particle pos' vel' acc
 
 collide :: Particles -> Int
 collide particles
-  | all isMovingAway particles = length particles
+  | all (`allSeparating` particles) particles = length particles
   | otherwise =
     collide
       . concat
@@ -48,6 +48,12 @@ collide particles
       . sortBy (comparing position)
       . map move
       $ particles
+
+separating :: Particle -> Particle -> Bool
+separating p1 p2 = dist (move p1) (move p2) >= dist p1 p2
+
+allSeparating :: Particle -> Particles -> Bool
+allSeparating p = all (separating p)
 
 position :: Particle -> Pos
 position (Particle p _ _) = p
@@ -60,6 +66,10 @@ isMovingAway (Particle (V3 x y z) (V3 dx dy dz) (V3 ddx ddy ddz)) =
     && (signum dy == signum ddy || signum ddy == 0)
     && (signum z == signum dz || (signum dz == 0 && signum ddz == 0))
     && (signum dz == signum ddz || signum ddz == 0)
+
+dist :: Particle -> Particle -> Int
+dist (Particle (V3 x1 y1 z1) _ _) (Particle (V3 x2 y2 z2) _ _) =
+  abs (x2 - x1) + abs (y2 - y1) + abs (z2 - z1)
 
 expansionSpeed :: Particle -> Int
 expansionSpeed (Particle _ (V3 dx dy dz) _) = abs dx + abs dy + abs dz
