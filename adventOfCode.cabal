@@ -46,7 +46,7 @@ executable aoc2017
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, linear, megaparsec, parallel, parser-combinators
                    , psqueues, regex-pcre, regex-tdfa, split, text, time, timeit
-                   , unordered-containers, vector
+                   , transformers, unordered-containers, vector
     ghc-options: -threaded
     default-language: Haskell2010
 
