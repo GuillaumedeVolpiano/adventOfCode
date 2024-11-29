@@ -3,8 +3,10 @@ module Day25
   , part2
   ) where
 
-import           Data.Map as M             (Map, findWithDefault, fromList, (!), insert, filter, empty, size)
-import Data.Either (fromRight)
+import           Data.Either          (fromRight)
+import           Data.IntSet          as S (IntSet, delete, empty, insert,
+                                            member, size)
+import           Data.Map             as M (Map, empty, fromList, (!))
 import           Helpers.Parsers      (Parser)
 import           Text.Megaparsec      (eof, many, manyTill, optional, parse,
                                        sepBy, (<|>))
@@ -12,7 +14,7 @@ import           Text.Megaparsec.Char (char, eol, printChar, string)
 
 type State = Char
 
-type Value = Bool
+type Value = (Int -> IntSet -> IntSet)
 
 type Dir = Int
 
@@ -22,7 +24,7 @@ type Machine = (State, Pointer, Tape)
 
 type Program = Map Char Inst
 
-type Tape = Map Int Bool
+type Tape = IntSet
 
 type Pointer = Int
 
@@ -72,7 +74,12 @@ parseInst = do
 opt :: Parser (Value, Dir, State)
 opt = do
   consumeLine
-  val <- (== "1") <$> relevant
+  val <-
+    (\x ->
+       if x == "1"
+         then insert
+         else delete)
+      <$> relevant
   dir <-
     (\x ->
        if x == "right"
@@ -86,19 +93,20 @@ step :: Program -> Machine -> Machine
 step program (state, pointer, tape) = (state', pointer', tape')
   where
     (false, true) = program ! state
-    (value,dir, state')
-      | findWithDefault False pointer tape = true
+    (value, dir, state')
+      | pointer `member` tape = true
       | otherwise = false
     pointer' = pointer + dir
-    tape' = insert pointer value tape
+    tape' = value pointer tape
 
 checksum :: Machine -> Int
-checksum (_, _, tape) = length . M.filter id $ tape
+checksum (_, _, tape) = size tape
 
 part1 :: Bool -> String -> String
-part1 _ input = show . checksum . (!! nSteps) . iterate (step program) $ ('A', 0, empty)
+part1 _ input =
+  show . checksum . (!! nSteps) . iterate (step program) $ ('A', 0, S.empty)
   where
-    (nSteps, program) = fromRight (0, empty) . parse parseInput "" $ input
+    (nSteps, program) = fromRight (0, M.empty) . parse parseInput "" $ input
 
 part2 :: Bool -> String -> String
 part2 _ _ = "Part 2"
