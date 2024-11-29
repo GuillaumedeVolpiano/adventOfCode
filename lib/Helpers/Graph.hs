@@ -17,6 +17,9 @@ module Helpers.Graph
   , dirs
   , neighbours
   , unfoldAssocs
+  , left
+  , right
+  , manhattanDistance
   ) where
 
 import           Data.Array.IArray                 (IArray)
@@ -123,3 +126,12 @@ unfoldAssocs toConsider see (toSee, seen)
     consNext = toConsider seen curVal
     newToSee = foldr (flip (:|>) . fst) rest consNext
     newSeen = foldr (insert . see . fst) seen consNext
+
+right :: Pos -> Pos
+right (V2 x y) = V2 (-y) x
+
+left :: Pos -> Pos
+left (V2 x y) = V2 y (-x)
+
+manhattanDistance :: Pos -> Pos -> Int
+manhattanDistance (V2 x0 y0) (V2 x1 y1) = abs (x0 - x1) + abs (y0 - y1)
