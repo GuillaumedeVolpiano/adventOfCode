@@ -41,8 +41,8 @@ executable aoc2016
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends: arithmoi, array, base, cmdargs, containers 
-                   , criterion, curl, data-clist, directory, fgl, graphviz
+    build-depends: arithmoi, array, base, base16-bytestring, bytestring, cmdargs, containers 
+                   , criterion, cryptohash-md5, curl, data-clist, directory, fgl, graphviz
                    , hashable, linear, megaparsec, parallel, parser-combinators
                    , psqueues, regex-pcre, regex-tdfa, split, text, time, timeit
                    , transformers, unordered-containers, vector
