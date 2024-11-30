@@ -1,9 +1,15 @@
-module Day6 (part1, part2) where
+module Day6
+  ( part1
+  , part2
+  ) where
 
-import Helpers.Parsers
+import           Data.List (group, maximumBy, minimumBy, sort, transpose)
+import           Data.Ord  (comparing)
 
-part1 :: Bool -> String -> String
-part1 _ _ = "Part 1"
+part1 :: Bool -> String -> String
+part1 _ =
+  map (head . maximumBy (comparing length) . group . sort) . transpose . lines
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  map (head . minimumBy (comparing length) . group . sort) . transpose . lines
