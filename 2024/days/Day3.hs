@@ -9,30 +9,39 @@ import           Text.Megaparsec            (eof, parse, try, (<|>))
 import           Text.Megaparsec.Char       (char, eol, printChar, string)
 import           Text.Megaparsec.Char.Lexer (decimal)
 
-parseInput :: Parser [Int]
-parseInput =
-  try parseMul
+parseInput :: Bool -> Parser [(Bool, Int)]
+parseInput isDo =
+  try (parseMul isDo)
+    <|> try
+          (do
+             string "do()"
+             parseInput True)
+    <|> try
+          (do
+             string "don't()"
+             parseInput False)
     <|> (do
            printChar
-           parseInput)
+           parseInput isDo)
     <|> (do
            eol
-           parseInput)
+           parseInput isDo)
     <|> (do
            eof
            return [])
 
-parseMul :: Parser [Int]
-parseMul = do
+parseMul :: Bool -> Parser [(Bool, Int)]
+parseMul isDo = do
   string "mul("
   a <- decimal
   char ','
   b <- decimal
   char ')'
-  ((a * b) :) <$> parseInput
+  ((isDo, a * b) :) <$> parseInput isDo
 
 part1 :: Bool -> String -> String
-part1 _ = show . sum . fromRight [] . parse parseInput ""
+part1 _ = show . sum . map snd . fromRight [] . parse (parseInput True) ""
 
 part2 :: Bool -> String -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  show . sum . map snd . filter fst . fromRight [] . parse (parseInput True) ""
