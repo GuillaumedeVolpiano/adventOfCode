@@ -14,6 +14,7 @@ module Helpers.Parsers
   , doubles
   , digitArrayFromString
   , integers
+  , lexeme
   , make2DArray
   , numbers
   , nums
@@ -21,8 +22,10 @@ module Helpers.Parsers
   , parseByLine
   , parseInput
   , splitOnSpace
+  , decimal 
   ) where
 
+import Control.Applicative (empty)
 import           Data.Array.IArray    (IArray)
 import           Data.Array.Unboxed   (UArray, array)
 import           Data.Char            (digitToInt, isAlpha, isAlphaNum, isDigit,
@@ -34,7 +37,8 @@ import           Linear.V2            (V2 (..))
 import           Text.Megaparsec      (Parsec, eof, manyTill, optional, parse,
                                        someTill, takeWhile1P, takeWhileP, try,
                                        (<|>))
-import           Text.Megaparsec.Char (char, eol, printChar, string)
+import           Text.Megaparsec.Char (char, eol, printChar, string, space1)
+import qualified Text.Megaparsec.Char.Lexer as L (space, decimal, skipLineComment, skipBlockComment, lexeme)
 
 type Parser = Parsec Void String
 
@@ -165,3 +169,11 @@ splitOnSplitters [] aString = [aString]
 splitOnSplitters (s:ss) aString = before : splitOnSplitters ss after
   where
     (before, after) = fromRight ("", "") . parse (splitter s) "" $ aString
+
+spaceConsumer :: Parser ()
+spaceConsumer = L.space space1 empty empty
+
+lexeme = L.lexeme spaceConsumer
+
+decimal :: Parser Int
+decimal = lexeme L.decimal
