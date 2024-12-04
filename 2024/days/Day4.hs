@@ -10,34 +10,42 @@ import           Linear.Vector      ((*^))
 
 type Grid = UArray Pos Char
 
-compass =
-  (north + east) : (north + west) : (south + east) : (south + west) : dirs
+compass = northeast : northwest : southeast : southwest : dirs
 
-findXs :: Grid -> [Pos]
-findXs = map fst . filter ((== 'X') . snd) . assocs
+northeast = north + east
 
-findAs :: Grid -> [Pos]
-findAs = map fst . filter ((== 'A') . snd) . assocs
+northwest = north + west
+
+southeast = south + east
+
+southwest = south + west
+
+readGrid :: Grid -> Pos -> Maybe String -> Maybe String
+readGrid grid pos lecture = (:) <$> grid !? pos <*> lecture
+
+findChar :: Char -> Grid -> [Pos]
+findChar char = map fst . filter ((== char) . snd) . assocs
 
 findXMAS :: Grid -> Pos -> Int
-findXMAS grid p =
-  length
-    . filter (== [Just 'X', Just 'M', Just 'A', Just 'S'])
-    . map (\d -> map (\s -> grid !? (p + (s *^ d))) [0 .. 3])
-    $ compass
+findXMAS grid p = length . filter (== Just "XMAS") . map readString $ compass
+  where
+    readString d = foldr (\s -> readGrid grid (p + (s *^ d))) (Just "") [0 .. 3]
+
+test :: Maybe (String -> String) -> Maybe String
+test f = f <*> Just []
 
 findXedMAS :: Grid -> Pos -> Bool
 findXedMAS grid p = nesw `elem` mas && nwse `elem` mas
   where
-    mas = [[Just 'M', Just 'A', Just 'S'], [Just 'S', Just 'A', Just 'M']]
-    nesw = map (grid !?) [p + north + east, p, p + south + west]
-    nwse = map (grid !?) [p + north + west, p, p + south + east]
+    mas = [Just "MAS", Just "SAM"]
+    nesw = foldr (readGrid grid) (Just "") [p + northeast, p, p + southwest]
+    nwse = foldr (readGrid grid) (Just "") [p + northwest, p, p + southeast]
 
 findAll :: Grid -> Int
-findAll grid = sum . map (findXMAS grid) . findXs $ grid
+findAll grid = sum . map (findXMAS grid) . findChar 'X' $ grid
 
 findAllXed :: Grid -> Int
-findAllXed grid = length . filter (findXedMAS grid) . findAs $ grid
+findAllXed grid = length . filter (findXedMAS grid) . findChar 'A' $ grid
 
 part1 :: Bool -> String -> String
 part1 _ = show . findAll . arrayFromString
