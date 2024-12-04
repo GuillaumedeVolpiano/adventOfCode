@@ -31,9 +31,6 @@ findXMAS grid p = length . filter (== Just "XMAS") . map readString $ compass
   where
     readString d = foldr (\s -> readGrid grid (p + (s *^ d))) (Just "") [0 .. 3]
 
-test :: Maybe (String -> String) -> Maybe String
-test f = f <*> Just []
-
 findXedMAS :: Grid -> Pos -> Bool
 findXedMAS grid p = nesw `elem` mas && nwse `elem` mas
   where
