@@ -60,8 +60,8 @@ isLoop map guard@(Guard pos dir) seen obstacle
   | guard `member` seen = True
   | isNothing . (!?) map $ pos = False
   | pos == obstacle || map !? pos == Just '#' =
-    isLoop map (backtrack guard) seen obstacle
-  | otherwise = isLoop map guard' seen' obstacle
+    isLoop map (backtrack guard) seen' obstacle
+  | otherwise = isLoop map guard' seen obstacle
   where
     pos' = pos + dir
     guard' = Guard pos' dir
