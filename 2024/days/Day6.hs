@@ -5,8 +5,9 @@ module Day6
 
 import           Data.Array.Unboxed (UArray, assocs, (!?))
 import           Data.Hashable      (Hashable, hashWithSalt)
-import           Data.HashSet       (HashSet, empty, insert, member, size)
-import           Data.List          (unfoldr)
+import           Data.HashSet       as S (HashSet, empty, filter, insert,
+                                          member, size)
+import           Data.List          as L (filter, unfoldr)
 import           Data.Maybe         (isNothing)
 import           Helpers.Graph      (Pos, left, north, right)
 import           Helpers.Parsers    (arrayFromString)
@@ -31,7 +32,7 @@ instance Hashable Guard where
 getGuard :: Map -> Guard
 getGuard map = Guard pos north
   where
-    pos = fst . head . filter ((== '^') . snd) . assocs $ map
+    pos = fst . head . L.filter ((== '^') . snd) . assocs $ map
 
 followGuard :: Map -> (Seen, Guard) -> Maybe (Seen, (Seen, Guard))
 followGuard map (seen, guard@(Guard pos dir))
@@ -49,8 +50,10 @@ backtrack (Guard pos dir) = Guard pos' dir'
     dir' = right dir
     pos' = pos - dir + dir'
 
-obstacles :: Map -> [Obstacle]
-obstacles = map fst . filter ((== '.') . snd) . assocs
+track :: Map -> HashSet Pos
+track map = last . unfoldr (followGuard map) $ (empty, guard)
+  where
+    guard = getGuard map
 
 isLoop :: Map -> Guard -> FullSeen -> Obstacle -> Bool
 isLoop map guard@(Guard pos dir) seen obstacle
@@ -65,15 +68,12 @@ isLoop map guard@(Guard pos dir) seen obstacle
     seen' = insert guard seen
 
 findLoops :: Map -> Int
-findLoops map = length . filter (isLoop map guard empty) . obstacles $ map
+findLoops map = size . S.filter (isLoop map guard empty) . track $ map
   where
     guard = getGuard map
 
 part1 :: Bool -> String -> String
-part1 _ input = show . size . last . unfoldr (followGuard map) $ (empty, guard)
-  where
-    map = arrayFromString input
-    guard = getGuard map
+part1 _ = show . size . track . arrayFromString
 
 part2 :: Bool -> String -> String
 part2 _ = show . findLoops . arrayFromString
