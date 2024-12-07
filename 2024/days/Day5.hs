@@ -72,7 +72,7 @@ sortUnsorted (rules, updates) =
 score :: Update -> Int
 score update = (update !!) . flip div 2 . length $ update
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ =
   show
     . sum
@@ -81,7 +81,7 @@ part1 _ =
     . fromRight (empty, [])
     . parse parseInput ""
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ =
   show
     . sum

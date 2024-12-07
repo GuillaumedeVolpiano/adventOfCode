@@ -24,10 +24,10 @@ dampen levels index = checkSafe (xs >< ys)
 checkSafe :: (Foldable t, Zip t, IsSequence (t Int)) => t Int -> Bool
 checkSafe = isSafe . (Z.zipWith (-) <*> tailEx)
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ = show . L.length . filter checkSafe . map (map read . words) . lines
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ =
   show
     . L.length

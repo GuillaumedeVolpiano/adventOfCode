@@ -18,8 +18,8 @@ similarity [a, b] = sum . map appears $ a
     b' = fromList b
     appears x = (* x) . occur x $ b'
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ = show . diff . map sort . transpose . numbers
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ = show . similarity . transpose . numbers

@@ -72,8 +72,8 @@ findLoops map = size . S.filter (isLoop map guard empty) . track $ map
   where
     guard = getGuard map
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ = show . size . track . arrayFromString
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ = show . findLoops . arrayFromString

@@ -41,8 +41,8 @@ parseMul isPart1 isDo = do
     then ((a * b) +) <$> parseInput isPart1 isDo
     else parseInput isPart1 isDo
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ = show . fromRight 0 . parse (parseInput True True) ""
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ = show . fromRight 0 . parse (parseInput False True) ""

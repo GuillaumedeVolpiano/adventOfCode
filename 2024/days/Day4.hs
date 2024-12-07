@@ -44,8 +44,8 @@ findAll grid = sum . map (findXMAS grid) . findChar 'X' $ grid
 findAllXed :: Grid -> Int
 findAllXed grid = length . filter (findXedMAS grid) . findChar 'A' $ grid
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ = show . findAll . arrayFromString
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ = show . findAllXed . arrayFromString
