@@ -171,7 +171,7 @@ splitOnSplitters (s:ss) aString = before : splitOnSplitters ss after
     (before, after) = fromRight ("", "") . parse (splitter s) "" $ aString
 
 spaceConsumer :: Parser ()
-spaceConsumer = L.space space1 empty empty
+spaceConsumer = L.space (do char ' '; return ()) empty empty
 
 lexeme = L.lexeme spaceConsumer
 
