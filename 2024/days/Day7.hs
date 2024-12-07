@@ -29,21 +29,17 @@ parseEquation = do
   optional eol
   return . Equation test $ numbers
 
-canBeTrue :: Equation -> Bool
-canBeTrue (Equation test (n:ns)) = fanOut test ns n
+canBeTrue :: [Int -> Int -> Int] -> Equation -> Bool
+canBeTrue ops (Equation test (n:ns)) = fanOut test ns n
   where
-    fanOut test [x] v    = v + x == test || v * x == test
-    fanOut test (x:xs) v = fanOut test xs (x + v) || fanOut test xs (x * v)
+    fanOut test [x] v = any (\op -> test == op v x) ops
+    fanOut test (x:xs) v
+      | v >= test = False
+      | otherwise = any (\op -> fanOut test xs (op v x)) ops
 
-canBeTrueConcat :: Equation -> Bool
-canBeTrueConcat (Equation test (n:ns)) = fanOut test ns n
+(^||) :: Int -> Int -> Int
+a ^|| b = pad a b + b
   where
-    fanOut test [x] v = v + x == test || v * x == test || v ^|| x == test
-    fanOut test (x:xs) v =
-      fanOut test xs (x + v)
-        || fanOut test xs (x * v)
-        || fanOut test xs (v ^|| x)
-    a ^|| b = pad a b + b
     pad a b = a * 10 ^ ((1 +) . floor . logBase 10 . fromIntegral $ b)
 
 part1 :: Bool -> String -> String
@@ -52,7 +48,7 @@ part1 _ =
     . foldr (\(Equation t _) -> (t +)) 0
     . runEval
     . parList rseq
-    . filter canBeTrue
+    . filter (canBeTrue [(+), (*)])
     . fromRight []
     . parse parseInput ""
 
@@ -60,7 +56,7 @@ part2 :: Bool -> String -> String
 part2 _ =
   show
     . foldr (\(Equation t _) -> (t +)) 0
-    . filter canBeTrueConcat
+    . filter (canBeTrue [(+), (*), (^||)])
     . runEval
     . parList rseq
     . fromRight []
