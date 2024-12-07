@@ -80,3 +80,32 @@ Part 2. CPU Time: 0.0040s
 
 
 Day 10
+Day 1
+271
+Part 1. CPU Time: 0.0004s
+153
+Part 2. CPU Time: 0.0003s
+
+
+Day 2
+24862
+Part 1. CPU Time: 0.0002s
+46C91
+Part 2. CPU Time: 0.0001s
+
+
+Day 3
+1032
+Part 1. CPU Time: 0.0078s
+1838
+Part 2. CPU Time: 0.0074s
+
+
+Day 4
+245102
+Part 1. CPU Time: 0.0123s
+324
+Part 2. CPU Time: 0.0071s
+
+
+Day 5

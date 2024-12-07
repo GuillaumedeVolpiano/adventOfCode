@@ -5,17 +5,18 @@ module Day10
   , part2
   ) where
 
-import           Data.Bifunctor       (first, second)
-import           Data.Char            (isDigit)
-import           Data.Either          (fromRight)
-import           Data.IntMap          as M (IntMap, alter, delete, empty,
-                                            filter, insert, keys, member, null,
-                                            (!))
-import           Data.Maybe           (isJust)
-import           Data.Text            (Text)
-import           Helpers.Parsers.Text (Parser, decimal, string)
-import           Text.Megaparsec      (eof, optional, parse, takeWhile1P, (<|>))
-import           Text.Megaparsec.Char (char, eol)
+import           Data.Bifunctor        (first, second)
+import           Data.Char             (isDigit)
+import           Data.Either           (fromRight)
+import           Data.IntMap           as M (IntMap, alter, delete, empty,
+                                             filter, insert, keys, member, null,
+                                             (!))
+import           Data.Maybe            (isJust)
+import           Data.Text             (Text)
+import           Helpers.Parsers.Text  (Parser, decimal, string)
+import           Text.Megaparsec       (eof, optional, parse, takeWhile1P,
+                                        (<|>))
+import           Text.Megaparsec.Char  (char, eol)
 
 data Robot =
   Robot Chip Chip
@@ -100,9 +101,9 @@ parseInst :: Parser (Robots, Instructions)
 parseInst = do
   string "bot "
   bot <- decimal
-  string " gives low to "
+  string "gives low to "
   low <- parseOutput <|> parseBot
-  string " and high to "
+  string "and high to "
   high <- parseOutput <|> parseBot
   optional eol
   second (insert bot (low, high)) <$> parseInput
