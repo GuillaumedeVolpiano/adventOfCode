@@ -14,8 +14,6 @@ import           Linear.Vector         ((*^))
 import           Text.Megaparsec       (optional, parse, takeWhileP, (<|>))
 import           Text.Megaparsec.Char  (eol, upperChar)
 
-import           Text.Megaparsec.Debug (dbg)
-
 type Dir = Pos
 
 readDir :: Char -> (Dir -> Dir)
@@ -38,10 +36,17 @@ parseInput pos dir = do
 
 parseTwice :: Pos -> Dir -> Set Pos -> Parser Int
 parseTwice pos dir seen = do
-  (pos', dir') <- parseInst pos dir
-  let seen' = insert pos' seen
+  turn <- readDir <$> upperChar
+  dist <- decimal
+  optional . string $ ", "
+  let dir' = turn dir
+      pos' = pos + dist *^ dir'
+      allPos = map ((pos +) . (*^ dir')) [1 .. dist]
+      seen' = foldr insert seen allPos
       result
-        | pos' `member` seen = return . manhattanDistance origin $ pos'
+        | any (`member` seen) allPos =
+          return . manhattanDistance origin . head . filter (`member` seen)
+            $ allPos
         | otherwise = parseTwice pos' dir' seen'
   result
 

@@ -14,10 +14,7 @@ import           Text.Megaparsec.Char (char, printChar)
 
 hasTLS :: Text -> Bool
 hasTLS =
-  uncurry (&&)
-    . second not
-    . fromRight (False, True)
-    . parse parseExternalABBA ""
+  (\(a, b) -> a && not b) . fromRight (False, True) . parse parseExternalABBA ""
 
 parseExternalABBA :: Parser (Bool, Bool)
 parseExternalABBA =
@@ -33,7 +30,7 @@ parseExternalABBA =
               c <- printChar
               d <- printChar
               return (b, c, d)
-          first (((a == d) && (b == c)) ||) <$> parseExternalABBA
+          first ((a == d && b == c && a /= b) ||) <$> parseExternalABBA
 
 parseInternalABBA :: Parser (Bool, Bool)
 parseInternalABBA = do
@@ -46,7 +43,7 @@ parseInternalABBA = do
       return (b, c, d)
   if a == ']'
     then parseExternalABBA
-    else second (((a == d) && (b == c)) ||) <$> parseInternalABBA
+    else second ((a == d && b == c && a /= b) ||) <$> parseInternalABBA
 
 alternate :: a -> ([a], [a]) -> ([a], [a])
 alternate x (others, ones) = (x : ones, others)

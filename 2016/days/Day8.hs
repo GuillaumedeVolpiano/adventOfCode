@@ -3,16 +3,17 @@ module Day8
   , part2
   ) where
 
-import           Data.Char            (isDigit)
-import           Data.Either          (fromRight)
-import           Data.Set             as S (Set, delete, empty, filter, insert,
-                                            map, member, size)
-import           Data.Text            (Text)
-import           Helpers.Graph        (Pos)
-import           Helpers.Parsers.Text (Parser, decimal, string)
-import           Linear.V2            (V2 (..))
-import           Text.Megaparsec      (eof, optional, parse, takeWhileP, (<|>))
-import           Text.Megaparsec.Char (char, eol)
+import           Data.Char             (isDigit)
+import           Data.Either           (fromRight)
+import           Data.Set              as S (Set, delete, empty, filter, insert,
+                                             map, member, size)
+import           Data.Text             (Text)
+import           Helpers.Graph         (Pos)
+import           Helpers.Parsers.Text  (Parser, decimal, string)
+import           Linear.V2             (V2 (..))
+import           Text.Megaparsec       (eof, optional, parse, takeWhileP, try,
+                                        (<|>))
+import           Text.Megaparsec.Char  (char, eol)
 
 type Screen = Set Pos
 
@@ -26,8 +27,8 @@ columns test
 
 parseInput :: Bool -> Screen -> Parser Screen
 parseInput test screen =
-  parseRect test screen
-    <|> parseRotateR test screen
+  try (parseRect test screen)
+    <|> try (parseRotateR test screen)
     <|> parseRotateC test screen
     <|> end screen
 
@@ -90,7 +91,8 @@ render test screen = unlines . fmap line $ [0 .. rows test - 1]
       | otherwise = ' '
 
 part1 :: Bool -> Text -> String
-part1 test = show . size . fromRight empty . parse (parseInput test empty) ""
+part1 test =
+  show . size . fromRight empty . parse (parseInput test empty) ""
 
 part2 :: Bool -> Text -> String
 part2 test = render test . fromRight empty . parse (parseInput test empty) ""
