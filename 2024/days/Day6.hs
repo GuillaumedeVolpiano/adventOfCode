@@ -12,7 +12,7 @@ import           Data.List                   as L (filter, unfoldr)
 import           Data.Maybe                  (isNothing)
 import           Data.Text                   (Text)
 import           Helpers.Graph               (Pos, left, north, right)
-import           Helpers.Parsers             (arrayFromString)
+import           Helpers.Parsers.Text        (arrayFromText)
 
 data Guard =
   Guard Pos Dir
@@ -75,7 +75,7 @@ findLoops map = size . S.filter (isLoop map guard empty) . track $ map
     guard = getGuard map
 
 part1 :: Bool -> Text -> String
-part1 _ = show . size . track . arrayFromString
+part1 _ = show . size . track . arrayFromText
 
 part2 :: Bool -> Text -> String
-part2 _ = show . findLoops . arrayFromString
+part2 _ = show . findLoops . arrayFromText

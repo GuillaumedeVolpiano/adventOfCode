@@ -4,7 +4,7 @@ module Day9
   ) where
 
 import           Data.Text       (Text)
-import           Helpers.Parsers
+import           Helpers.Parsers.Text
 
 part1 :: Bool -> Text -> String
 part1 _ _ = "Part 1"

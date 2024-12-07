@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Helpers.Parsers
+module Helpers.Parsers.Text
   ( Parser
   , alnum
   , alpha
@@ -14,6 +14,8 @@ module Helpers.Parsers
   , digitArrayFromText
   , signedInt
   , signedDouble
+  , signedInts
+  , signedDoubles
   , lexeme
   , make2DArray
   , numsAsTexts
@@ -80,6 +82,12 @@ signedInt = Just <$> L.signed spaceConsumer decimal
 
 signedDouble :: Parser (Maybe Double)
 signedDouble = Just <$> L.signed spaceConsumer double
+
+signedInts :: Text -> [[Int]]
+signedInts = parseList signedInt
+
+signedDoubles :: Text -> [[Double]]
+signedDoubles = parseList signedDouble
 
 numsAsTexts :: Parser (Maybe Text)
 numsAsTexts = do

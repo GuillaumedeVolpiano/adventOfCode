@@ -1,6 +1,6 @@
 module Day18 (part1, part2) where
 
-import Helpers.Parsers
+import Helpers.Parsers.Text
 import Data.Text (Text)
 
 part1 :: Bool -> Text -> String

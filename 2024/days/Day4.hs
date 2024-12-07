@@ -6,7 +6,7 @@ module Day4
 import           Data.Array.Unboxed (UArray, assocs, (!?))
 import           Data.Text          (Text)
 import           Helpers.Graph      (Pos, dirs, east, north, south, west)
-import           Helpers.Parsers    (arrayFromString)
+import           Helpers.Parsers.Text    (arrayFromText)
 import           Linear.Vector      ((*^))
 
 type Grid = UArray Pos Char
@@ -46,7 +46,7 @@ findAllXed :: Grid -> Int
 findAllXed grid = length . filter (findXedMAS grid) . findChar 'A' $ grid
 
 part1 :: Bool -> Text -> String
-part1 _ = show . findAll . arrayFromString
+part1 _ = show . findAll . arrayFromText
 
 part2 :: Bool -> Text -> String
-part2 _ = show . findAllXed . arrayFromString
+part2 _ = show . findAllXed . arrayFromText
