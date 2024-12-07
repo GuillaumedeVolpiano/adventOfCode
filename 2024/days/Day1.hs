@@ -6,6 +6,7 @@ module Day1
 import           Data.List       (sort, transpose)
 import           Data.MultiSet   as MS (fromList, minView, null, occur)
 import           Helpers.Parsers (numbers)
+import Data.Text (Text)
 
 diff :: [[Int]] -> Int
 diff [a, b] = sum . map abs . zipWith (-) a $ b

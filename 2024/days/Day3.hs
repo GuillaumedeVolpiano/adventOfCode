@@ -4,6 +4,7 @@ module Day3
   ) where
 
 import           Data.Either                (fromRight)
+import           Data.Text                  (Text)
 import           Helpers.Parsers            (Parser)
 import           Text.Megaparsec            (eof, parse, try, (<|>))
 import           Text.Megaparsec.Char       (char, eol, printChar, string)

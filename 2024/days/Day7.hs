@@ -9,6 +9,7 @@ import           Helpers.Parsers             (Parser, decimal)
 import           Text.Megaparsec             (eof, many, manyTill, optional,
                                               parse)
 import           Text.Megaparsec.Char        (eol, string)
+import           Data.Text                   (Text)
 
 data Equation =
   Equation Test Numbers

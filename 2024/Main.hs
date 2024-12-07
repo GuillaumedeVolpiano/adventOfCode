@@ -3,6 +3,7 @@
 module Main where
 
 import           Data.Map                        (Map, empty, fromList, (!))
+import           Data.Text                       (Text)
 import           Data.Time.Calendar              (toGregorian)
 import           Data.Time.Clock                 (getCurrentTime, utctDay)
 import           Day1
@@ -30,11 +31,10 @@ import           Day6
 import           Day7
 import           Day8
 import           Day9
-import           Helpers.General.Text                 (customPreciseTimeIt,
+import           Helpers.General.Text            (customPreciseTimeIt,
                                                   retrieveInput, wallTimeIt)
 import           System.Console.CmdArgs.Implicit (Data, Typeable, args, cmdArgs,
                                                   def, help, opt, (&=))
-import Data.Text (Text)
 
 data Arguments = Arguments
   { day         :: Int
@@ -44,7 +44,7 @@ data Arguments = Arguments
   , interactive :: Bool
   } deriving (Show, Data, Typeable)
 
-type Solver = (Bool -> Text -> Text)
+type Solver = (Bool -> Text -> String)
 
 type Day = (Solver, Solver)
 

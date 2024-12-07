@@ -4,6 +4,7 @@ module Day4
   ) where
 
 import           Data.Array.Unboxed (UArray, assocs, (!?))
+import           Data.Text          (Text)
 import           Helpers.Graph      (Pos, dirs, east, north, south, west)
 import           Helpers.Parsers    (arrayFromString)
 import           Linear.Vector      ((*^))

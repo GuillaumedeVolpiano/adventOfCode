@@ -1,8 +1,12 @@
-module Day10 (part1, part2) where
+module Day10
+  ( part1
+  , part2
+  ) where
 
-import Helpers.Parsers
+import           Data.Text       (Text)
+import           Helpers.Parsers
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ _ = "Part 1"
 
 part2 :: Bool -> Text -> String

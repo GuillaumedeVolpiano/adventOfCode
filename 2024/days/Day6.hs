@@ -10,6 +10,7 @@ import           Data.HashSet                as S (HashSet, empty, filter,
                                                    insert, member, size, toList)
 import           Data.List                   as L (filter, unfoldr)
 import           Data.Maybe                  (isNothing)
+import           Data.Text                   (Text)
 import           Helpers.Graph               (Pos, left, north, right)
 import           Helpers.Parsers             (arrayFromString)
 

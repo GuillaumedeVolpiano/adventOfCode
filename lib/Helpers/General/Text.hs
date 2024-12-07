@@ -11,12 +11,11 @@ import           System.TimeIt          (timeItT)
 import           Text.Printf            (printf)
 
 import           Data.List.Split        (splitOn)
-import           Data.Text              as T (Text, pack, concat)
-import qualified Data.Text.IO.Utf8      as TIO (readFile, putStr)
+import           Data.Text              as T (Text, concat, pack)
+import qualified Data.Text.IO.Utf8      as TIO (putStr, readFile)
 import           Network.Curl           (CurlOption (CurlCookie, CurlProxy),
                                          curlGetString)
 import           System.Directory       (getHomeDirectory)
-import TextShow (showt, TextShow)
 
 cookiePath = "/adventOfCode/cookies.json"
 
@@ -28,19 +27,19 @@ inputPath = "/adventOfCode/input/"
 
 proxyPath = "/adventOfCode/proxy"
 
-preciseTimeIt :: (MonadIO m, TextShow a) => Int -> m a -> m a
-preciseTimeIt = customPreciseTimeIt . pack $ "CPU time: "
+preciseTimeIt :: (MonadIO m, Show a) => Int -> m a -> m a
+preciseTimeIt = customPreciseTimeIt "CPU time: "
 
-customPreciseTimeIt :: (MonadIO m, TextShow a) => Text -> Int -> m a -> m a
+customPreciseTimeIt :: (MonadIO m, Show a) => String -> Int -> m a -> m a
 customPreciseTimeIt name prec ioa = do
   (t, a) <- timeItT ioa
-  liftIO . TIO.putStr $ T.concat [name, pack . printf " CPU Time: %6." $ t, showt prec, pack "fs\n"]
+  liftIO . printf (name ++ " CPU Time: %6." ++ show prec ++ "fs\n") $ t
   return a
 
-wallTimeIt :: (MonadIO m, TextShow a) => Text -> Int -> m a -> m a
+wallTimeIt :: (MonadIO m, Show a) => String -> Int -> m a -> m a
 wallTimeIt name prec ioa = do
   (t, a) <- wallTimeItT ioa
-  liftIO . TIO.putStr $ T.concat [name, pack . printf " Wall Time: %6." $ t, showt prec, pack "fs\n"]
+  liftIO . printf (name ++ " Wall Time: %6." ++ show prec ++ "fs\n") $ t
   return a
 
 wallTimeItT :: (MonadIO m) => m a -> m (Double, a)

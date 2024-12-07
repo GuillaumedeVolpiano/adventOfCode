@@ -9,6 +9,7 @@ import           Data.IntMap                (IntMap, empty, fromList, notMember,
                                              (!))
 import           Data.List                  (groupBy, sortBy)
 import           Data.Ord                   (comparing)
+import           Data.Text                  (Text)
 import           Helpers.Parsers            (Parser)
 import           Text.Megaparsec            (eof, manyTill, optional, parse,
                                              sepBy)

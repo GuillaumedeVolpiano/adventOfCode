@@ -8,6 +8,7 @@ import           Data.List      as L (length)
 import           Data.Sequence  as Sq (Seq ((:<|), (:|>)), empty, fromList,
                                        length, null, splitAt, (><))
 import           Data.Sequences (IsSequence, tailEx)
+import           Data.Text      (Text)
 import           Data.Zip       as Z (Zip, zipWith)
 
 isSafe :: Foldable t => t Int -> Bool
