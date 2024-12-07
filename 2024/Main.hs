@@ -30,10 +30,11 @@ import           Day6
 import           Day7
 import           Day8
 import           Day9
-import           Helpers.General                 (customPreciseTimeIt,
+import           Helpers.General.Text                 (customPreciseTimeIt,
                                                   retrieveInput, wallTimeIt)
 import           System.Console.CmdArgs.Implicit (Data, Typeable, args, cmdArgs,
                                                   def, help, opt, (&=))
+import Data.Text (Text)
 
 data Arguments = Arguments
   { day         :: Int
@@ -43,7 +44,7 @@ data Arguments = Arguments
   , interactive :: Bool
   } deriving (Show, Data, Typeable)
 
-type Solver = (Bool -> String -> String)
+type Solver = (Bool -> Text -> Text)
 
 type Day = (Solver, Solver)
 
