@@ -24,6 +24,7 @@ module Helpers.Parsers.Text
   , splitOnSpace
   , decimal
   , double
+  , string
   ) where
 
 import           Control.Applicative        as A (empty)
@@ -40,8 +41,7 @@ import           Linear.V2                  (V2 (..))
 import           Text.Megaparsec            (Parsec, eof, manyTill, optional,
                                              parse, someTill, takeWhile1P,
                                              takeWhileP, try, (<|>))
-import           Text.Megaparsec.Char       (char, eol, printChar, space1,
-                                             string)
+import           Text.Megaparsec.Char       (char, eol, printChar, space1)
 import qualified Text.Megaparsec.Char.Lexer as L (decimal, float, lexeme,
                                                   signed, skipBlockComment,
                                                   skipLineComment, space)
@@ -128,7 +128,7 @@ custom = parseList
 -- and a string, potentially unlined, and return a list of list of lists of
 -- strings, taken from the original string, split around the splitters and
 -- parsed with the patterns.
-complexParser :: [Text] -> [Parser (Maybe Text)] -> Text -> [[[Text]]]
+complexParser :: [String] -> [Parser (Maybe Text)] -> Text -> [[[Text]]]
 complexParser splitters pats =
   map (zipWith parseLineList pats . splitOnSplitters splitters) . T.lines
 
@@ -162,14 +162,14 @@ digitArrayFromText = make2DArray . map (T.foldr ((:) . digitToInt) []) . T.lines
 splitOnSpace :: Text -> [[Text]]
 splitOnSpace = parseList notSpace
 
-splitter :: Text -> Parser (Text, Text)
+splitter :: String -> Parser (Text, Text)
 splitter s = do
   b <- pack <$> manyTill printChar (string s)
   _ <- string s
   a <- pack <$> manyTill printChar eof
   return (b, a)
 
-splitOnSplitters :: [Text] -> Text -> [Text]
+splitOnSplitters :: [String] -> Text -> [Text]
 splitOnSplitters [] aText = [aText]
 splitOnSplitters (s:ss) aText = before : splitOnSplitters ss after
   where
@@ -191,3 +191,6 @@ decimal = lexeme L.decimal
 
 double :: Parser Double
 double = lexeme L.float
+
+string :: String -> Parser ()
+string =  mapM_ char

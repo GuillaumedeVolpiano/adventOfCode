@@ -3,47 +3,92 @@ module Day7
   , part2
   ) where
 
-import           Data.List       (intersect)
-import           Data.List.Split (splitOneOf)
+import           Data.Bifunctor       (first, second)
+import           Data.Either          (fromRight)
+import           Data.List            (intersect)
+import           Data.List.Split      (splitOneOf)
+import           Data.Text            as T (Text, lines, unpack)
+import           Helpers.Parsers.Text (Parser)
+import           Text.Megaparsec      (eof, lookAhead, parse, try, (<|>))
+import           Text.Megaparsec.Char (char, printChar)
 
-hasTLS :: String -> Bool
-hasTLS ip = any isABBA external && not (any isABBA internal)
-  where
-    ips = splitOneOf "[]" ip
-    (external, internal) = foldr alternate ([], []) ips
+hasTLS :: Text -> Bool
+hasTLS =
+  (\(a, b) -> a && not b) . fromRight (False, True) . parse parseExternalABBA ""
+
+parseExternalABBA :: Parser (Bool, Bool)
+parseExternalABBA =
+  try (printChar >> printChar >> printChar >> eof >> return (False, False))
+    <|> (do
+           char '['
+           parseInternalABBA)
+    <|> do
+          a <- printChar
+          (b, c, d) <-
+            lookAhead $ do
+              b <- printChar
+              c <- printChar
+              d <- printChar
+              return (b, c, d)
+          first ((a == d && b == c && a /= b) ||) <$> parseExternalABBA
+
+parseInternalABBA :: Parser (Bool, Bool)
+parseInternalABBA = do
+  a <- printChar
+  (b, c, d) <-
+    lookAhead $ do
+      b <- printChar
+      c <- printChar
+      d <- printChar
+      return (b, c, d)
+  if a == ']'
+    then parseExternalABBA
+    else second ((a == d && b == c && a /= b) ||) <$> parseInternalABBA
 
 alternate :: a -> ([a], [a]) -> ([a], [a])
 alternate x (others, ones) = (x : ones, others)
 
-isABBA :: String -> Bool
-isABBA xs
-  | length xs < 4 = False
-isABBA (a:b:c:d:xs) = (a == d && b == c && a /= b) || isABBA (b : c : d : xs)
+hasSSL :: Text -> Bool
+hasSSL =
+  not
+    . null
+    . uncurry intersect
+    . fromRight ([], [])
+    . parse parseExternalABA ""
 
-hasSSL :: String -> Bool
-hasSSL ip =
-  not . null . intersect (concatMap listABA external)
-    $ concatMap listBAB internal
-  where
-    ips = splitOneOf "[]" ip
-    (external, internal) = foldr alternate ([], []) ips
+parseExternalABA :: Parser ([(Char, Char)], [(Char, Char)])
+parseExternalABA =
+  try (printChar >> printChar >> eof >> return ([], []))
+    <|> (do
+           char '['
+           parseInternalBAB)
+    <|> do
+          a <- printChar
+          (b, c) <-
+            lookAhead $ do
+              b <- printChar
+              c <- printChar
+              return (b, c)
+          if a == c && a /= b
+            then first ((a, b) :) <$> parseExternalABA
+            else parseExternalABA
 
-listABA :: String -> [(Char, Char)]
-listABA xs
-  | length xs < 3 = []
-listABA (a:b:c:xs)
-  | a == c && a /= b = (a, b) : listABA (b : c : xs)
-  | otherwise = listABA (b : c : xs)
+parseInternalBAB :: Parser ([(Char, Char)], [(Char, Char)])
+parseInternalBAB = do
+  a <- printChar
+  (b, c) <-
+    lookAhead $ do
+      b <- printChar
+      c <- printChar
+      return (b, c)
+  let result
+        | a == ']' = parseExternalABA
+        | a == c && a /= b = second ((b, a) :) <$> parseInternalBAB
+        | otherwise = parseInternalBAB
+  result
 
-listBAB :: String -> [(Char, Char)]
-listBAB xs
-  | length xs < 3 = []
-listBAB (a:b:c:xs)
-  | a == c && a /= b = (b, a) : listBAB (b : c : xs)
-  | otherwise = listBAB (b : c : xs)
+part1 :: Bool -> Text -> String
+part1 _ = show . length . filter hasTLS . T.lines
 
-part1 :: Bool -> String -> String
-part1 _ = show . length . filter hasTLS . lines
-
-part2 :: Bool -> String -> String
-part2 _ = show . length . filter hasSSL . lines
+part2 :: Bool -> Text -> String
+part2 _ = show . length . filter hasSSL . T.lines

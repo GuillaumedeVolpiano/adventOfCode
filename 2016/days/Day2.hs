@@ -3,10 +3,11 @@ module Day2
   , part2
   ) where
 
-import           Data.List     (foldl', zipWith)
+import           Data.List     as L (zipWith, foldl')
 import           Data.Map      (Map, fromList, member, (!))
 import           Helpers.Graph (Pos, east, north, south, west)
 import           Linear.V2     (V2 (..))
+import           Data.Text     as T (Text, lines, foldl')
 
 type Dial = Map Pos Key
 
@@ -25,10 +26,10 @@ makeDial d = (start, fromList dial)
         $ d
     start = fst . head . filter ((== '5') . snd) $ dial
 
-findKey :: Dial -> (Pos, [Key]) -> String -> (Pos, [Key])
+findKey :: Dial -> (Pos, [Key]) -> Text -> (Pos, [Key])
 findKey dial (pos, keys) line = (pos', key : keys)
   where
-    pos' = foldl' (move dial) pos line
+    pos' = T.foldl' (move dial) pos line
     key = dial ! pos'
 
 move :: Dial -> Pos -> Char -> Pos
@@ -43,8 +44,8 @@ move dial pos c
       | c == 'R' = east
     pos' = pos + movement
 
-part1 :: Bool -> String -> String
-part1 _ = reverse . snd . foldl' (findKey dial1) (start1, []) . lines
+part1 :: Bool -> Text -> String
+part1 _ = reverse . snd . L.foldl' (findKey dial1) (start1, []) . T.lines
 
-part2 :: Bool -> String -> String
-part2 _ = reverse . snd . foldl' (findKey dial2) (start2, []) . lines
+part2 :: Bool -> Text -> String
+part2 _ = reverse . snd . L.foldl' (findKey dial2) (start2, []) . T.lines

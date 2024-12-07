@@ -3,15 +3,17 @@ module Day8
   , part2
   ) where
 
-import           Data.Char            (isDigit)
-import           Data.Either          (fromRight)
-import           Data.Set             as S (Set, delete, empty, filter, insert,
-                                            map, member, size)
-import           Helpers.Graph        (Pos)
-import           Helpers.Parsers      (Parser)
-import           Linear.V2            (V2 (..))
-import           Text.Megaparsec      (eof, optional, parse, takeWhileP, (<|>))
-import           Text.Megaparsec.Char (char, eol, string)
+import           Data.Char             (isDigit)
+import           Data.Either           (fromRight)
+import           Data.Set              as S (Set, delete, empty, filter, insert,
+                                             map, member, size)
+import           Data.Text             (Text)
+import           Helpers.Graph         (Pos)
+import           Helpers.Parsers.Text  (Parser, decimal, string)
+import           Linear.V2             (V2 (..))
+import           Text.Megaparsec       (eof, optional, parse, takeWhileP, try,
+                                        (<|>))
+import           Text.Megaparsec.Char  (char, eol)
 
 type Screen = Set Pos
 
@@ -25,8 +27,8 @@ columns test
 
 parseInput :: Bool -> Screen -> Parser Screen
 parseInput test screen =
-  parseRect test screen
-    <|> parseRotateR test screen
+  try (parseRect test screen)
+    <|> try (parseRotateR test screen)
     <|> parseRotateC test screen
     <|> end screen
 
@@ -35,33 +37,30 @@ end screen = do
   eof
   return screen
 
-getNumber :: Parser Int
-getNumber = read <$> takeWhileP Nothing isDigit
-
 parseRect :: Bool -> Screen -> Parser Screen
 parseRect test screen = do
   string "rect "
-  a <- getNumber
+  a <- decimal
   char 'x'
-  b <- getNumber
+  b <- decimal
   optional eol
   parseInput test . rect a b $ screen
 
 parseRotateR :: Bool -> Screen -> Parser Screen
 parseRotateR test screen = do
   string "rotate row y="
-  index <- getNumber
-  string " by "
-  shift <- getNumber
+  index <- decimal
+  string "by "
+  shift <- decimal
   optional eol
   parseInput test . rotateR test index shift $ screen
 
 parseRotateC :: Bool -> Screen -> Parser Screen
 parseRotateC test screen = do
   string "rotate column x="
-  index <- getNumber
-  string " by "
-  shift <- getNumber
+  index <- decimal
+  string "by "
+  shift <- decimal
   optional eol
   parseInput test . rotateC test index shift $ screen
 
@@ -91,8 +90,9 @@ render test screen = unlines . fmap line $ [0 .. rows test - 1]
       | p `member` screen = '#'
       | otherwise = ' '
 
-part1 :: Bool -> String -> String
-part1 test = show . size . fromRight empty . parse (parseInput test empty) ""
+part1 :: Bool -> Text -> String
+part1 test =
+  show . size . fromRight empty . parse (parseInput test empty) ""
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 test = render test . fromRight empty . parse (parseInput test empty) ""

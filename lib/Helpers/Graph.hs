@@ -128,7 +128,7 @@ unfoldAssocs toConsider see (toSee, seen)
     newSeen = foldr (insert . see . fst) seen consNext
 
 right :: Pos -> Pos
-right (V2 x y) = V2 (-y) x
+right (V2 x y) = V2 (-y) x 
 
 left :: Pos -> Pos
 left (V2 x y) = V2 y (-x)
