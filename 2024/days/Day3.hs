@@ -4,10 +4,10 @@ module Day3
   ) where
 
 import           Data.Either                (fromRight)
-import           Data.Text                  (Text, pack)
-import           Helpers.Parsers.Text       (Parser)
+import           Data.Text                  (Text)
+import           Helpers.Parsers.Text       (Parser, string)
 import           Text.Megaparsec            (eof, parse, try, (<|>))
-import           Text.Megaparsec.Char       (char, eol, printChar, string)
+import           Text.Megaparsec.Char       (char, eol, printChar)
 import           Text.Megaparsec.Char.Lexer (decimal)
 
 parseInput :: Bool -> Bool -> Parser Int
@@ -15,11 +15,11 @@ parseInput isPart1 isDo =
   try (parseMul isPart1 isDo)
     <|> try
           (do
-             string . pack $ "do()"
+             string "do()"
              parseInput isPart1 True)
     <|> try
           (do
-             string . pack $ "don't()"
+             string "don't()"
              parseInput isPart1 False)
     <|> (do
            printChar
@@ -33,7 +33,7 @@ parseInput isPart1 isDo =
 
 parseMul :: Bool -> Bool -> Parser Int
 parseMul isPart1 isDo = do
-  string . pack $ "mul("
+  string "mul("
   a <- decimal
   char ','
   b <- decimal

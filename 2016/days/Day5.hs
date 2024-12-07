@@ -5,14 +5,16 @@ module Day5
 
 import           Crypto.Hash.MD5        (hash)
 import           Data.ByteString.Base16 (encode)
-import           Data.ByteString.Char8  (pack)
 import           Data.Char              (digitToInt)
-import           Data.List              (isPrefixOf, sort)
+import           Data.List              as L (init, isPrefixOf, sort)
+import           Data.Text              as T (Text, append, init)
+import           Data.Text.Encoding     (encodeUtf8)
+import           TextShow               (showt)
 
-md5concat :: [Int] -> String -> [String]
+md5concat :: [Int] -> Text -> [String]
 md5concat a b =
   filter ("00000" `isPrefixOf`)
-    . map (tail . init . show . encode . hash . pack . (b ++) . show)
+    . map (tail . L.init . show . encode . hash . encodeUtf8 . append b . showt)
     $ a
 
 decode :: [String] -> String
@@ -26,8 +28,8 @@ compile found ([a, b]:xs)
   where
     v = digitToInt a
 
-part1 :: Bool -> String -> String
-part1 _ = take 8 . map (!! 5) . md5concat [0 ..] . init
+part1 :: Bool -> Text -> String
+part1 _ = take 8 . map (!! 5) . md5concat [0 ..] . T.init
 
-part2 :: Bool -> String -> String
-part2 _ = decode . md5concat [0 ..] . init
+part2 :: Bool -> Text -> String
+part2 _ = decode . md5concat [0 ..] . T.init

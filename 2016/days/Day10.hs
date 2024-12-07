@@ -12,9 +12,10 @@ import           Data.IntMap          as M (IntMap, alter, delete, empty,
                                             filter, insert, keys, member, null,
                                             (!))
 import           Data.Maybe           (isJust)
-import           Helpers.Parsers      (Parser)
+import           Data.Text            (Text)
+import           Helpers.Parsers.Text (Parser, decimal, string)
 import           Text.Megaparsec      (eof, optional, parse, takeWhile1P, (<|>))
-import           Text.Megaparsec.Char (char, eol, string)
+import           Text.Megaparsec.Char (char, eol)
 
 data Robot =
   Robot Chip Chip
@@ -89,16 +90,16 @@ parseValue :: Parser (Robots, Instructions)
 parseValue = do
   char 'v'
   consume
-  chip <- number
+  chip <- decimal
   consume
-  bot <- number
+  bot <- decimal
   optional eol
   first (alter (receive chip) bot) <$> parseInput
 
 parseInst :: Parser (Robots, Instructions)
 parseInst = do
   string "bot "
-  bot <- number
+  bot <- decimal
   string " gives low to "
   low <- parseOutput <|> parseBot
   string " and high to "
@@ -109,20 +110,17 @@ parseInst = do
 parseOutput :: Parser (Bool, Int)
 parseOutput = do
   string "output "
-  (False, ) <$> number
+  (False, ) <$> decimal
 
 parseBot :: Parser (Bool, Int)
 parseBot = do
   string "bot "
-  (True, ) <$> number
+  (True, ) <$> decimal
 
 consume :: Parser ()
 consume = do
   takeWhile1P Nothing (not . isDigit)
   return ()
-
-number :: Parser Int
-number = read <$> takeWhile1P Nothing isDigit
 
 process1 :: State -> Int
 process1 state@((robots, _), instructions)
@@ -140,7 +138,7 @@ process2 state@((robots, outputs), instructions)
   where
     fullBots = M.filter isFull robots
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ =
   show
     . process1
@@ -148,7 +146,7 @@ part1 _ =
     . fromRight (empty, empty)
     . parse parseInput ""
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ =
   show
     . process2

@@ -5,17 +5,15 @@ module Day9
 
 import           Data.Char            (isDigit, isUpper)
 import           Data.Either          (fromRight)
-import           Helpers.Parsers      (Parser)
+import           Data.Text            as T (Text, length, unpack)
+import           Helpers.Parsers.Text (Parser, decimal)
 import           Text.Megaparsec      (eof, lookAhead, optional, parse,
                                        setOffset, takeP, takeWhile1P, try,
                                        (<|>))
 import           Text.Megaparsec.Char (char, eol, upperChar)
 
 getLength :: Parser Int
-getLength = length <$> takeWhile1P Nothing isUpper
-
-getNumber :: Parser Int
-getNumber = read <$> takeWhile1P Nothing isDigit
+getLength = T.length <$> takeWhile1P Nothing isUpper
 
 decompress :: Bool -> Parser Int
 decompress isPart2 =
@@ -31,17 +29,17 @@ parseFlat isPart2 = (+) <$> getLength <*> decompress isPart2
 parseInner :: Bool -> Parser Int
 parseInner False = do
   char '('
-  l <- getNumber
+  l <- decimal
   char 'x'
-  n <- getNumber
+  n <- decimal
   char ')'
   takeP Nothing l
   ((l * n) +) <$> decompress False
 parseInner True = do
   char '('
-  l <- getNumber
+  l <- decimal
   char 'x'
-  n <- getNumber
+  n <- decimal
   char ')'
   val <- decompressN l
   ((n * val) +) <$> decompress True
@@ -74,14 +72,14 @@ parseInnerN n = do
   char 'x'
   rawC <- takeWhile1P Nothing isDigit
   char ')'
-  let l = read rawL
-      c = read rawC
-      consumed = 3 + length rawL + length rawC + l
+  let l = read . unpack $ rawL
+      c = read . unpack $ rawC
+      consumed = 3 + T.length rawL + T.length rawC + l
   val <- decompressN l
   ((c * val) +) <$> decompressN (n - consumed)
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> Text -> String
 part1 _ = show . fromRight 0 . parse (decompress False) ""
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> Text -> String
 part2 _ = show . fromRight 0 . parse (decompress True) ""
