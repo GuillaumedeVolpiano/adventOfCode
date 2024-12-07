@@ -3,14 +3,15 @@ module Day6
   , part2
   ) where
 
-import           Data.Array.Unboxed (UArray, assocs, (!?))
-import           Data.Hashable      (Hashable, hashWithSalt)
-import           Data.HashSet       as S (HashSet, empty, filter, insert,
-                                          member, size)
-import           Data.List          as L (filter, unfoldr)
-import           Data.Maybe         (isNothing)
-import           Helpers.Graph      (Pos, left, north, right)
-import           Helpers.Parsers    (arrayFromString)
+import           Control.Parallel.Strategies (parList, rseq, runEval)
+import           Data.Array.Unboxed          (UArray, assocs, (!?))
+import           Data.Hashable               (Hashable, hashWithSalt)
+import           Data.HashSet                as S (HashSet, empty, filter,
+                                                   insert, member, size, toList)
+import           Data.List                   as L (filter, unfoldr)
+import           Data.Maybe                  (isNothing)
+import           Helpers.Graph               (Pos, left, north, right)
+import           Helpers.Parsers             (arrayFromString)
 
 data Guard =
   Guard Pos Dir

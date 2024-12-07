@@ -3,12 +3,12 @@ module Day7
   , part2
   ) where
 
-import           Data.Either          (fromRight)
-import           Helpers.Parsers      (Parser, decimal)
-import           Text.Megaparsec      (eof, many, manyTill, optional, parse)
-import           Text.Megaparsec.Char (eol, string)
-
-import           Debug.Trace
+import           Control.Parallel.Strategies (parList, rseq, runEval)
+import           Data.Either                 (fromRight)
+import           Helpers.Parsers             (Parser, decimal)
+import           Text.Megaparsec             (eof, many, manyTill, optional,
+                                              parse)
+import           Text.Megaparsec.Char        (eol, string)
 
 data Equation =
   Equation Test Numbers
@@ -50,6 +50,8 @@ part1 :: Bool -> String -> String
 part1 _ =
   show
     . foldr (\(Equation t _) -> (t +)) 0
+    . runEval
+    . parList rseq
     . filter canBeTrue
     . fromRight []
     . parse parseInput ""
@@ -59,5 +61,7 @@ part2 _ =
   show
     . foldr (\(Equation t _) -> (t +)) 0
     . filter canBeTrueConcat
+    . runEval
+    . parList rseq
     . fromRight []
     . parse parseInput ""
