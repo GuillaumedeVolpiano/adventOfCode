@@ -58,7 +58,7 @@ buildAntennas =
 
 findAllAntinodes :: Rule -> Grid -> Int
 findAllAntinodes rule grid =
-  size . foldr ((.) . frequencyAntinodes pos rule) id antennas $ empty
+  size . foldr (frequencyAntinodes pos rule) empty $ antennas
   where
     antennas = buildAntennas grid
     pos = range . bounds $ grid
