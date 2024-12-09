@@ -6,9 +6,7 @@ module Day9
 import           Data.Bifunctor       (first, second)
 import           Data.Char            (digitToInt)
 import           Data.Either          (fromRight)
-import           Data.List            as L (null, sort)
-import           Data.Set             as S (Set, delete, empty, filter, findMax,
-                                            findMin, fromList, insert, null)
+import           Data.List            (delete, sort)
 import           Data.Text            (Text)
 import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (parse, (<|>))
@@ -37,11 +35,8 @@ type Files = [FileBlock]
 
 type Blocks = [EmptyBlock]
 
-instance Ord FileBlock where
-  compare f1 = compare (getPos f1) . getPos
-
 instance Ord EmptyBlock where
-  compare e1 = compare (emptyPos e1) . emptyPos
+  compare e1 e2 = compare (emptyPos e1) (emptyPos e2)
 
 parseInput :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
 parseInput isEmpty depth index files =
@@ -84,16 +79,15 @@ sortDisk (nextFile@(FileBlock index filePos fileLength):files, emptyBlock:blocks
       | availableSpace == emptyLength emptyBlock = blocks
       | otherwise = emptyBlock' : blocks
 
-defragment :: (Files, Set EmptyBlock) -> Files
+defragment :: (Files, Blocks) -> Files
 defragment (file:files, blocks)
-  | L.null files = []
-  | S.null availableEmptyBlocks = file : defragment (files, leftBlocks)
+  | null files = []
+  | null availableEmptyBlocks = file : defragment (files, leftBlocks)
   | otherwise = file' : defragment (files, blocks')
   where
-    leftBlocks = S.filter ((<= getPos file) . emptyPos) blocks
-    availableEmptyBlocks =
-      S.filter ((>= getLength file) . emptyLength) leftBlocks
-    block = findMin availableEmptyBlocks
+    leftBlocks = takeWhile ((< getPos file) . emptyPos) blocks
+    availableEmptyBlocks = filter ((>= getLength file) . emptyLength) leftBlocks
+    block = head availableEmptyBlocks
     file' = file {getPos = emptyPos block}
     block' =
       EmptyBlock
@@ -101,7 +95,7 @@ defragment (file:files, blocks)
         (emptyLength block - getLength file)
     blocks'
       | emptyLength block == getLength file = delete block leftBlocks
-      | otherwise = insert block' . delete block $ leftBlocks
+      | otherwise = block' : delete block leftBlocks
     --
 
 -- The sum of n numbers from filePos to filePos + fileLength - 1 is fileLength *
@@ -123,6 +117,6 @@ part2 _ =
   show
     . foldr ((+) . checksum) 0
     . defragment
-    . second fromList
+    . second sort
     . fromRight ([], [])
     . parse (parseInput False 0 0 []) ""
