@@ -41,23 +41,26 @@ instance Ord FileBlock where
 instance Ord EmptyBlock where
   compare e1 = compare (emptyPos e1) . emptyPos
 
-parseInput :: Bool -> Int -> Int -> Parser (Files, Blocks)
-parseInput isEmpty depth index =
-  parseBlocks isEmpty depth index <|> return ([], empty)
+parseInput :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
+parseInput isEmpty depth index files =
+  parseBlocks isEmpty depth index files <|> return (files, empty)
 
-parseBlocks :: Bool -> Int -> Int -> Parser (Files, Blocks)
-parseBlocks isEmpty pos index = do
+parseBlocks :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
+parseBlocks isEmpty pos index files = do
   blockLength <- digitToInt <$> numberChar
   let pos' = pos + blockLength
       result
-        | blockLength == 0 && isEmpty = parseInput False pos index
-        | blockLength == 0 = parseInput True pos (index + 1)
+        | blockLength == 0 && isEmpty = parseInput False pos index files
+        | blockLength == 0 = parseInput True pos (index + 1) files
         | isEmpty =
           second (insert (EmptyBlock pos blockLength))
-            <$> parseInput False pos' index
+            <$> parseInput False pos' index files
         | otherwise =
-          first (FileBlock index pos blockLength :)
-            <$> parseInput True pos' (index + 1)
+          parseInput
+            True
+            pos'
+            (index + 1)
+            (FileBlock index pos blockLength : files)
   result
 
 sortDisk :: (Files, Blocks) -> Files
@@ -111,15 +114,13 @@ part1 _ =
   show
     . foldr ((+) . checksum) 0
     . sortDisk
-    . first reverse
     . fromRight ([], empty)
-    . parse (parseInput False 0 0) ""
+    . parse (parseInput False 0 0 []) ""
 
 part2 :: Bool -> Text -> String
 part2 _ =
   show
     . foldr ((+) . checksum) 0
     . defragment
-    . first reverse
     . fromRight ([], empty)
-    . parse (parseInput False 0 0) ""
+    . parse (parseInput False 0 0 []) ""
