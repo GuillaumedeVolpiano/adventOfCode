@@ -8,11 +8,13 @@ import           Data.Char            (digitToInt)
 import           Data.Either          (fromRight)
 import           Data.List            as L (null, sort)
 import           Data.Set             as S (Set, delete, empty, filter, findMax,
-                                            findMin, insert, null)
+                                            findMin, fromList, insert, null)
 import           Data.Text            (Text)
 import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (parse, (<|>))
 import           Text.Megaparsec.Char (eol, numberChar)
+
+import           Debug.Trace
 
 data FileBlock = FileBlock
   { getIndex  :: Index
@@ -33,7 +35,7 @@ type Length = Int
 
 type Files = [FileBlock]
 
-type Blocks = Set EmptyBlock
+type Blocks = [EmptyBlock]
 
 instance Ord FileBlock where
   compare f1 = compare (getPos f1) . getPos
@@ -43,7 +45,7 @@ instance Ord EmptyBlock where
 
 parseInput :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
 parseInput isEmpty depth index files =
-  parseBlocks isEmpty depth index files <|> return (files, empty)
+  parseBlocks isEmpty depth index files <|> return (files, [])
 
 parseBlocks :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
 parseBlocks isEmpty pos index files = do
@@ -53,7 +55,7 @@ parseBlocks isEmpty pos index files = do
         | blockLength == 0 && isEmpty = parseInput False pos index files
         | blockLength == 0 = parseInput True pos (index + 1) files
         | isEmpty =
-          second (insert (EmptyBlock pos blockLength))
+          second (EmptyBlock pos blockLength :)
             <$> parseInput False pos' index files
         | otherwise =
           parseInput
@@ -64,11 +66,10 @@ parseBlocks isEmpty pos index files = do
   result
 
 sortDisk :: (Files, Blocks) -> Files
-sortDisk (nextFile@(FileBlock index filePos fileLength):files, blocks)
-  | emptyPos emptyBlock > filePos = []
+sortDisk (nextFile@(FileBlock index filePos fileLength):files, emptyBlock:blocks)
+  | emptyPos emptyBlock > filePos = nextFile : files
   | otherwise = fileBlock : sortDisk (files', blocks')
   where
-    emptyBlock = findMin blocks
     availableSpace = min fileLength . emptyLength $ emptyBlock
     fileBlock = FileBlock index (emptyPos emptyBlock) availableSpace
     nextFile' = FileBlock index filePos (fileLength - availableSpace)
@@ -80,10 +81,10 @@ sortDisk (nextFile@(FileBlock index filePos fileLength):files, blocks)
       | availableSpace == fileLength = files
       | otherwise = nextFile' : files
     blocks'
-      | availableSpace == emptyLength emptyBlock = delete emptyBlock blocks
-      | otherwise = insert emptyBlock' . delete emptyBlock $ blocks
+      | availableSpace == emptyLength emptyBlock = blocks
+      | otherwise = emptyBlock' : blocks
 
-defragment :: (Files, Blocks) -> Files
+defragment :: (Files, Set EmptyBlock) -> Files
 defragment (file:files, blocks)
   | L.null files = []
   | S.null availableEmptyBlocks = file : defragment (files, leftBlocks)
@@ -114,7 +115,7 @@ part1 _ =
   show
     . foldr ((+) . checksum) 0
     . sortDisk
-    . fromRight ([], empty)
+    . fromRight ([], [])
     . parse (parseInput False 0 0 []) ""
 
 part2 :: Bool -> Text -> String
@@ -122,5 +123,6 @@ part2 _ =
   show
     . foldr ((+) . checksum) 0
     . defragment
-    . fromRight ([], empty)
+    . second fromList
+    . fromRight ([], [])
     . parse (parseInput False 0 0 []) ""
