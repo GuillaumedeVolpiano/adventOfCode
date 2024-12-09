@@ -3,13 +3,14 @@ module Day5
   , part2
   ) where
 
-import           Crypto.Hash.MD5        (hash)
-import           Data.ByteString.Base16 (encode)
-import           Data.Char              (digitToInt)
-import           Data.List              as L (init, isPrefixOf, sort)
-import           Data.Text              as T (Text, append, init)
-import           Data.Text.Encoding     (encodeUtf8)
-import           TextShow               (showt)
+import           Crypto.Hash.MD5             (hash)
+import           Data.ByteString.Base16      (encode)
+import           Data.Char                   (digitToInt)
+import           Data.List                   as L (init, isPrefixOf, sort)
+import           Data.Text                   as T (Text, append, init)
+import           Data.Text.Encoding          (encodeUtf8)
+import           GHC.Conc                    (numCapabilities)
+import           TextShow                    (showt)
 
 md5concat :: [Int] -> Text -> [String]
 md5concat a b =

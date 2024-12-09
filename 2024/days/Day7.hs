@@ -6,10 +6,10 @@ module Day7
 import           Control.Parallel.Strategies (parList, rseq, runEval)
 import           Data.Either                 (fromRight)
 import           Data.Text                   (Text, pack)
-import           Helpers.Parsers.Text        (Parser, decimal)
+import           Helpers.Parsers.Text        (Parser, decimal, string)
 import           Text.Megaparsec             (eof, many, manyTill, optional,
                                               parse)
-import           Text.Megaparsec.Char        (eol, string)
+import           Text.Megaparsec.Char        (eol)
 
 data Equation =
   Equation Test Numbers
@@ -25,7 +25,7 @@ parseInput = manyTill parseEquation eof
 parseEquation :: Parser Equation
 parseEquation = do
   test <- decimal
-  string (pack ": ")
+  string ": "
   numbers <- many decimal
   optional eol
   return . Equation test $ numbers

@@ -3,7 +3,6 @@ module Day6
   , part2
   ) where
 
-import           Control.Parallel.Strategies (parList, rseq, runEval)
 import           Data.Array.Unboxed          (UArray, assocs, (!?))
 import           Data.Hashable               (Hashable, hashWithSalt)
 import           Data.HashSet                as S (HashSet, empty, filter,

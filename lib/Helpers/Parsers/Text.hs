@@ -42,9 +42,10 @@ import           Text.Megaparsec            (Parsec, eof, manyTill, optional,
                                              parse, someTill, takeWhile1P,
                                              takeWhileP, try, (<|>))
 import           Text.Megaparsec.Char       (char, eol, printChar, space1)
+import qualified Text.Megaparsec.Char as MC (string)
 import qualified Text.Megaparsec.Char.Lexer as L (decimal, float, lexeme,
                                                   signed, skipBlockComment,
-                                                  skipLineComment, space)
+                                                  skipLineComment, space, symbol)
 
 type Parser = Parsec Void Text
 
@@ -192,5 +193,6 @@ decimal = lexeme L.decimal
 double :: Parser Double
 double = lexeme L.float
 
-string :: String -> Parser ()
-string =  mapM_ char
+string :: String -> Parser Text 
+string = MC.string . pack 
+
