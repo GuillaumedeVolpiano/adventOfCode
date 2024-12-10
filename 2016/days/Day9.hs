@@ -3,46 +3,50 @@ module Day9
   , part2
   ) where
 
-import           Data.Char            (isDigit, isUpper)
-import           Data.Either          (fromRight)
-import           Data.Text            as T (Text, length, unpack)
-import           Helpers.Parsers.Text (Parser, decimal)
-import           Text.Megaparsec      (eof, lookAhead, optional, parse,
-                                       setOffset, takeP, takeWhile1P, try,
-                                       (<|>))
-import           Text.Megaparsec.Char (char, eol, upperChar)
+import           Control.Monad.State        (State, evalState, get)
+import           Data.Char                  (isDigit, isUpper)
+import           Data.Either                (fromRight)
+import           Data.Text                  as T (Text, length, unpack)
+import           Data.Void                  (Void)
+import           Text.Megaparsec            (ParsecT, eof, lookAhead, optional,
+                                             runParserT, setOffset, takeP,
+                                             takeWhile1P, try, (<|>))
+import           Text.Megaparsec.Char       (char, eol, upperChar)
+import           Text.Megaparsec.Char.Lexer (decimal)
+
+type Parser = ParsecT Void Text (State Bool)
 
 getLength :: Parser Int
 getLength = T.length <$> takeWhile1P Nothing isUpper
 
-decompress :: Bool -> Parser Int
-decompress isPart2 =
-  parseFlat isPart2
-    <|> parseInner isPart2
+decompress :: Parser Int
+decompress =
+  parseFlat
+    <|> parseInner
     <|> (do
            eol
            return 0)
 
-parseFlat :: Bool -> Parser Int
-parseFlat isPart2 = (+) <$> getLength <*> decompress isPart2
+parseFlat :: Parser Int
+parseFlat = (+) <$> getLength <*> decompress
 
-parseInner :: Bool -> Parser Int
-parseInner False = do
+parseInner :: Parser Int
+parseInner = do
   char '('
   l <- decimal
   char 'x'
   n <- decimal
   char ')'
-  takeP Nothing l
-  ((l * n) +) <$> decompress False
-parseInner True = do
-  char '('
-  l <- decimal
-  char 'x'
-  n <- decimal
-  char ')'
-  val <- decompressN l
-  ((n * val) +) <$> decompress True
+  isPart2 <- get
+  decompressed <-
+    if isPart2
+      then do
+        val <- decompressN l
+        return ((n * val) +)
+      else do
+        takeP Nothing l
+        return ((l * n) +)
+  decompressed <$> decompress
 
 decompressN :: Int -> Parser Int
 decompressN 0 = return 0
@@ -79,7 +83,7 @@ parseInnerN n = do
   ((c * val) +) <$> decompressN (n - consumed)
 
 part1 :: Bool -> Text -> String
-part1 _ = show . fromRight 0 . parse (decompress False) ""
+part1 _ = show . fromRight 0 . flip evalState False . runParserT decompress ""
 
 part2 :: Bool -> Text -> String
-part2 _ = show . fromRight 0 . parse (decompress True) ""
+part2 _ = show . fromRight 0 . flip evalState True . runParserT decompress ""

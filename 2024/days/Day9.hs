@@ -3,6 +3,7 @@ module Day9
   , part2
   ) where
 
+import           Control.Monad.State  (State, evalState, get, put)
 import           Data.Bifunctor       (first, second)
 import           Data.Char            (digitToInt)
 import           Data.Either          (fromRight)
@@ -16,8 +17,8 @@ import           Data.List            as L (delete, groupBy, minimumBy, null,
 import           Data.Maybe           (fromJust, isJust)
 import           Data.Ord             (comparing)
 import           Data.Text            (Text)
-import           Helpers.Parsers.Text (Parser)
-import           Text.Megaparsec      (parse, (<|>))
+import           Data.Void            (Void)
+import           Text.Megaparsec      (ParsecT, runParserT, (<|>))
 import           Text.Megaparsec.Char (eol, numberChar)
 
 data FileBlock = FileBlock
@@ -48,27 +49,30 @@ instance Ord EmptyBlock where
 
 type BlockMap = IntMap IntSet
 
-parseInput :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
-parseInput isEmpty depth index files =
-  parseBlocks isEmpty depth index files <|> return (files, [])
+type Parser = ParsecT Void Text (State (Bool, Int, Int, Files))
 
-parseBlocks :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
-parseBlocks isEmpty pos index files = do
+parseInput :: Parser (Files, Blocks)
+parseInput =
+  parseBlocks
+    <|> (do
+           (_, _, _, files) <- get
+           return (files, []))
+
+parseBlocks :: Parser (Files, Blocks)
+parseBlocks = do
+  (isEmpty, pos, index, files) <- get
   blockLength <- digitToInt <$> numberChar
   let pos' = pos + blockLength
-      result
-        | blockLength == 0 && isEmpty = parseInput False pos index files
-        | blockLength == 0 = parseInput True pos (index + 1) files
-        | isEmpty =
-          second (EmptyBlock pos blockLength :)
-            <$> parseInput False pos' index files
+      state
+        | blockLength == 0 && isEmpty = put (False, pos, index, files)
+        | blockLength == 0 = put (True, pos, index + 1, files)
+        | isEmpty = put (False, pos', index, files)
         | otherwise =
-          parseInput
-            True
-            pos'
-            (index + 1)
-            (FileBlock index pos blockLength : files)
-  result
+          put (True, pos', index + 1, FileBlock index pos blockLength : files)
+  state
+  if isEmpty
+    then second (EmptyBlock pos blockLength :) <$> parseInput
+    else parseInput
 
 sortDisk :: (Files, Blocks) -> Files
 sortDisk (nextFile@(FileBlock index filePos fileLength):files, emptyBlock:blocks)
@@ -101,6 +105,7 @@ buildBlockMap =
 
 defragment :: (Files, BlockMap) -> Files
 defragment (file:files, blocks)
+  | L.null files = []
   | M.null blocks = file : files
   | L.null left = file : defragment (files, blocks')
   | otherwise = file' : defragment (files, blocks''')
@@ -139,7 +144,8 @@ part1 _ =
     . foldr ((+) . checksum) 0
     . sortDisk
     . fromRight ([], [])
-    . parse (parseInput False 0 0 []) ""
+    . flip evalState (False, 0, 0, [])
+    . runParserT parseInput ""
 
 part2 :: Bool -> Text -> String
 part2 _ =
@@ -148,4 +154,5 @@ part2 _ =
     . defragment
     . second buildBlockMap
     . fromRight ([], [])
-    . parse (parseInput False 0 0 []) ""
+    . flip evalState (False, 0, 0, [])
+    . runParserT parseInput ""

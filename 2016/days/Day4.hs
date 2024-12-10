@@ -7,7 +7,7 @@ import           Data.Char            (chr, isAlpha, isDigit, ord)
 import           Data.List            as L (group, intersperse, isInfixOf, sort,
                                        sortBy, concat)
 import           Data.Maybe           (catMaybes)
-import           Data.Ord             (Down, comparing)
+import           Data.Ord             (Down(..), comparing)
 import           Data.Text            as T (Text, pack, concat, unpack)
 import           Helpers.Parsers.Text (Parser, parseByLine, decimal)
 import           Text.Megaparsec      (many, optional, takeWhileP)
@@ -29,7 +29,7 @@ parseCipher = do
   let checked =
         take 5
           . map head
-          . sortBy (flip (comparing length))
+          . sortBy (comparing (Down . length))
           . group
           . sort
           . L.concat

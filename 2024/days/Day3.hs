@@ -51,8 +51,8 @@ parseMul = do
     else parseInput
 
 part1 :: Bool -> Text -> String
-part1 _ input = show . evalState (runParserT parseInput "" input) $ (True, True)
+part1 _ = show . fromRight 0 . flip evalState (True, True) . runParserT parseInput ""
 
 part2 :: Bool -> Text -> String
-part2 _ input =
-  show . evalState (runParserT parseInput "" input) $ (False, True)
+part2 _ =
+  show . fromRight 0 . flip evalState (False, True) . runParserT parseInput ""

@@ -3,42 +3,52 @@ module Day1
   , part2
   ) where
 
-import           Data.Char             (isDigit)
-import           Data.Either           (fromRight)
-import           Data.Set              (Set, empty, insert, member)
-import           Data.Text             (Text, pack)
-import           Helpers.Graph         (Pos, left, manhattanDistance, north,
-                                        origin, right)
-import           Helpers.Parsers.Text  (Parser, decimal, string)
-import           Linear.Vector         ((*^))
-import           Text.Megaparsec       (optional, parse, takeWhileP, (<|>))
-import           Text.Megaparsec.Char  (eol, upperChar)
+import           Control.Monad.State        (State, evalState, get, put)
+import           Data.Char                  (isDigit)
+import           Data.Either                (fromRight)
+import           Data.Set                   (Set, empty, insert, member)
+import           Data.Text                  (Text, pack)
+import           Data.Void                  (Void)
+import           Helpers.Graph              (Pos, left, manhattanDistance,
+                                             north, origin, right)
+import           Linear.Vector              ((*^))
+import           Text.Megaparsec            (ParsecT, optional, runParserT,
+                                             takeWhileP, (<|>))
+import           Text.Megaparsec.Char       (eol, string, upperChar)
+import           Text.Megaparsec.Char.Lexer (decimal)
 
 type Dir = Pos
+
+type Parser = ParsecT Void Text (State (Pos, Dir))
+
+type ParserTwice = ParsecT Void Text (State (Pos, Dir, Set Pos))
 
 readDir :: Char -> (Dir -> Dir)
 readDir 'R' = right
 readDir 'L' = left
 
-parseInst :: Pos -> Dir -> Parser (Pos, Dir)
-parseInst pos dir = do
+parseInst :: Parser ()
+parseInst = do
+  (pos, dir) <- get
   turn <- readDir <$> upperChar
   dist <- decimal
-  optional . string $ ", "
+  optional . string . pack $ ", "
   let dir' = turn dir
       pos' = pos + dist *^ dir'
-  return (pos', dir')
+  put (pos', dir')
+  return ()
 
-parseInput :: Pos -> Dir -> Parser Int
-parseInput pos dir = do
-  (pos', dir') <- parseInst pos dir
-  end pos' <|> parseInput pos' dir'
+parseInput :: Parser Int
+parseInput = do
+  parseInst
+  end <|> parseInput
 
-parseTwice :: Pos -> Dir -> Set Pos -> Parser Int
-parseTwice pos dir seen = do
+parseTwice :: ParserTwice Int
+parseTwice = do
   turn <- readDir <$> upperChar
   dist <- decimal
-  optional . string $ ", "
+  optional . string . pack $ ", "
+  (pos, dir, seen) <- get
   let dir' = turn dir
       pos' = pos + dist *^ dir'
       allPos = map ((pos +) . (*^ dir')) [1 .. dist]
@@ -47,16 +57,23 @@ parseTwice pos dir seen = do
         | any (`member` seen) allPos =
           return . manhattanDistance origin . head . filter (`member` seen)
             $ allPos
-        | otherwise = parseTwice pos' dir' seen'
+        | otherwise = parseTwice
+  put (pos', dir', seen')
   result
 
-end :: Pos -> Parser Int
-end pos = do
+end :: Parser Int
+end = do
   eol
+  (pos, _) <- get
   return $ manhattanDistance origin pos
 
 part1 :: Bool -> Text -> String
-part1 _ = show . fromRight 0 . parse (parseInput origin north) ""
+part1 _ =
+  show . fromRight 0 . flip evalState (origin, north) . runParserT parseInput ""
 
 part2 :: Bool -> Text -> String
-part2 _ = show . fromRight 0 . parse (parseTwice origin north empty) ""
+part2 _ =
+  show
+    . fromRight 0
+    . flip evalState (origin, north, empty)
+    . runParserT parseTwice ""
