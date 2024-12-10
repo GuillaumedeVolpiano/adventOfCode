@@ -52,7 +52,7 @@ findAllTrails topoMap = length . foldr (explore topoMap) trailHeads $ [1 .. 9]
     trailHeads = map fst . filter ((== 0) . snd . snd) . labNodes $ topoMap
 
 explore :: TopoMap -> Int -> [Node] -> [Node]
-explore topoMap _ = concat . filter (not . null) . map (suc topoMap)
+explore topoMap _ = concatMap (suc topoMap)
 
 testDigit :: Char -> Int
 testDigit '.' = -1
