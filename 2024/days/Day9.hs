@@ -8,7 +8,7 @@ import           Data.Char            (digitToInt)
 import           Data.Either          (fromRight)
 import           Data.Function        (on)
 import           Data.IntMap          as M (IntMap, delete, fromList, insert,
-                                            lookup, notMember, null, (!))
+                                            lookup, notMember, null, size, (!))
 import           Data.IntSet          as S (IntSet, delete, empty, findMin,
                                             insert, null, singleton)
 import           Data.List            as L (delete, groupBy, minimumBy, null,
@@ -19,6 +19,8 @@ import           Data.Text            (Text)
 import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (parse, (<|>))
 import           Text.Megaparsec.Char (eol, numberChar)
+
+import           Debug.Trace
 
 data FileBlock = FileBlock
   { getIndex  :: Index
@@ -101,7 +103,7 @@ buildBlockMap =
 
 defragment :: (Files, BlockMap) -> Files
 defragment (file:files, blocks)
-  | L.null files || M.null blocks = []
+  | L.null files || M.null blocks = trace (show blocks) []
   | L.null left = file : defragment (files, blocks')
   | otherwise = file' : defragment (files, blocks'')
   where
