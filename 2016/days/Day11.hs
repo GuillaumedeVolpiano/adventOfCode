@@ -1,13 +1,22 @@
+{-# LANGUAGE TupleSections #-}
+
 module Day11
   ( part1
   , part2
   ) where
 
+import           Data.Bifunctor       (bimap, second)
 import           Data.Char            (isAlpha)
 import           Data.Either          (fromRight)
-import           Data.IntMap          (IntMap, empty, fromList, insert, (!))
-import           Data.List            (delete, sort)
+import           Data.IntMap          as I (IntMap, empty, fromList, insert,
+                                            map, (!))
+import           Data.List            as L (filter, null, tails)
 import           Data.Maybe           (mapMaybe)
+import           Data.Sequence        as Sq (Seq ((:<|), (:|>)), null,
+                                             singleton)
+import           Data.Set             as S (Set, delete, empty, filter,
+                                            fromList, insert, member, notMember,
+                                            partition, size, toList)
 import           Data.Text            (Text, pack)
 import           Helpers.Parsers.Text (Parser, string)
 import           Helpers.Search       (bfsDist)
@@ -15,33 +24,35 @@ import           Text.Megaparsec      (eof, manyTill, optional, parse,
                                        takeWhileP, try, (<|>))
 import           Text.Megaparsec.Char (char, eol)
 
-newtype RTG =
-  RTG Text
+data Object
+  = RTG Text
+  | Chip Text
   deriving (Show, Eq, Ord)
 
-newtype Chip =
-  Chip Text
-  deriving (Show, Eq, Ord)
-
-type Floors = IntMap ([Chip], [RTG])
+type Floors = IntMap (Set Object)
 
 type Elevator = Int
 
-isSafe :: Chip -> [RTG] -> Bool
-isSafe (Chip material) rtgs
-  | null rtgs = True
-  | otherwise = RTG material `elem` rtgs
+isChip :: Object -> Bool
+isChip (Chip _) = True
+isChip _        = False
 
-isEmpty :: ([Chip], [RTG]) -> Bool
-isEmpty (a, b) = null a && null b
+isRTG :: Object -> Bool
+isRTG = not . isChip
 
-isSafeFloor :: ([Chip], [RTG]) -> Bool
-isSafeFloor (chips, rtgs) = all (`isSafe` rtgs) chips
+isSafe :: Object -> Set Object -> Bool
+isSafe (Chip material) objects
+  | L.null objects = True
+  | otherwise = all isChip objects || RTG material `member` objects
+isSafe _ _ = True
+
+isSafeFloor :: Set Object -> Bool
+isSafeFloor objects = all (`isSafe` objects) objects
 
 parseInput :: Parser Floors
-parseInput = fromList <$> manyTill parseFloor eof
+parseInput = I.fromList <$> manyTill parseFloor eof
 
-parseFloor :: Parser (Int, ([Chip], [RTG]))
+parseFloor :: Parser (Int, Set Object)
 parseFloor = do
   string "The "
   floor <-
@@ -60,9 +71,11 @@ parseFloor = do
   string "floor contains "
   contents <- nothing <|> manyTill parseContents (char '.')
   optional eol
-  let chips = map (Chip . snd) . filter ((== pack "microchip") . fst) $ contents
-      rtgs = map (RTG . snd) . filter ((== pack "generator") . fst) $ contents
-  return (floor, (chips, rtgs))
+  let chips =
+        fmap (Chip . snd) . L.filter ((== pack "microchip") . fst) $ contents
+      rtgs =
+        fmap (RTG . snd) . L.filter ((== pack "generator") . fst) $ contents
+  return (floor, S.fromList $ chips ++ rtgs)
 
 nothing :: Parser [(Text, Text)]
 nothing = do
@@ -82,77 +95,80 @@ parseContents = do
   return (genChip, material)
 
 neighbours :: (Elevator, Floors) -> [(Elevator, Floors)]
-neighbours pair@(elevator, _)
-  | elevator == 1 = up pair
-  | elevator == 4 = down pair
-  | otherwise =
-    up pair
-      ++ down pair
-
-up :: (Elevator, Floors) -> [(Elevator, Floors)]
-up cur@(from, _) = move to cur
-  where
-    to = from + 1
-
-down :: (Elevator, Floors) -> [(Elevator, Floors)]
-down cur@(from, _) = move to cur
-  where
-    to = from - 1
+neighbours pair@(elevator, floors)
+  | elevator == 1 = move 2 pair
+  | elevator == 4 = move 3 pair
+  | all (L.null . (I.!) floors) [1 .. elevator - 1] = move (elevator + 1) pair
+  | otherwise = move (elevator + 1) pair ++ move (elevator - 1) pair
 
 move :: Elevator -> (Elevator, Floors) -> [(Elevator, Floors)]
-move to (from, floors) =
-  oneMoveChip ++ twoMoveChip ++ oneMoveRTG ++ twoMoveRTG ++ movedPaired
+move to state@(from, floors)
+  | to < from && not (L.null moved1) = moved1
+  | to < from = moved2
+  | not (L.null moved2) = moved2
+  | otherwise = moved1
   where
-    (chips, rtgs) = floors ! to
-    oneMoveChip = mapMaybe (moveChip from to floors) chips
-    oneMoveRTG = mapMaybe (moveRTG from to floors) rtgs
-    twoMoveChip = concatMap (moveSecondChip . snd) oneMoveChip
-    twoMoveRTG = concatMap (moveSecondRTG . snd) oneMoveRTG
-    moveSecondChip f = mapMaybe (moveChip from to f) . fst . (!) f $ from
-    moveSecondRTG f = mapMaybe (moveRTG from to f) . snd . (!) f $ from
-    pairedChips = sort . filter (\(Chip m) -> RTG m `elem` rtgs) $ chips
-    pairedRTGs = sort . filter (\(RTG m) -> Chip m `elem` chips) $ rtgs
-    paired = zip pairedChips pairedRTGs
-    movedPaired = map (movePair from to floors) paired
+    objects = toList $ floors I.! from
+    pairs = concat $ zipWith (\a -> fmap (a, )) <*> tails . tail $ objects
+    moved2 = mapMaybe (moveTwo to state) pairs
+    moved1 = mapMaybe (moveOne to state) objects
 
-moveChip :: Elevator -> Elevator -> Floors -> Chip -> Maybe (Elevator, Floors)
-moveChip from to floors chip
-  | isSafeFloor fromFloor' && isSafeFloor toFloor' =
-    Just (to, insert to toFloor' . insert from fromFloor' $ floors)
+moveOne :: Elevator -> (Elevator, Floors) -> Object -> Maybe (Elevator, Floors)
+moveOne to (from, floors) object
+  | isSafeFloor fromFloor' && isSafeFloor toFloor' = Just (to, floors')
   | otherwise = Nothing
   where
-    (fromChips, fromRTGs) = floors ! from
-    (toChips, toRTGs) = floors ! to
-    fromFloor' = (delete chip fromChips, fromRTGs)
-    toFloor' = (chip : toChips, toRTGs)
+    fromFloor' = delete object $ floors I.! from
+    toFloor' = S.insert object $ floors I.! to
+    floors' = I.insert to toFloor' . I.insert from fromFloor' $ floors
 
-moveRTG :: Elevator -> Elevator -> Floors -> RTG -> Maybe (Elevator, Floors)
-moveRTG from to floors rtg
-  | isSafeFloor fromFloor' && isSafeFloor toFloor' =
-    Just (to, insert to toFloor' . insert from fromFloor' $ floors)
+moveTwo ::
+     Elevator
+  -> (Elevator, Floors)
+  -> (Object, Object)
+  -> Maybe (Elevator, Floors)
+moveTwo to (from, floors) (o1, o2)
+  | isSafeFloor fromFloor' && isSafeFloor toFloor' = Just (to, floors')
   | otherwise = Nothing
   where
-    (fromChips, fromRTGs) = floors ! from
-    (toChips, toRTGs) = floors ! to
-    fromFloor' = (fromChips, delete rtg fromRTGs)
-    toFloor' = (toChips, rtg : toRTGs)
-
-movePair :: Elevator -> Elevator -> Floors -> (Chip, RTG) -> (Elevator, Floors)
-movePair from to floors (chip, rtg) =
-  (to, insert to toFloor' . insert from fromFloor' $ floors)
-  where
-    (fromChips, fromRTGs) = floors ! from
-    (toChips, toRTGs) = floors ! to
-    fromFloor' = (delete chip fromChips, delete rtg fromRTGs)
-    toFloor' = (chip : toChips, rtg : toRTGs)
+    fromFloor' = delete o1 . delete o2 $ floors I.! from
+    toFloor' = S.insert o1 . S.insert o2 $ floors I.! to
+    floors' = I.insert to toFloor' . I.insert from fromFloor' $ floors
 
 goal :: (Elevator, Floors) -> Bool
-goal (elevator, floors) = elevator == 4 && all (isEmpty . (!) floors) [1 .. 3]
+goal (elevator, floors) = elevator == 4 && all (L.null . (I.!) floors) [1 .. 3]
+
+preparePart2 :: Floors -> Floors
+preparePart2 floors = I.insert 1 firstFloor' floors
+  where
+    firstFloor = floors I.! 1
+    firstFloor' =
+      S.insert (RTG . pack $ "elerium")
+        . S.insert (Chip . pack $ "elerium")
+        . S.insert (RTG . pack $ "dilithium")
+        . S.insert (Chip . pack $ "dilithium")
+        $ firstFloor
+
+specialBFS ::
+     Seq ((Elevator, Floors), Int) -> Set (Int, IntMap (Int, Int)) -> Int
+specialBFS toSee seen
+  | Sq.null toSee = error "goal not found"
+  | goal pos = counter
+  | otherwise = specialBFS toSee' seen'
+  where
+    ((pos, counter) :<| rest) = toSee
+    toConsider =
+      L.filter (\p -> simplify p `S.notMember` seen) . neighbours $ pos
+    toSee' = foldr (flip (:|>) . (, counter + 1)) rest toConsider
+    seen' = foldr (S.insert . simplify) seen toConsider
+    simplify = second $ I.map (bimap length length . partition isChip)
 
 part1 :: Bool -> Text -> String
-part1 _ input = show . bfsDist (1, floors) neighbours $ goal
+part1 _ input = show . specialBFS (singleton ((1, floors), 0)) $ S.empty
   where
-    floors = fromRight empty . parse parseInput "" $ input
+    floors = fromRight I.empty . parse parseInput "" $ input
 
 part2 :: Bool -> Text -> String
-part2 _ _ = "Part 2"
+part2 _ input = show . specialBFS (singleton ((1, floors), 0)) $ S.empty
+  where
+    floors = preparePart2 . fromRight I.empty . parse parseInput "" $ input
