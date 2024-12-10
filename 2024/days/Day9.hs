@@ -20,8 +20,6 @@ import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (parse, (<|>))
 import           Text.Megaparsec.Char (eol, numberChar)
 
-import           Debug.Trace
-
 data FileBlock = FileBlock
   { getIndex  :: Index
   , getPos    :: Pos
@@ -103,9 +101,9 @@ buildBlockMap =
 
 defragment :: (Files, BlockMap) -> Files
 defragment (file:files, blocks)
-  | L.null files || M.null blocks = trace (show blocks) []
+  | M.null blocks = file : files
   | L.null left = file : defragment (files, blocks')
-  | otherwise = file' : defragment (files, blocks'')
+  | otherwise = file' : defragment (files, blocks''')
   where
     availableEmptyBlocks =
       map (second fromJust)
@@ -123,10 +121,11 @@ defragment (file:files, blocks)
       | otherwise = S.insert pos' . (!) blocks' $ el'
     blocks' = foldr (M.delete . fst) blocks right
     blocks''
-      | el' == 0 && S.null oldBlocks = M.delete el blocks'
-      | el' == 0 = M.insert el oldBlocks blocks'
-      | S.null oldBlocks = M.insert el' newBlocks . M.delete el $ blocks'
-      | otherwise = M.insert el' newBlocks . M.insert el oldBlocks $ blocks'
+      | el' == 0 = blocks'
+      | otherwise = M.insert el' newBlocks blocks'
+    blocks'''
+      | S.null oldBlocks = M.delete el blocks''
+      | otherwise = M.insert el oldBlocks blocks''
 
 -- The sum of n numbers from filePos to filePos + fileLength - 1 is fileLength *
 -- filePos + ((fileLength * (fileLength - 1)) / 2)
