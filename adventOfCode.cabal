@@ -191,7 +191,7 @@ executable aoc2024
     -- other-extensions:
     build-depends: arithmoi, array, base, cmdargs, containers 
                    , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, mono-traversable, multiset, parallel, parser-combinators
+                   , hashable, linear, megaparsec, mono-traversable, mtl, multiset, parallel, parser-combinators
                    , psqueues, regex-pcre, regex-tdfa, semialign, split
                    , text >= 2.1, time, timeit
                    , unordered-containers
