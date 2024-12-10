@@ -3,6 +3,7 @@
 
 module Helpers.Graph
   ( Gr
+  , assocsToMapGraph
   , assocsToGraph
   , assocsToReverseGraph
   , assocsToDigraph
@@ -27,6 +28,7 @@ import           Data.Array.Unboxed                (UArray, bounds, inRange)
 import           Data.Bifunctor                    (first)
 import           Data.Graph.Inductive.Graph        (Graph, LEdge, LNode, Node,
                                                     mkGraph)
+import           Data.Graph.Inductive.NodeMap      (NodeMap, mkMapGraph)
 import           Data.Graph.Inductive.PatriciaTree (Gr)
 import           Data.GraphViz                     (DotGraph, Labellable,
                                                     graphToDot, printDotGraph,
@@ -59,6 +61,16 @@ dirs = [north, south, east, west]
 dicToGraph :: (Eq a, Ord a) => Map a [(a, b)] -> Gr a b
 dicToGraph = assocsToGraph . assocs
 
+assocsToMapGraph :: (Eq a, Ord a) => [(a, [(a, b)])] -> (Gr a b, NodeMap a)
+assocsToMapGraph ass = mkMapGraph n edges
+  where
+    n = nub $ map fst ass ++ map fst (concatMap snd ass)
+    edges =
+      concatMap
+        (\(lnode, ledges) ->
+           map (\(lnode', ledge) -> (lnode, lnode', ledge)) ledges)
+        ass
+
 assocsToGraph :: (Eq a, Ord a) => [(a, [(a, b)])] -> Gr a b
 assocsToGraph ass = mkGraph n (edges n ass)
   where
@@ -69,10 +81,7 @@ assocsToReverseGraph ass = mkGraph n (reverseEdges n ass)
   where
     n = nodes ass
 
-assocsToDigraph ::
-     (Eq a, Ord a)
-  => (Eq b) =>
-       [(a, [(a, b)])] -> Gr a b
+assocsToDigraph :: (Eq a, Ord a) => (Eq b) => [(a, [(a, b)])] -> Gr a b
 assocsToDigraph ass = mkGraph n diEdges
   where
     n = nodes ass
@@ -83,15 +92,15 @@ nodes ass = zip [0 ..] . nub $ map fst ass ++ map fst (concatMap snd ass)
 
 edges :: (Ord a) => [LNode a] -> [(a, [(a, b)])] -> [LEdge b]
 edges n =
-  map (\(a, (b, c)) -> (labelToNode ! a, labelToNode ! b, c)) .
-  concatMap (\(a, b) -> map (a, ) b)
+  map (\(a, (b, c)) -> (labelToNode ! a, labelToNode ! b, c))
+    . concatMap (\(a, b) -> map (a, ) b)
   where
     labelToNode = fromList . map (\(a, b) -> (b, a)) $ n
 
 reverseEdges :: (Ord a) => [LNode a] -> [(a, [(a, b)])] -> [LEdge b]
 reverseEdges n =
-  map (\(a, (b, c)) -> (labelToNode ! b, labelToNode ! a, c)) .
-  concatMap (\(a, b) -> map (a, ) b)
+  map (\(a, (b, c)) -> (labelToNode ! b, labelToNode ! a, c))
+    . concatMap (\(a, b) -> map (a, ) b)
   where
     labelToNode = fromList . map (\(a, b) -> (b, a)) $ n
 
@@ -128,7 +137,7 @@ unfoldAssocs toConsider see (toSee, seen)
     newSeen = foldr (insert . see . fst) seen consNext
 
 right :: Pos -> Pos
-right (V2 x y) = V2 (-y) x 
+right (V2 x y) = V2 (-y) x
 
 left :: Pos -> Pos
 left (V2 x y) = V2 y (-x)
