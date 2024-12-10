@@ -15,8 +15,6 @@ import           Helpers.Graph                  (Gr, Pos, assocsToGraph, east,
                                                  north, south, west)
 import           Helpers.Parsers.Text           (arrayFromText)
 
-import           Debug.Trace
-
 type TopoMap = Gr (Pos, Int) ()
 
 dirs = [north, south, east, west]
