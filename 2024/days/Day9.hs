@@ -6,13 +6,19 @@ module Day9
 import           Data.Bifunctor       (first, second)
 import           Data.Char            (digitToInt)
 import           Data.Either          (fromRight)
-import           Data.List            (delete, sort)
+import           Data.Function        (on)
+import           Data.IntMap          as M (IntMap, delete, fromList, insert,
+                                            lookup, notMember, null, size, (!))
+import           Data.IntSet          as S (IntSet, delete, empty, findMin,
+                                            insert, null, singleton)
+import           Data.List            as L (delete, groupBy, minimumBy, null,
+                                            partition, sort)
+import           Data.Maybe           (fromJust, isJust)
+import           Data.Ord             (comparing)
 import           Data.Text            (Text)
 import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (parse, (<|>))
 import           Text.Megaparsec.Char (eol, numberChar)
-
-import           Debug.Trace
 
 data FileBlock = FileBlock
   { getIndex  :: Index
@@ -36,7 +42,11 @@ type Files = [FileBlock]
 type Blocks = [EmptyBlock]
 
 instance Ord EmptyBlock where
-  compare e1 e2 = compare (emptyPos e1) (emptyPos e2)
+  compare e1 e2 =
+    compare (emptyLength e1) (emptyLength e2)
+      `mappend` compare (emptyPos e1) (emptyPos e2)
+
+type BlockMap = IntMap IntSet
 
 parseInput :: Bool -> Int -> Int -> Files -> Parser (Files, Blocks)
 parseInput isEmpty depth index files =
@@ -79,24 +89,43 @@ sortDisk (nextFile@(FileBlock index filePos fileLength):files, emptyBlock:blocks
       | availableSpace == emptyLength emptyBlock = blocks
       | otherwise = emptyBlock' : blocks
 
-defragment :: (Files, Blocks) -> Files
+buildBlockMap :: Blocks -> BlockMap
+buildBlockMap =
+  M.fromList
+    . map
+        (foldr
+           (\(EmptyBlock pos el) (_, s) -> (el, S.insert pos s))
+           (0, S.empty))
+    . groupBy ((==) `on` emptyLength)
+    . sort
+
+defragment :: (Files, BlockMap) -> Files
 defragment (file:files, blocks)
-  | null files = []
-  | null availableEmptyBlocks = file : defragment (files, leftBlocks)
-  | otherwise = file' : defragment (files, blocks')
+  | M.null blocks = file : files
+  | L.null left = file : defragment (files, blocks')
+  | otherwise = file' : defragment (files, blocks''')
   where
-    leftBlocks = takeWhile ((< getPos file) . emptyPos) blocks
-    availableEmptyBlocks = filter ((>= getLength file) . emptyLength) leftBlocks
-    block = head availableEmptyBlocks
-    file' = file {getPos = emptyPos block}
-    block' =
-      EmptyBlock
-        (emptyPos block + getLength file)
-        (emptyLength block - getLength file)
-    blocks'
-      | emptyLength block == getLength file = delete block leftBlocks
-      | otherwise = block' : delete block leftBlocks
-    --
+    availableEmptyBlocks =
+      map (second fromJust)
+        . filter (isJust . snd)
+        . map (\l -> (l, S.findMin <$> M.lookup l blocks))
+        $ [getLength file .. 9]
+    (left, right) = partition ((< getPos file) . snd) availableEmptyBlocks
+    (el, pos) = minimumBy (comparing snd) left
+    file' = file {getPos = pos}
+    el' = el - getLength file
+    pos' = pos + getLength file
+    oldBlocks = S.delete pos . (!) blocks $ el
+    newBlocks
+      | el' `notMember` blocks' = singleton pos'
+      | otherwise = S.insert pos' . (!) blocks' $ el'
+    blocks' = foldr (M.delete . fst) blocks right
+    blocks''
+      | el' == 0 = blocks'
+      | otherwise = M.insert el' newBlocks blocks'
+    blocks'''
+      | S.null oldBlocks = M.delete el blocks''
+      | otherwise = M.insert el oldBlocks blocks''
 
 -- The sum of n numbers from filePos to filePos + fileLength - 1 is fileLength *
 -- filePos + ((fileLength * (fileLength - 1)) / 2)
@@ -117,6 +146,6 @@ part2 _ =
   show
     . foldr ((+) . checksum) 0
     . defragment
-    . second sort
+    . second buildBlockMap
     . fromRight ([], [])
     . parse (parseInput False 0 0 []) ""
