@@ -6,16 +6,18 @@ module Helpers.General.Text
   ) where
 
 import           Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad (when)
 import           Data.Time.Clock        (diffUTCTime, getCurrentTime)
 import           System.TimeIt          (timeItT)
 import           Text.Printf            (printf)
 
+import           Data.Bifunctor         (second)
 import           Data.List.Split        (splitOn)
 import           Data.Text              as T (Text, concat, pack)
-import qualified Data.Text.IO.Utf8      as TIO (putStr, readFile)
+import qualified Data.Text.IO.Utf8      as TIO (putStr, readFile, writeFile)
 import           Network.Curl           (CurlOption (CurlCookie, CurlProxy),
                                          curlGetString)
-import           System.Directory       (getHomeDirectory)
+import           System.Directory       (doesFileExist, getHomeDirectory)
 
 cookiePath = "/adventOfCode/cookies.json"
 
@@ -69,21 +71,25 @@ parseCookie path = do
 retrieveInput :: Int -> Int -> Bool -> Bool -> Bool -> IO Text
 retrieveInput year day test local withProxy = do
   home <- getHomeDirectory
+  let file
+        | test = home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
+        | otherwise =
+          home ++ inputPath ++ show year ++ "/day" ++ show day ++ ".txt"
+  exists <- doesFileExist file
+  when (not test && not exists) $ remoteInput year day withProxy file
   if test
-    then TIO.readFile
-           $ home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
-    else if local
-           then TIO.readFile
+    then TIO.readFile file
+    else
+           TIO.readFile
                   $ home
                       ++ inputPath
                       ++ show year
                       ++ "/day"
                       ++ show day
                       ++ ".txt"
-           else remoteInput year day withProxy
 
-remoteInput :: Int -> Int -> Bool -> IO Text
-remoteInput year day withProxy = do
+remoteInput :: Int -> Int -> Bool -> FilePath -> IO () 
+remoteInput year day withProxy file = do
   let url = adventURL ++ show year ++ "/day/" ++ show day ++ "/input"
   home <- getHomeDirectory
   cookie <- parseCookie $ home ++ cookiePath
@@ -92,5 +98,5 @@ remoteInput year day withProxy = do
         if withProxy
           then [CurlProxy (init proxy), CurlCookie cookie]
           else [CurlCookie cookie]
-  (code, rsp) <- curlGetString url curlArgs
-  return . pack $ rsp
+  (code, rsp) <- second pack <$> curlGetString url curlArgs
+  TIO.writeFile file rsp
