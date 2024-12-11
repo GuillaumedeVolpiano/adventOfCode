@@ -206,7 +206,8 @@ test-suite tests2016
     --               , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
      --              , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
     build-depends: array, base, containers, fgl, graphviz, hashable, HUnit, linear, megaparsec
-                   , mono-traversable, mtl, multiset, semialign, text, unordered-containers
+                   , mono-traversable, mtl, multiset, psqueues, semialign
+                   , split, text, unordered-containers, vector
     default-language: Haskell2010
 
 test-suite tests2024
