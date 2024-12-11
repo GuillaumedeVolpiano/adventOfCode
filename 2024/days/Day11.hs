@@ -4,16 +4,13 @@ module Day11
   ) where
 
 import           Data.Either          (fromRight)
-import           Data.MultiSet        as MS (MultiSet, delete, distinctElems,
+import           Data.MultiSet        as MS (MultiSet, distinctElems,
                                              distinctSize, empty, fromList,
-                                             insert, insertMany, map, occur,
-                                             size)
+                                             insertMany, occur, size)
 import           Data.Text            (Text)
 import           Helpers.Parsers.Text (Parser, decimal)
 import           Text.Megaparsec      (eof, manyTill, parse)
 import           Text.Megaparsec.Char (eol)
-
-import           Debug.Trace
 
 type Stones = MultiSet Int
 
