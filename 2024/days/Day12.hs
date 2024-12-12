@@ -1,29 +1,25 @@
-{-# LANGUAGE TupleSections #-}
-
 module Day12
   ( part1
   , part2
   ) where
 
-import           Data.Array.Unboxed             (UArray, assocs, (!))
-import           Data.Graph.Inductive.Graph     (lab)
-import           Data.Graph.Inductive.Query.DFS (components)
-import           Data.HashSet                   as S (HashSet, fromList, member,
-                                                      size, toList)
-import           Data.List                      (groupBy, sort, sortBy)
-import           Data.Maybe                     (mapMaybe)
-import           Data.Text                      (Text)
-import           Helpers.Graph                  (Gr, Pos, assocsToGraph, dirs,
-                                                 east, neighbours, north, south,
-                                                 west)
-import           Helpers.Parsers.Text           (arrayFromText)
-import           Linear.V2                      (V2 (..))
+import           Data.Array.Unboxed   (UArray, assocs, bounds, range, (!))
+import           Data.List            (groupBy, sort, sortBy)
+import           Data.List            as L (null)
+import           Data.Maybe           (mapMaybe)
+import           Data.Set             as S (Set, delete, deleteFindMin,
+                                            difference, fromList, insert,
+                                            member, null, singleton, size,
+                                            toList)
+import           Data.Text            (Text)
+import           Helpers.Graph        (Pos, dirs, east, neighbours, north,
+                                       south, west)
+import           Helpers.Parsers.Text (arrayFromText)
+import           Linear.V2            (V2 (..))
 
-import           Debug.Trace
+type Garden = [Plot]
 
-type Garden = Gr Pos ()
-
-type Plot = HashSet Pos
+type Plot = Set Pos
 
 hGroup :: Pos -> [[Pos]] -> [[Pos]]
 hGroup p [] = [[p]]
@@ -41,14 +37,30 @@ vGroup p@(V2 x0 y0) ls@(xs@((V2 x1 y1):_):ys)
   | otherwise = [p] : ls
 
 buildGarden :: UArray Pos Char -> Garden
-buildGarden array = assocsToGraph . map edges . assocs $ array
+buildGarden array = garden plots
   where
-    edges (pos, char) =
-      (pos, ) . map (, ()) . filter ((== char) . (!) array) . neighbours array
-        $ pos
+    plots = fromList . range . bounds $ array
+    garden poss
+      | S.null poss = []
+      | otherwise = region : garden poss'
+      where
+        (plot, p) = deleteFindMin poss
+        (region, poss') = buildRegion array (singleton plot) [plot] p
 
-drawPlots :: Garden -> [Plot]
-drawPlots garden = map (fromList . mapMaybe (lab garden)) . components $ garden
+buildRegion :: UArray Pos Char -> Plot -> [Pos] -> Set Pos -> (Plot, Set Pos)
+buildRegion array seen toSee poss
+  | L.null toSee = (seen, poss)
+  | otherwise = buildRegion array seen' toSee' poss'
+  where
+    (pos:xs) = toSee
+    crop = array ! pos
+    toConsider =
+      filter (\p -> (array ! p == crop) && not (p `member` seen))
+        . neighbours array
+        $ pos
+    seen' = foldr insert seen toConsider
+    toSee' = toConsider ++ xs
+    poss' = foldr delete poss toConsider
 
 getAreaPerim :: Plot -> (Int, Int)
 getAreaPerim plot = (area, perim)
@@ -104,9 +116,7 @@ price :: [(Int, Int)] -> Int
 price = sum . map (uncurry (*))
 
 part1 :: Bool -> Text -> String
-part1 _ =
-  show . price . map getAreaPerim . drawPlots . buildGarden . arrayFromText
+part1 _ = show . price . map getAreaPerim . buildGarden . arrayFromText
 
 part2 :: Bool -> Text -> String
-part2 _ =
-  show . price . map getAreaSides . drawPlots . buildGarden . arrayFromText
+part2 _ = show . price . map getAreaSides . buildGarden . arrayFromText
