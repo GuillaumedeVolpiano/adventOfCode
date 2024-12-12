@@ -1,3 +1,5 @@
 optimization: 2
 tests: True
 packages: ./*.cabal
+profiling: True
+profiling-detail:toplevel-functions
