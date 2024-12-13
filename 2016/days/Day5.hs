@@ -3,20 +3,15 @@ module Day5
   , part2
   ) where
 
-import           Crypto.Hash.MD5        (hash)
-import           Data.ByteString.Base16 (encode)
 import           Data.Char              (digitToInt)
 import           Data.List              as L (init, isPrefixOf, sort)
-import           Data.Text              as T (Text, append, init)
-import           Data.Text.Encoding     (encodeUtf8)
+import           Data.Text              as T (Text, init)
 import           GHC.Conc               (numCapabilities)
 import           TextShow               (showt)
+import MD5 (md5Concat)
 
-md5concat :: [Int] -> Text -> [String]
-md5concat a b =
-  filter ("00000" `isPrefixOf`)
-    . map (tail . L.init . show . encode . hash . encodeUtf8 . append b . showt)
-    $ a
+md5Prefix :: [Int] -> Text -> [String]
+md5Prefix a b = filter ("00000" `isPrefixOf`) . map (flip md5Concat b . showt) $ a
 
 decode :: [String] -> String
 decode = compile [] . map (take 2 . drop 5)
@@ -30,7 +25,7 @@ compile found ([a, b]:xs)
     v = digitToInt a
 
 part1 :: Bool -> Text -> String
-part1 _ = take 8 . map (!! 5) . md5concat [0 ..] . T.init
+part1 _ = take 8 . map (!! 5) . md5Prefix [0 ..] . T.init
 
 part2 :: Bool -> Text -> String
-part2 _ = decode . md5concat [0 ..] . T.init
+part2 _ = decode . md5Prefix [0 ..] . T.init

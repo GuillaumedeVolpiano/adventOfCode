@@ -1,7 +1,6 @@
 module Day14
   ( part1
   , part2
-  , md5concat
   , stretch
   ) where
 
@@ -11,11 +10,11 @@ import           Data.List              as L (init, isInfixOf)
 import           Data.Maybe             (fromJust, isJust)
 import           Data.Text              as T (Text, append, init, unpack)
 import           Data.Text.Encoding     (encodeUtf8)
+import           MD5                    (md5Concat)
 import           TextShow               (showt)
 
-md5concat :: Text -> Int -> String
-md5concat a =
-  tail . L.init . show . encode . hash . encodeUtf8 . append a . showt
+showMap :: [Int] -> Text -> [String]
+showMap indices salt = map (flip md5Concat salt . showt) indices
 
 findKeys :: Int -> [String] -> [Int]
 findKeys index (h:ashes)
@@ -44,7 +43,7 @@ stretch a =
     . showt
 
 part1 :: Bool -> Text -> String
-part1 _ = show . (!! 63) . findKeys 0 . flip map [0 ..] . md5concat . T.init
+part1 _ = show . (!! 63) . findKeys 0 . showMap [0 ..] . T.init
 
 part2 :: Bool -> Text -> String
 part2 _ = show . (!! 63) . findKeys 0 . flip map [0 ..] . stretch . T.init
