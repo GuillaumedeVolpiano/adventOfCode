@@ -11,6 +11,7 @@ module Helpers.Search
   , dfsBest
   , dijkstraGoal
   , dijkstraGoalVal
+  , dijkstraGoalValSafe
   , dijkstraAll
   , dijkstraMech
   , dijkstraUncertainGoalDist
@@ -33,6 +34,7 @@ import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
                                       singleton, takeWhileL, (!?))
 import           Data.Set      as St (Set, empty, insert, member, notMember,
                                       singleton)
+
 type NodeFromVertex node key = G.Vertex -> (node, key, [key])
 
 type VertexFromKey a = a -> Maybe G.Vertex
@@ -70,14 +72,7 @@ bfsDist start neighbours =
     . L.length
     . bfs (Sq.singleton start) (St.singleton start) M.empty neighbours
 
-bfs ::
-     Ord a
-  => Seq a
-  -> Set a
-  -> Map a a
-  -> (a -> [a])
-  -> (a -> Bool)
-  -> [a]
+bfs :: Ord a => Seq a -> Set a -> Map a a -> (a -> [a]) -> (a -> Bool) -> [a]
 bfs toSee seen paths neighbours isGoal
   | isNothing result = error "goal not found"
   | otherwise = fromJust result
@@ -95,8 +90,7 @@ bfsSafe ::
 bfsSafe toSee seen paths neighbours isGoal
   | Sq.null toSee = Nothing
   | isGoal curPos = Just $ reconstructPath curPos paths
-  | otherwise =
-    bfsSafe toSeeNext newSeen newPaths neighbours isGoal
+  | otherwise = bfsSafe toSeeNext newSeen newPaths neighbours isGoal
   where
     (curPos :<| rest) = toSee
     toConsider = filter (`St.notMember` seen) . neighbours $ curPos
@@ -151,6 +145,16 @@ dijkstraGoalVal ::
 dijkstraGoalVal startKey startDist neighbours goal =
   fromJust . M.lookup goal . fst
     $ dijkstraGoal startKey startDist neighbours (== goal)
+
+dijkstraGoalValSafe ::
+     (Hashable k, Ord k, Show k, Show p, Num p, Ord p)
+  => k
+  -> p
+  -> (k -> [(k, p)])
+  -> k
+  -> Maybe p
+dijkstraGoalValSafe startKey startDist neighbours goal =
+  M.lookup goal . fst $ dijkstraGoal startKey startDist neighbours (== goal)
 
 dijkstraGoal ::
      (Hashable k, Ord k, Num p, Ord p)
