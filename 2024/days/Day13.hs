@@ -7,6 +7,7 @@ import           Control.Applicative        (empty)
 import           Data.Char                  (isAlpha)
 import           Data.Either                (fromRight)
 import           Data.Maybe                 (mapMaybe)
+import           Data.Ratio                 (denominator, numerator, (%))
 import           Data.Text                  (Text)
 import           Helpers.Graph              (Pos, origin)
 import           Helpers.Parsers.Text       (Parser)
@@ -56,11 +57,19 @@ parseInput :: Parser [ClawMachine]
 parseInput = manyTill parseClawMachine eof
 
 getPrize :: ClawMachine -> Maybe Int
-getPrize (ClawMachine a b prize@(V2 xp yp)) =
-  dijkstraGoalValSafe origin 0 neighbours prize
+getPrize (ClawMachine (V2 xa ya) (V2 xb yb) (V2 xp yp))
+  | det == 0 = Nothing
+  | denominator na == 1 && denominator nb == 1 =
+    Just $ 3 * numerator na + numerator nb
+  | otherwise = Nothing
   where
-    neighbours pos = filter (overShoot . fst) [(pos + a, 3), (pos + b, 1)]
-    overShoot (V2 x y) = x <= xp && y <= yp
+    det = xa * yb - xb * ya
+    na = (yb % det) * (xp % 1) - (xb % det) * (yp % 1)
+    nb = (xa % det) * (yp % 1) - (ya % det) * (xp % 1)
+
+farAwayPrize :: ClawMachine -> ClawMachine
+farAwayPrize (ClawMachine a b (V2 xp yp)) =
+  ClawMachine a b $ V2 (xp + 10000000000000) (yp + 10000000000000)
 
 part1 :: Bool -> Text -> String
 part1 _ =
@@ -71,4 +80,9 @@ part1 _ =
     . parse parseInput "day13"
 
 part2 :: Bool -> Text -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  show
+    . sum
+    . mapMaybe (getPrize . farAwayPrize)
+    . fromRight (error "could not parse input")
+    . parse parseInput "day13"
