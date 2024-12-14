@@ -6,18 +6,15 @@ module Day14
 import           Data.Bifunctor                   (bimap, first)
 import           Data.List                        as L (filter, intercalate,
                                                         map, maximumBy,
-                                                        partition, sortBy,
-                                                        unfoldr)
+                                                        partition)
 import           Data.List.Split                  (chunksOf)
 import           Data.Ord                         (comparing)
-import           Data.Sequence                    as Sq (fromList)
 import           Data.Set                         as S (Set, filter, fromList,
                                                         map, member, size)
 import           Data.Text                        (Text)
 import           Data.Tuple                       (swap)
 import           Helpers.Parsers.Text             (signedInts)
-import           Helpers.Search                   (findPattern)
-import           Math.NumberTheory.Moduli.Chinese
+import           Math.NumberTheory.Moduli.Chinese (chinese)
 
 data Robot =
   Robot X Y Dx Dy
