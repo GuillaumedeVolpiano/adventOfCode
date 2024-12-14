@@ -4,17 +4,16 @@ module Day14
   ) where
 
 import           Data.Bifunctor                   (bimap, first)
-import           Data.List                        as L (filter, intercalate,
-                                                        map, maximumBy,
-                                                        partition)
+import           Data.List                        (minimumBy, partition)
 import           Data.List.Split                  (chunksOf)
+import           Data.Maybe                       (fromJust)
 import           Data.Ord                         (comparing)
-import           Data.Set                         as S (Set, filter, fromList,
-                                                        map, member, size)
 import           Data.Text                        (Text)
 import           Data.Tuple                       (swap)
+import           Data.Vector                      (Vector, generate)
 import           Helpers.Parsers.Text             (signedInts)
 import           Math.NumberTheory.Moduli.Chinese (chinese)
+import           Statistics.Sample                (variance)
 
 data Robot =
   Robot X Y Dx Dy
@@ -36,19 +35,50 @@ height test
   | test = 7
   | otherwise = 103
 
-area :: Set Robot -> Int
-area = size . S.map pos
-
 buildBot :: [Int] -> Robot
 buildBot [x, y, dx, dy] = Robot x y dx dy
 
 pos :: Robot -> (X, Y)
 pos (Robot x y _ _) = (x, y)
 
-render :: Set Robot -> String
+botsAtSec :: Int -> Bool -> [Robot] -> [Robot]
+botsAtSec sec test =
+  map
+    (\(Robot x y dx dy) ->
+       Robot
+         ((x + sec * dx) `mod` width test)
+         ((y + sec * dy) `mod` height test)
+         dx
+         dy)
+
+chineseFindTree :: [Robot] -> String
+chineseFindTree robots =
+  (render . botsAtSec treeSec False $ robots) ++ show treeSec
+  where
+    treeSec =
+      fst . fromJust . chinese (xSecond, width False) $ (ySecond, height False)
+    botSeconds = take 103 . map (map pos) . iterate (map second) $ robots
+    xSecond =
+      fst
+        . minimumBy (comparing (variance . snd))
+        . zip [0 ..]
+        . map
+            ((\list -> generate (width False) (list !!))
+               . map (fromIntegral . fst))
+        $ botSeconds
+    ySecond =
+      fst
+        . minimumBy (comparing (variance . snd))
+        . zip [0 ..]
+        . map
+            ((\list -> generate (height False) (list !!))
+               . map (fromIntegral . snd))
+        $ botSeconds
+
+render :: [Robot] -> String
 render bots =
   unlines . chunksOf (width False)
-    $ [ if (x, y) `member` S.map pos bots
+    $ [ if (x, y) `elem` map pos bots
         then '#'
         else '.'
       | y <- [0 .. height False - 1]
@@ -58,12 +88,6 @@ render bots =
 second :: Robot -> Robot
 second (Robot x y dx dy) =
   Robot ((x + dx) `mod` width False) ((y + dy) `mod` height False) dx dy
-
-returnToPos :: Robot -> Int
-returnToPos (Robot x y dx dy) = undefined
-  where
-    nx = div (gcd dx (width True)) dx
-    ny = div (gcd dy (height True)) dy
 
 part1 :: Bool -> Text -> String
 part1 test =
@@ -77,24 +101,11 @@ part1 test =
            . bimap length length
            . partition ((< div (height test) 2) . snd))
     . partition ((< div (width test) 2) . fst)
-    . L.filter (\(x, y) -> x /= div (width test) 2 && y /= div (height test) 2)
-    . L.map
-        (\[x, y, dx, dy] ->
-           ((x + 100 * dx) `mod` width test, (y + 100 * dy) `mod` height test))
+    . filter (\(x, y) -> x /= div (width test) 2 && y /= div (height test) 2)
+    . map pos
+    . botsAtSec 100 test
+    . map buildBot
     . signedInts
 
 part2 :: Bool -> Text -> String
-part2 _ =
-  uncurry (++)
-    . first render
-    . swap
-    . maximumBy (comparing (area . snd))
-    . zip (L.map show [0 ..])
-    . take tries
-    . iterate (S.map second)
-    . S.fromList
-    . L.map buildBot
-    . signedInts
-  where
-    (Just tries) =
-      snd <$> chinese (0, width False) (0, height False) :: Maybe Int
+part2 _ = chineseFindTree . map buildBot . signedInts
