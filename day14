@@ -1,0 +1,6 @@
+Build profile: -w ghc-9.6.6 -O2
+In order, the following will be built (use -v for more details):
+ - adventOfCode-2024 (exe:aoc2024)  --enable-profiling (file 2024/days/Day14.hs changed)
+Preprocessing executable 'aoc2024' for adventOfCode-2024..
+Building executable 'aoc2024' for adventOfCode-2024..
+[29 of 31] Compiling Day14            ( 2024/days/Day14.hs, /home/xavier/adventOfCode/dist-newstyle/build/x86_64-linux/ghc-9.6.6/adventOfCode-2024/x/aoc2024/opt/build/aoc2024/aoc2024-tmp/Day14.p_o ) [Source file changed]
