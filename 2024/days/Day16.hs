@@ -14,7 +14,8 @@ import           Data.Set             as S (Set, empty, insert, map, singleton,
                                             size, union, unions)
 import           Data.Text            (Text)
 import           Debug.Trace
-import           Helpers.Graph        (Pos, dirs, east, left, right)
+import           Helpers.Graph        (Pos, dirs, east, left, manhattanDistance,
+                                       right)
 import           Helpers.Parsers.Text (arrayFromText)
 import           Helpers.Search       (dijkstraUncertainGoalDist)
 
@@ -62,11 +63,10 @@ allPaths :: (Reindeer, Maze, Pos) -> Int
 allPaths init@(start, maze, goalPos) =
   (1 +) . size . unions . fmap (reconstruct . Reindeer goalPos) $ dirs
   where
-    score = dijkstra init
     paths =
       specialDijkstra
         (Q.singleton start 0 start)
-        score
+        goalPos
         (M.singleton start 0)
         M.empty
         (neighbours maze)
@@ -78,14 +78,15 @@ allPaths init@(start, maze, goalPos) =
 
 specialDijkstra ::
      HashPSQ Reindeer Int Reindeer
-  -> Int
+  -> Pos
   -> Dists
   -> Paths
   -> (Reindeer -> [(Reindeer, Int)])
   -> Paths
-specialDijkstra queue score dists paths nexts
+specialDijkstra queue goal dists paths nexts
   | Q.null queue = paths
-  | otherwise = specialDijkstra queue' score dists' paths' nexts
+  | pos reindeer == goal = specialDijkstra rest goal dists paths nexts
+  | otherwise = specialDijkstra queue' goal dists' paths' nexts
   where
     (reindeer, estDist, _, rest) = fromJust . minView $ queue
     toConsider = mapMaybe consider . nexts $ reindeer
@@ -95,8 +96,7 @@ specialDijkstra queue score dists paths nexts
     update p Nothing   = Just . S.singleton $ p
     update p (Just ps) = Just . S.insert p $ ps
     consider (aReindeer, anEdge)
-      | estDist' <= score
-          && (aReindeer `notMember` dists || estDist' <= dists M.! aReindeer) =
+      | aReindeer `notMember` dists || estDist' <= dists M.! aReindeer =
         Just (aReindeer, estDist')
       | otherwise = Nothing
       where
