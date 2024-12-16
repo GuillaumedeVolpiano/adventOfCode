@@ -13,11 +13,10 @@ import           Data.Maybe           (fromJust, mapMaybe)
 import           Data.Set             as S (Set, empty, insert, map, singleton,
                                             size, union, unions)
 import           Data.Text            (Text)
-import           Debug.Trace
 import           Helpers.Graph        (Pos, dirs, east, left, manhattanDistance,
                                        right)
 import           Helpers.Parsers.Text (arrayFromText)
-import           Helpers.Search       (dijkstraAllShortestPaths,
+import           Helpers.Search       (astarVal, dijkstraAllShortestPaths,
                                        dijkstraUncertainGoalDist)
 
 type Maze = UArray Pos Char

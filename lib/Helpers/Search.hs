@@ -292,22 +292,22 @@ astarMech ::
   -> (p, [v])
 astarMech queue paths gscore isGoal neighbours heuristics dist
   | Q.null queue = error "no solution found"
-  | isGoal curKey = (gscore ! curKey, reconstructPathAStar paths curKey)
+  | isGoal node = (gscore ! node, reconstructPathAStar paths node)
   | otherwise =
-    astarMech newQueue newPaths newGscore isGoal neighbours heuristics dist
+    astarMech queue' paths' gscore' isGoal neighbours heuristics dist
   where
-    (curKey, curPri, curVal, rest) = fromJust $ minView queue
-    toVisit = neighbours curKey
-    (newQueue, newGscore, newPaths) = foldl fscore (rest, gscore, paths) toVisit
-    fscore (aQueue, scoreMap, pathMap) (aKey, aVal)
-      | isNothing (M.lookup aKey scoreMap) || tentativeScore < scoreMap ! aKey =
-        ( Q.insert aKey hScore aVal aQueue
-        , M.insert aKey tentativeScore scoreMap
-        , M.insert aKey (curKey, curVal) pathMap)
-      | otherwise = (aQueue, scoreMap, pathMap)
+    (node, priority, val, rest) = fromJust $ minView queue
+    toVisit = neighbours node
+    (queue', gscore', paths') = foldr fscore (rest, gscore, paths) toVisit
+    fscore (aNode, anEdge) (queue'', gscore'', paths'')
+      | isNothing (M.lookup aNode gscore'') || tentativeScore < gscore'' ! aNode =
+        ( Q.insert aNode hScore anEdge queue''
+        , M.insert aNode tentativeScore gscore''
+        , M.insert aNode (node, val) paths'')
+      | otherwise = (queue'', gscore'', paths'')
       where
-        tentativeScore = fromJust (M.lookup curKey scoreMap) + dist curVal aVal
-        hScore = tentativeScore + heuristics curKey
+        tentativeScore = fromJust (M.lookup node gscore'') + dist val anEdge
+        hScore = tentativeScore + heuristics aNode
 
 reconstructPathAStar :: (Ord k, Show k) => Map k (k, v) -> k -> [v]
 reconstructPathAStar paths node
