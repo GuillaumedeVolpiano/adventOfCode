@@ -231,8 +231,7 @@ dijkstraAllShortestPaths ::
   -> (k -> Bool)
   -> Map k (Set k)
 dijkstraAllShortestPaths queue dists paths neighbours isGoal
-  | Q.null queue = prunedPaths
-  | isGoal node = dijkstraAllShortestPaths rest dists paths neighbours isGoal
+  | isGoal node = prunedPaths
   | otherwise = dijkstraAllShortestPaths queue' dists' paths' neighbours isGoal
   where
     (node, estDist, _, rest) = fromJust . minView $ queue

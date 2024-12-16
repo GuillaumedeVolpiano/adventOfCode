@@ -54,16 +54,14 @@ dijkstraAllShortestPaths ::
   -> (Int -> Bool)
   -> IntMap IntSet
 dijkstraAllShortestPaths queue dists paths neighbours isGoal
-  | Q.null queue = prunedPaths
-  | isGoal reindeer =
-    dijkstraAllShortestPaths rest dists paths neighbours isGoal
+  | isGoal node = prunedPaths
   | otherwise = dijkstraAllShortestPaths queue' dists' paths' neighbours isGoal
   where
-    (reindeer, estDist, _, rest) = fromJust . minView $ queue
-    toConsider = mapMaybe consider . neighbours $ reindeer
+    (node, estDist, _, rest) = fromJust . minView $ queue
+    toConsider = mapMaybe consider . neighbours $ node
     queue' = foldr (\(b, c) -> Q.insert b c ()) rest toConsider
     dists' = foldr (uncurry M.insert) dists toConsider
-    paths' = foldr (M.alter (update reindeer) . fst) paths toConsider
+    paths' = foldr (M.alter (update node) . fst) paths toConsider
     update p Nothing   = Just . S.singleton $ p
     update p (Just ps) = Just . S.insert p $ ps
     consider (aNode, anEdge)
