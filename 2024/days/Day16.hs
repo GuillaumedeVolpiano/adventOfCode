@@ -60,8 +60,7 @@ neighbours maze reindeer
 -- we need the +1 because we're not counting the goal pos
 allPaths :: (Reindeer, Maze, Pos) -> Int
 allPaths init@(start, maze, goalPos) =
-  (1 +) . size . S.map pos . unions . fmap (reconstruct . Reindeer goalPos)
-    $ dirs
+  (1 +) . size . unions . fmap (reconstruct . Reindeer goalPos) $ dirs
   where
     score = dijkstra init
     paths =
@@ -73,7 +72,7 @@ allPaths init@(start, maze, goalPos) =
         (neighbours maze)
     reconstruct p
       | p `notMember` paths = S.empty
-      | otherwise = ps `union` foldr (union . reconstruct) S.empty ps
+      | otherwise = S.map pos ps `union` foldr (union . reconstruct) S.empty ps
       where
         ps = paths M.! p
 
