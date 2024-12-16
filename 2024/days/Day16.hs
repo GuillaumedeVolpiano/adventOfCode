@@ -3,104 +3,102 @@ module Day16
   , part2
   ) where
 
-import           Data.Array.Unboxed   as A (UArray, array, assocs, (!))
-import           Data.Hashable        (Hashable, hashWithSalt)
-import           Data.HashPSQ         as Q (HashPSQ, insert, minView, null,
-                                            singleton)
-import           Data.Map             as M (Map, alter, empty, insert,
-                                            notMember, singleton, (!))
-import           Data.Maybe           (fromJust, mapMaybe)
-import           Data.Set             as S (Set, empty, insert, map, singleton,
-                                            size, union, unions)
-import           Data.Text            (Text)
-import           Helpers.Graph        (Pos, dirs, east, left, manhattanDistance,
-                                       right)
-import           Helpers.Parsers.Text (arrayFromText)
-import           Helpers.Search       (astarVal, dijkstraAllShortestPaths,
-                                       dijkstraUncertainGoalDist)
+import           Data.Bits          (clearBit, complementBit, setBit, shiftR,
+                                     testBit, (.&.), (.|.))
+import           Data.Hashable      (Hashable, hashWithSalt)
+import           Data.IntMap        as M (IntMap, empty, notMember, singleton,
+                                          (!))
+import           Data.IntPSQ        as Q (singleton)
+import           Data.IntSet        as S (IntSet, empty, foldr, fromList, map,
+                                          member, size, union, unions)
+import           Data.Maybe         (fromJust, mapMaybe)
+import           Data.Text          (Text, unpack)
+import           Helpers.Search.Int (dijkstraAllShortestPaths,
+                                     dijkstraUncertainGoalVal)
 
-type Maze = UArray Pos Char
+type Maze = IntSet
 
-type Paths = Map Reindeer (Set Reindeer)
+type Paths = IntMap IntSet
 
-type Dists = Map Reindeer Int
+type Dists = IntMap Int
 
-data Reindeer = Reindeer
-  { pos :: Pos
-  , dir :: Dir
-  } deriving (Show, Eq, Ord)
+-- A reindeer is an 18 bits digit, with the leftmost two bits encoding the
+-- direction, the next 8 bits the y axis and the last 8 bits the x axis
+type Reindeer = Int
 
-type Dir = Pos
+type Dir = Int
 
-instance Hashable Reindeer where
-  hashWithSalt s (Reindeer p d) = hashWithSalt s (p, d)
+type Dist = Int
 
-dijkstra :: (Reindeer, Maze, Pos) -> Int
+left :: Reindeer -> Reindeer
+left reindeer
+  | testBit reindeer 16 = reindeer `clearBit` 16
+  | otherwise = flip complementBit 17 . flip setBit 16 $ reindeer
+  -- 2^17 - 1
+
+right :: Reindeer -> Reindeer
+right reindeer
+  | testBit reindeer 16 = flip complementBit 17 . flip clearBit 16 $ reindeer
+  | otherwise = reindeer `setBit` 16
+
+move :: Reindeer -> Reindeer
+move reindeer = reindeer + delta
+  where
+    delta =
+      case shiftR reindeer 16 of
+        0 -> (-256)
+        1 -> 1
+        2 -> 256
+        3 -> (-1)
+
+dijkstra :: (Reindeer, Maze, Int) -> Int
 dijkstra (start, maze, goalPos) =
-  dijkstraUncertainGoalDist start 0 (neighbours maze) ((== goalPos) . pos)
+  dijkstraUncertainGoalVal
+    start
+    0
+    (neighbours maze)
+    ((== goalPos) . (.&. 65535)) -- 2^16 - 1
 
-initialise :: Text -> (Reindeer, Maze, Pos)
+initialise :: Text -> (Reindeer, Maze, Int)
 initialise input = (start, maze, goalPos)
   where
-    maze = arrayFromText input
-    startPos = fst . head . filter ((== 'S') . snd) . assocs $ maze
-    goalPos = fst . head . filter ((== 'E') . snd) . assocs $ maze
-    start = Reindeer startPos east
+    literalMaze =
+      concat
+        . zipWith (\a b -> zipWith (\c d -> (256 * a + c, d)) [0 ..] b) [0 ..]
+        . lines
+        . unpack
+        $ input
+    maze = fromList . fmap fst . filter ((== '#') . snd) $ literalMaze
+    startPos = fst . head . filter ((== 'S') . snd) $ literalMaze
+    goalPos = fst . head . filter ((== 'E') . snd) $ literalMaze
+    start = right startPos
 
 neighbours :: Maze -> Reindeer -> [(Reindeer, Int)]
 neighbours maze reindeer
-  | maze A.! (pos reindeer + dir reindeer) == '#' = turn reindeer
-  | otherwise =
-    (reindeer {pos = pos reindeer + dir reindeer}, 1) : turn reindeer
+  | (move reindeer .&. 65535) `S.member` maze = turn reindeer -- 2^16 - 1
+  | otherwise = (move reindeer, 1) : turn reindeer
   where
-    turn reindeer =
-      [ (reindeer {dir = left . dir $ reindeer}, 1000)
-      , (reindeer {dir = right . dir $ reindeer}, 1000)
-      ]
+    turn reindeer = [(left reindeer, 1000), (right reindeer, 1000)]
 
+allPaths :: (Reindeer, Maze, Int) -> Int
 -- we need the +1 because we're not counting the goal pos
-allPaths :: (Reindeer, Maze, Pos) -> Int
-allPaths init@(start, maze, goalPos) =
-  (1 +) . size . unions . fmap (reconstruct . Reindeer goalPos) $ dirs
+allPaths (reindeer, maze, goalPos) =
+  (1 +) . size . unions . fmap (reconstruct . (+ goalPos) . (* 2 ^ 16))
+    $ [0 .. 3]
   where
     paths =
       dijkstraAllShortestPaths
-        (Q.singleton start 0 start)
-        (M.singleton start 0)
+        (Q.singleton reindeer 0 ())
+        (M.singleton reindeer 0)
         M.empty
         (neighbours maze)
-        ((== goalPos) . pos)
+        ((== goalPos) . (.&. 65535)) -- 2^16 - 1
     reconstruct p
       | p `notMember` paths = S.empty
-      | otherwise = S.map pos ps `union` foldr (union . reconstruct) S.empty ps
+      | otherwise =
+        S.map (.&. 65535) ps `union` S.foldr (union . reconstruct) S.empty ps
       where
         ps = paths M.! p
-
-specialDijkstra ::
-     HashPSQ Reindeer Int Reindeer
-  -> Pos
-  -> Dists
-  -> Paths
-  -> (Reindeer -> [(Reindeer, Int)])
-  -> Paths
-specialDijkstra queue goal dists paths nexts
-  | Q.null queue = paths
-  | pos reindeer == goal = specialDijkstra rest goal dists paths nexts
-  | otherwise = specialDijkstra queue' goal dists' paths' nexts
-  where
-    (reindeer, estDist, _, rest) = fromJust . minView $ queue
-    toConsider = mapMaybe consider . nexts $ reindeer
-    queue' = foldr (\(b, c) -> Q.insert b c b) rest toConsider
-    dists' = foldr (uncurry M.insert) dists toConsider
-    paths' = foldr (M.alter (update reindeer) . fst) paths toConsider
-    update p Nothing   = Just . S.singleton $ p
-    update p (Just ps) = Just . S.insert p $ ps
-    consider (aReindeer, anEdge)
-      | aReindeer `notMember` dists || estDist' <= dists M.! aReindeer =
-        Just (aReindeer, estDist')
-      | otherwise = Nothing
-      where
-        estDist' = estDist + anEdge
 
 part1 :: Bool -> Text -> String
 part1 _ = show . dijkstra . initialise
