@@ -17,7 +17,8 @@ import           Debug.Trace
 import           Helpers.Graph        (Pos, dirs, east, left, manhattanDistance,
                                        right)
 import           Helpers.Parsers.Text (arrayFromText)
-import           Helpers.Search       (dijkstraUncertainGoalDist)
+import           Helpers.Search       (dijkstraAllShortestPaths,
+                                       dijkstraUncertainGoalDist)
 
 type Maze = UArray Pos Char
 
@@ -64,12 +65,12 @@ allPaths init@(start, maze, goalPos) =
   (1 +) . size . unions . fmap (reconstruct . Reindeer goalPos) $ dirs
   where
     paths =
-      specialDijkstra
+      dijkstraAllShortestPaths
         (Q.singleton start 0 start)
-        goalPos
         (M.singleton start 0)
         M.empty
         (neighbours maze)
+        ((== goalPos) . pos)
     reconstruct p
       | p `notMember` paths = S.empty
       | otherwise = S.map pos ps `union` foldr (union . reconstruct) S.empty ps

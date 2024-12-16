@@ -15,6 +15,7 @@ module Helpers.Search
   , dijkstraAll
   , dijkstraMech
   , dijkstraUncertainGoalDist
+  , dijkstraAllShortestPaths
   , findPattern
   , floydWarshall
   , floodFill
@@ -27,7 +28,7 @@ import           Data.Hashable (Hashable)
 import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
                                      singleton)
 import           Data.List     as L (length)
-import           Data.Map      as M (Map, empty, insert, lookup, member,
+import           Data.Map      as M (Map, alter, empty, insert, lookup, member,
                                      notMember, singleton, (!))
 import           Data.Maybe    (fromJust, isNothing, mapMaybe)
 import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
@@ -220,6 +221,33 @@ dijkstraMech queue dists paths neighbours isGoal
       | not (M.member aKey dists) || estDist + anEdge < dists ! aKey =
         Just (aKey, estDist + anEdge)
       | otherwise = Nothing
+
+dijkstraAllShortestPaths ::
+     (Hashable k, Ord k, Num p, Ord p)
+  => HashPSQ k p k
+  -> Map k p
+  -> Map k (Set k)
+  -> (k -> [(k, p)])
+  -> (k -> Bool)
+  -> Map k (Set k)
+dijkstraAllShortestPaths queue dists paths neighbours isGoal
+  | Q.null queue = paths
+  | isGoal node = dijkstraAllShortestPaths rest dists paths neighbours isGoal
+  | otherwise = dijkstraAllShortestPaths queue' dists' paths' neighbours isGoal
+  where
+    (node, estDist, _, rest) = fromJust . minView $ queue
+    toConsider = mapMaybe consider . neighbours $ node
+    queue' = foldr (\(b, c) -> Q.insert b c b) rest toConsider
+    dists' = foldr (uncurry M.insert) dists toConsider
+    paths' = foldr (M.alter (setUpdate node) . fst) paths toConsider
+    setUpdate n Nothing   = Just . St.singleton $ n
+    setUpdate n (Just ns) = Just . St.insert n $ ns
+    consider (aNode, anEdge)
+      | aNode `M.notMember` dists || estDist' <= dists M.! aNode =
+        Just (aNode, estDist')
+      | otherwise = Nothing
+      where
+        estDist' = estDist + anEdge
 
 --A* search
 astarVal ::
