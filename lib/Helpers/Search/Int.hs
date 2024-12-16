@@ -4,8 +4,8 @@ module Helpers.Search.Int
   , dijkstraAllShortestPaths
   ) where
 
-import           Data.IntMap as M (IntMap, alter, empty, insert, member,
-                                   notMember, singleton, (!))
+import           Data.IntMap as M (IntMap, alter, delete, empty, insert, keys,
+                                   member, notMember, singleton, (!))
 import           Data.IntPSQ as Q (IntPSQ, insert, minView, null, singleton)
 import           Data.IntSet as S (IntSet, insert, singleton)
 import           Data.Maybe  (fromJust, mapMaybe)
@@ -54,7 +54,7 @@ dijkstraAllShortestPaths ::
   -> (Int -> Bool)
   -> IntMap IntSet
 dijkstraAllShortestPaths queue dists paths neighbours isGoal
-  | Q.null queue = paths
+  | Q.null queue = prunedPaths
   | isGoal reindeer =
     dijkstraAllShortestPaths rest dists paths neighbours isGoal
   | otherwise = dijkstraAllShortestPaths queue' dists' paths' neighbours isGoal
@@ -72,3 +72,7 @@ dijkstraAllShortestPaths queue dists paths neighbours isGoal
       | otherwise = Nothing
       where
         estDist' = estDist + anEdge
+    prunedPaths =
+      foldr M.delete paths . filter ((> bestDist) . (M.!) dists) $ goalNodes
+    goalNodes = filter isGoal . keys $ dists
+    bestDist = minimum . map (dists M.!) $ goalNodes

@@ -29,7 +29,7 @@ import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
                                      singleton)
 import           Data.List     as L (length)
 import           Data.Map      as M (Map, alter, empty, insert, lookup, member,
-                                     notMember, singleton, (!))
+                                     notMember, singleton, (!), keys, delete)
 import           Data.Maybe    (fromJust, isNothing, mapMaybe)
 import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
                                       singleton, takeWhileL, (!?))
@@ -231,7 +231,7 @@ dijkstraAllShortestPaths ::
   -> (k -> Bool)
   -> Map k (Set k)
 dijkstraAllShortestPaths queue dists paths neighbours isGoal
-  | Q.null queue = paths
+  | Q.null queue = prunedPaths
   | isGoal node = dijkstraAllShortestPaths rest dists paths neighbours isGoal
   | otherwise = dijkstraAllShortestPaths queue' dists' paths' neighbours isGoal
   where
@@ -248,6 +248,9 @@ dijkstraAllShortestPaths queue dists paths neighbours isGoal
       | otherwise = Nothing
       where
         estDist' = estDist + anEdge
+    prunedPaths = foldr M.delete paths . filter ((> bestDist) . (M.!) dists) $ goalNodes
+    goalNodes = filter isGoal . keys $ dists
+    bestDist = minimum . map (dists M.!) $ goalNodes
 
 --A* search
 astarVal ::
