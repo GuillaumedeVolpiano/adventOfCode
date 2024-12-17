@@ -10,7 +10,7 @@ according to r/adventofcode when my own solution was much less efficient.
 
 <!-- AOC TILES BEGIN -->
 <h1 align="center">
-  Advent of Code - 434/484 ⭐
+  Advent of Code - 484/484 ⭐
 </h1>
 <h1 align="center">
   2024 - 34 ⭐ - Haskell
@@ -689,5 +689,83 @@ according to r/adventofcode when my own solution was much less efficient.
 </a>
 <a href="2016/days/Day25.hs">
   <img src=".aoc_tiles/tiles/2016/25.png" width="161px">
+</a>
+<h1 align="center">
+  2015 - 50 ⭐ - Haskell
+</h1>
+<a href="2015/days/Day1.hs">
+  <img src=".aoc_tiles/tiles/2015/01.png" width="161px">
+</a>
+<a href="2015/days/Day2.hs">
+  <img src=".aoc_tiles/tiles/2015/02.png" width="161px">
+</a>
+<a href="2015/days/Day3.hs">
+  <img src=".aoc_tiles/tiles/2015/03.png" width="161px">
+</a>
+<a href="2015/days/Day4.hs">
+  <img src=".aoc_tiles/tiles/2015/04.png" width="161px">
+</a>
+<a href="2015/days/Day5.hs">
+  <img src=".aoc_tiles/tiles/2015/05.png" width="161px">
+</a>
+<a href="2015/days/Day6.hs">
+  <img src=".aoc_tiles/tiles/2015/06.png" width="161px">
+</a>
+<a href="2015/days/Day7.hs">
+  <img src=".aoc_tiles/tiles/2015/07.png" width="161px">
+</a>
+<a href="2015/days/Day8.hs">
+  <img src=".aoc_tiles/tiles/2015/08.png" width="161px">
+</a>
+<a href="2015/days/Day9.hs">
+  <img src=".aoc_tiles/tiles/2015/09.png" width="161px">
+</a>
+<a href="2015/days/Day10.hs">
+  <img src=".aoc_tiles/tiles/2015/10.png" width="161px">
+</a>
+<a href="2015/days/Day11.hs">
+  <img src=".aoc_tiles/tiles/2015/11.png" width="161px">
+</a>
+<a href="2015/days/Day12.hs">
+  <img src=".aoc_tiles/tiles/2015/12.png" width="161px">
+</a>
+<a href="2015/days/Day13.hs">
+  <img src=".aoc_tiles/tiles/2015/13.png" width="161px">
+</a>
+<a href="2015/days/Day14.hs">
+  <img src=".aoc_tiles/tiles/2015/14.png" width="161px">
+</a>
+<a href="2015/days/Day15.hs">
+  <img src=".aoc_tiles/tiles/2015/15.png" width="161px">
+</a>
+<a href="2015/days/Day16.hs">
+  <img src=".aoc_tiles/tiles/2015/16.png" width="161px">
+</a>
+<a href="2015/days/Day17.hs">
+  <img src=".aoc_tiles/tiles/2015/17.png" width="161px">
+</a>
+<a href="2015/days/Day18.hs">
+  <img src=".aoc_tiles/tiles/2015/18.png" width="161px">
+</a>
+<a href="2015/days/Day19.hs">
+  <img src=".aoc_tiles/tiles/2015/19.png" width="161px">
+</a>
+<a href="2015/days/Day20.hs">
+  <img src=".aoc_tiles/tiles/2015/20.png" width="161px">
+</a>
+<a href="2015/days/Day21.hs">
+  <img src=".aoc_tiles/tiles/2015/21.png" width="161px">
+</a>
+<a href="2015/days/Day22.hs">
+  <img src=".aoc_tiles/tiles/2015/22.png" width="161px">
+</a>
+<a href="2015/days/Day23.hs">
+  <img src=".aoc_tiles/tiles/2015/23.png" width="161px">
+</a>
+<a href="2015/days/Day24.hs">
+  <img src=".aoc_tiles/tiles/2015/24.png" width="161px">
+</a>
+<a href="2015/days/Day25.hs">
+  <img src=".aoc_tiles/tiles/2015/25.png" width="161px">
 </a>
 <!-- AOC TILES END -->
