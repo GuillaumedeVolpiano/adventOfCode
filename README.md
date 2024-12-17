@@ -8,5 +8,5 @@ now.
 The canonical branch contains implementation of the most often used solution
 according to r/adventofcode when my own solution was much less efficient.
 
-<!-- AOC TILES BEGIN --!>
-<!-- AOC TILES END --!>
+<!-- AOC TILES BEGIN -->
+<!-- AOC TILES END -->
