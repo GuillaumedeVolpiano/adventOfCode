@@ -19,6 +19,7 @@ type Presents = Int
 makeElves :: Int -> Seq Elf
 makeElves total = fromList [1 .. total]
 
+-- some bitwise voodoo
 distribute :: Int -> Int
 distribute elves = (clearBit elves msb `shiftL` 1) + 1
   where
