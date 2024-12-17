@@ -158,7 +158,7 @@ reverseEngineer test program (results, codeGone) val = (results', codeGone')
   where
     codeGone' = val : codeGone
     results' =
-      filter ((== codeGone') . reverse . getOutput . execute . setA program)
+      filter ((== codeGone') . engine)
         $ (+) . (`shiftL` 3) <$> results <*> [0 .. 7]
     engine
       | test = getOutput . execute . setA program

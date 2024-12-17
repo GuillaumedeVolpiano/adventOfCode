@@ -191,14 +191,14 @@ executable aoc2024
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends: arithmoi, array, base, cmdargs, containers 
+    build-depends: arithmoi, array, base, cmdargs, containers
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, linear, megaparsec, mono-traversable, mtl, multiset, parallel, parser-combinators
                    , psqueues, semialign, split, statistics
                    , text >= 2.1, time, timeit
                    , unordered-containers, vector
-    -- ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
-    ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm  -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
+    ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
+    -- ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm  -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
     default-language: Haskell2010
 
 test-suite tests2016

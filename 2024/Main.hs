@@ -109,6 +109,6 @@ main = do
       result
         | interactive args = interSolver ! theDay $ input
         | otherwise = do
-          timer "Part 1." 4 . putStrLn $ solve1 (test args) input
-          timer "Part 2." 4 . putStrLn $ solve2 (test args) input
+            timer "Part 1." 4 . putStrLn $ solve1 (test args) input
+            timer "Part 2." 4 . putStrLn $ solve2 (test args) input
   result
