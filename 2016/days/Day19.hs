@@ -10,6 +10,8 @@ import           Data.Sequence        as Sq (Seq ((:<|), (:|>)), fromList,
 import           Data.Text            (Text)
 import           Helpers.Parsers.Text (signedInts)
 
+import           Debug.Trace
+
 type Elf = Int
 
 type Index = Int
@@ -25,23 +27,31 @@ distribute elves = (clearBit elves msb `shiftL` 1) + 1
   where
     msb = finiteBitSize elves - countLeadingZeros elves - 1
 
-distributeOpposite :: Seq Elf -> Int
-distributeOpposite elves
-  | Sq.length elves == 1 = e
-  | otherwise = distributeOpposite elves''
+midSplit :: Seq Elf -> (Seq Elf, Seq Elf)
+midSplit elves = Sq.splitAt (Sq.length elves `div` 2) elves
+
+distributeOpposite :: Seq Elf -> Seq Elf -> Int
+distributeOpposite before after
+  | Sq.length before == 0 && Sq.length after == 1 = loser
+  | otherwise = distributeOpposite before'' after''
   where
-    (e :<| elves') = elves
-    mid = div (Sq.length elves') 2
-    (before, loser, after)
-      | even (Sq.length elves') = (b, l, a)
-      | odd (Sq.length elves') = (b', l', a')
+    (e :<| before') = before
+    (loser :<| after') = after
+    (before'', after'')
+      | Sq.length after' == Sq.length before' = (before', after' :|> e)
+      | otherwise = (before' :|> a, fter' :|> e)
       where
-        (b :|> l, a) = Sq.splitAt mid elves'
-        (b', l' :<| a') = Sq.splitAt mid elves'
-    elves'' = before >< (after :|> e)
+        (a :<| fter') = after'
 
 part1 :: Bool -> Text -> String
 part1 _ = show . distribute . head . head . signedInts
 
 part2 :: Bool -> Text -> String
-part2 _ = show . distributeOpposite . makeElves . head . head . signedInts
+part2 _ =
+  show
+    . uncurry distributeOpposite
+    . midSplit
+    . makeElves
+    . head
+    . head
+    . signedInts
