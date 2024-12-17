@@ -3,6 +3,8 @@ module Day19
   , part2
   ) where
 
+import           Data.Bits            (clearBit, countLeadingZeros,
+                                       finiteBitSize, shiftL)
 import           Data.Sequence        as Sq (Seq ((:<|), (:|>)), fromList,
                                              length, splitAt, (><))
 import           Data.Text            (Text)
@@ -17,14 +19,10 @@ type Presents = Int
 makeElves :: Int -> Seq Elf
 makeElves total = fromList [1 .. total]
 
-distribute :: Seq Elf -> Int
-distribute elves
-  | Sq.length elves == 1 = e
-  | otherwise = distribute elves''
+distribute :: Int -> Int
+distribute elves = (clearBit elves msb `shiftL` 1) + 1
   where
-    (e :<| elves') = elves
-    (l :<| rest) = elves'
-    elves'' = rest :|> e
+    msb = finiteBitSize elves - countLeadingZeros elves - 1
 
 distributeOpposite :: Seq Elf -> Int
 distributeOpposite elves
@@ -42,7 +40,7 @@ distributeOpposite elves
     elves'' = before >< (after :|> e)
 
 part1 :: Bool -> Text -> String
-part1 _ = show . distribute . makeElves . head . head . signedInts
+part1 _ = show . distribute . head . head . signedInts
 
 part2 :: Bool -> Text -> String
 part2 _ = show . distributeOpposite . makeElves . head . head . signedInts
