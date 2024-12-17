@@ -56,12 +56,8 @@ makeProgram [[aValue], [bValue], [cValue], _, program] =
 
 combo :: Register -> Operand -> Int
 combo register operand
-  | not . testBit operand $ 2 = operand
-  | operand == 4 = register ! a
-  | operand == 5 = register ! b
-  | operand == 6 = register ! c
-  | operand == 7 = error "reserved operand, invalid program"
-  | operand > 7 = error "This is supposed to be a three bits program"
+  | testBit operand 2 = register ! (operand .&. 3)
+  | otherwise = operand
 
 movePointer :: Program -> Program
 movePointer program = program {getPointer = getPointer program + 2}
