@@ -16,3 +16,5 @@ test/*/*
 .pre-commit-config.yaml
 .aoc_tiles/*
 !.aoc_tiles/tiles/
+*.prof
+*.hp
