@@ -144,32 +144,55 @@ execute program
     inst = instructions ! (getProgram program !! getPointer program)
     op = getProgram program !! (getPointer program + 1)
 
-findVal :: Program -> Int
-findVal program =
+findVal :: Bool -> Program -> Int
+findVal test program =
   minimum
     . fst
-    . foldl' (reverseEngineer program) ([0], [])
+    . foldl' (reverseEngineer test program) ([0], [])
     . reverse
     . getProgram
     $ program
 
-reverseEngineer :: Program -> ([Int], [Int]) -> Int -> ([Int], [Int])
-reverseEngineer program (results, codeGone) val = (results', codeGone')
+reverseEngineer :: Bool -> Program -> ([Int], [Int]) -> Int -> ([Int], [Int])
+reverseEngineer test program (results, codeGone) val = (results', codeGone')
   where
     codeGone' = val : codeGone
     results' =
       filter ((== codeGone') . reverse . getOutput . execute . setA program)
         $ (+) . (`shiftL` 3) <$> results <*> [0 .. 7]
+    engine
+      | test = getOutput . execute . setA program
+      | otherwise = executeSimplified
+
+executeSimplified :: Int -> [Int]
+executeSimplified number
+  | number == 0 = []
+  | otherwise = result : executeSimplified (shiftR number 3)
+  where
+    result = b'' `mod` 8
+    b' = (number `mod` 8) `xor` 1
+    c' = number `shiftR` b'
+    b'' = b' `xor` c' `xor` 4
 
 part1 :: Bool -> Text -> String
-part1 _ =
-  intersperse ','
-    . map intToDigit
-    . reverse
-    . getOutput
-    . execute
-    . makeProgram
-    . signedInts
+part1 test input
+  | test =
+    intersperse ','
+      . map intToDigit
+      . reverse
+      . getOutput
+      . execute
+      . makeProgram
+      . signedInts
+      $ input
+  | otherwise =
+    intersperse ','
+      . map intToDigit
+      . executeSimplified
+      . head
+      . head
+      . signedInts
+      $ input
 
 part2 :: Bool -> Text -> String
-part2 _ = show . findVal . makeProgram . signedInts
+part2 test = show . findVal test . makeProgram . signedInts
