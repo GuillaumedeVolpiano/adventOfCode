@@ -33,6 +33,25 @@ library helpers
                  , timeit, unordered-containers
   default-language: Haskell2010
 
+executable aoc2015
+    main-is:          Main.hs
+    hs-source-dirs: 2015 2015/days, lib
+    other-modules: Helpers.General.Text, Helpers.Graph, Helpers.Maths
+                   , Helpers.Parsers.Text, Helpers.Search
+                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
+                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
+                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends: arithmoi, array, base, base16-bytestring, bytestring, cmdargs, containers 
+                   , criterion, cryptohash-md5, curl, data-clist, directory, fgl, graphviz
+                   , hashable, linear, megaparsec, mtl, parallel, parser-combinators
+                   , psqueues, regex-pcre, regex-tdfa, split, text, text-show, time, timeit
+                   , transformers, unordered-containers, vector
+    ghc-options: -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
+    default-language: Haskell2010
+
 executable aoc2016
     main-is:          Main.hs
     hs-source-dirs: 2016 2016/days, lib
