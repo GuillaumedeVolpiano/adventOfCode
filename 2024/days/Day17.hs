@@ -9,12 +9,9 @@ module Day17
 import           Data.Bits            (shiftL, shiftR, testBit, xor, (.&.))
 import           Data.Char            (intToDigit)
 import           Data.IntMap          (IntMap, fromList, insert, (!))
-import           Data.List            (intersperse)
-import           Data.Maybe           (fromJust, mapMaybe)
+import           Data.List            (foldl', intersperse)
 import           Data.Text            (Text)
 import           Helpers.Parsers.Text (signedInts)
-
-import           Debug.Trace
 
 data Program = Program
   { getPointer  :: Pointer
@@ -59,7 +56,7 @@ makeProgram [[aValue], [bValue], [cValue], _, program] =
 
 combo :: Register -> Operand -> Int
 combo register operand
-  | operand .&. 4 == 0 = operand
+  | not . testBit operand $ 2 = operand
   | operand == 4 = register ! a
   | operand == 5 = register ! b
   | operand == 6 = register ! c
@@ -153,25 +150,20 @@ execute program
 
 findVal :: Program -> Int
 findVal program =
-  minimum . fromJust . reverseEngineer program 0 [] . reverse . getProgram
+  minimum
+    . fst
+    . foldl' (reverseEngineer program) ([0], [])
+    . reverse
+    . getProgram
     $ program
 
-reverseEngineer :: Program -> Int -> [Int] -> [Int] -> Maybe [Int]
-reverseEngineer _ result _ codeToGo
-  | null codeToGo = Just [result]
-reverseEngineer program result codeGone (x:codeToGo)
-  | null result' = Nothing
-  | otherwise =
-    Just
-      . concat
-      . mapMaybe (\r -> reverseEngineer program r codeGone' codeToGo)
-      $ result'
+reverseEngineer :: Program -> ([Int], [Int]) -> Int -> ([Int], [Int])
+reverseEngineer program (results, codeGone) val = (results', codeGone')
   where
-    codeGone' = x : codeGone
-    result' =
+    codeGone' = val : codeGone
+    results' =
       filter ((== codeGone') . reverse . getOutput . execute . setA program)
-        . map (shiftL result 3 +)
-        $ [0 .. 7]
+        $ (+) . (`shiftL` 3) <$> results <*> [0 .. 7]
 
 part1 :: Bool -> Text -> String
 part1 _ =
