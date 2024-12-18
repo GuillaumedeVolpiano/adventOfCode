@@ -1,14 +1,61 @@
 module Helpers.Search.Int
-  ( dijkstraMech
+  ( dfs
+  , bfsSafeDist
+  , dijkstraMech
   , dijkstraUncertainGoalVal
   , dijkstraAllShortestPaths
   ) where
 
-import           Data.IntMap as M (IntMap, alter, delete, empty, insert, keys,
-                                   member, notMember, singleton, (!))
-import           Data.IntPSQ as Q (IntPSQ, insert, minView, null, singleton)
-import           Data.IntSet as S (IntSet, insert, singleton)
-import           Data.Maybe  (fromJust, mapMaybe)
+import           Data.IntMap   as M (IntMap, alter, delete, empty, insert, keys,
+                                     member, notMember, singleton, (!))
+import           Data.IntPSQ   as Q (IntPSQ, insert, minView, null, singleton)
+import           Data.IntSet   as S (IntSet, insert, member, notMember,
+                                     singleton)
+import           Data.List     as L (length)
+import           Data.Maybe    (fromJust, mapMaybe)
+import           Data.Sequence as Sq (Seq ((:<|), (:|>)), null, singleton)
+
+bfsSafe ::
+     Seq Int
+  -> IntSet
+  -> IntMap Int
+  -> (Int -> [Int])
+  -> (Int -> Bool)
+  -> Maybe [Int]
+bfsSafe toSee seen paths neighbours isGoal
+  | Sq.null toSee = Nothing
+  | isGoal curPos = Just $ reconstructPath curPos paths
+  | otherwise =
+    bfsSafe toSee' seen' paths' neighbours isGoal
+  where
+    (curPos :<| rest) = toSee
+    toConsider = filter (`S.notMember` seen) . neighbours $ curPos
+    toSee' = foldl (:|>) rest toConsider
+    seen' = foldl (flip S.insert) seen toConsider
+    paths' = foldl (\a b -> M.insert b curPos a) paths toConsider
+
+bfsSafeDist :: Int -> (Int -> [Int]) -> (Int -> Bool) -> Maybe Int
+-- we need to reduce the distance by one because the path includes both the
+-- starting point and the goal
+bfsSafeDist start neighbours isGoal =
+  (+ (-1)) . L.length
+    <$> bfsSafe
+          (Sq.singleton start)
+          (S.singleton start)
+          M.empty
+          neighbours
+          isGoal
+
+reconstructPath :: Int -> IntMap Int -> [Int]
+reconstructPath curPos paths
+  | M.notMember curPos paths = [curPos]
+  | otherwise = curPos : reconstructPath (paths M.! curPos) paths
+
+dfs :: [Int] -> (Int -> [Int]) -> IntSet -> IntSet
+dfs [] _ seen = seen
+dfs (node:ns) neighbours seen
+  | S.member node seen = dfs ns neighbours seen
+  | otherwise = dfs (neighbours node ++ ns) neighbours $ S.insert node seen
 
 dijkstraMech ::
      (Num p, Ord p)
@@ -29,7 +76,7 @@ dijkstraMech queue dists paths neighbours isGoal
     dists' = foldr (uncurry M.insert) dists toConsider
     paths' = foldr (flip M.insert node . fst) paths toConsider
     consider (aNode, anEdge)
-      | aNode `notMember` dists || estDist + anEdge < dists M.! aNode =
+      | aNode `M.notMember` dists || estDist + anEdge < dists M.! aNode =
         Just (aNode, estDist + anEdge)
       | otherwise = Nothing
 
@@ -65,7 +112,7 @@ dijkstraAllShortestPaths queue dists paths neighbours isGoal
     update p Nothing   = Just . S.singleton $ p
     update p (Just ps) = Just . S.insert p $ ps
     consider (aNode, anEdge)
-      | aNode `notMember` dists || estDist' <= dists M.! aNode =
+      | aNode `M.notMember` dists || estDist' <= dists M.! aNode =
         Just (aNode, estDist')
       | otherwise = Nothing
       where

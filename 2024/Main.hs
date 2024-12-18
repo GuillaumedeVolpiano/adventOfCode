@@ -44,7 +44,7 @@ data Arguments = Arguments
   , test        :: Bool
   , proxy       :: Bool
   , wallTime    :: Bool
-  , benchmarks  :: Bool
+  -- , benchmarks  :: Bool
   , interactive :: Bool
   } deriving (Show, Data, Typeable)
 
@@ -84,46 +84,37 @@ solver =
 interSolver = empty
 
 main :: IO ()
-main = do
-  time <- getCurrentTime
-  let (_, _, curDay) = toGregorian . utctDay $ time
-      arguments =
-        Arguments
-          { day =
-              def
-                &= help "Which day to process. Defaults to the current day"
-                &= opt curDay
-          , test = def &= help "Run the test suite? Defaults to True if used"
-          , proxy = def &= help "Use a proxy? Defaults to True if used"
-          , wallTime = def &= help "Report wall Time rather than CPU time"
-          , benchmarks = def &= help "Run benchmarks on both parts"
-          , interactive = def &= help "Run interactively"
-          }
-  args <- cmdArgs arguments
-  let year = 2024
-      theDay =
-        case day args of
-          0 -> curDay
-          _ -> day args
-  input <- retrieveInput year theDay (test args) True (proxy args)
-  let (solve1, solve2) = solver ! theDay
-      timer =
-        if wallTime args
-          then wallTimeIt
-          else customPreciseTimeIt
-      result
-        | interactive args = interSolver ! theDay $ input
-        | otherwise = do
-          timer "Part 1." 4 . putStrLn $ solve1 (test args) input
-          timer "Part 2." 4 . putStrLn $ solve2 (test args) input
-      runBenchmarks =
-        defaultMain
-          [ env (retrieveInput year theDay False True False) $ \inputText ->
-              bgroup
-                "Benchmark"
-                [ bench "part 1" $ nf (solve1 False) inputText
-                , bench "part 2" $ nf (solve2 False) inputText
-                ]
-          ]
-  result
-  runBenchmarks
+main =
+  do
+    time <- getCurrentTime
+    let (_, _, curDay) = toGregorian . utctDay $ time
+        arguments =
+          Arguments
+            { day =
+                def
+                  &= help "Which day to process. Defaults to the current day"
+                  &= opt curDay
+            , test = def &= help "Run the test suite? Defaults to True if used"
+            , proxy = def &= help "Use a proxy? Defaults to True if used"
+            , wallTime = def &= help "Report wall Time rather than CPU time"
+            , interactive = def &= help "Run interactively"
+            }
+          -- , benchmarks = def &= help "Run benchmarks on both parts"
+    args <- cmdArgs arguments
+    let year = 2024
+        theDay =
+          case day args of
+            0 -> curDay
+            _ -> day args
+    input <- retrieveInput year theDay (test args) True (proxy args)
+    let (solve1, solve2) = solver ! theDay
+        timer =
+          if wallTime args
+            then wallTimeIt
+            else customPreciseTimeIt
+        result
+          | interactive args = interSolver ! theDay $ input
+          | otherwise = do
+            timer "Part 1." 4 . putStrLn $ solve1 (test args) input
+            timer "Part 2." 4 . putStrLn $ solve2 (test args) input
+    result

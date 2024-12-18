@@ -3,24 +3,39 @@ module Day18
   , part2
   ) where
 
-import           Data.Ix              (inRange)
+import           Data.Bits            (shiftR, (.&.))
+import           Data.IntSet          (IntSet, empty, fromList, member,
+                                       notMember)
 import           Data.List            (inits)
 import           Data.List.Split      (splitOn)
 import           Data.Maybe           (fromJust)
-import           Data.Set             (Set, empty, fromList, member, notMember)
 import           Data.Text            (Text, unpack)
-import           Helpers.Graph        (Pos, dirs, origin)
 import           Helpers.Parsers.Text (signedInts)
-import           Helpers.Search       (bfsSafeDist, dfs)
-import           Linear.V2            (V2 (..))
+import           Helpers.Search.Int   (bfsSafeDist, dfs)
 
-type Bytes = Set Pos
+type Bytes = IntSet
+
+origin = 0
 
 goal test
-  | test = V2 6 6
-  | otherwise = V2 70 70
+  | test = 6 + 6 * 128
+  | otherwise = 70 + 70 * 128
 
-range test = (origin, goal test)
+range test
+  | test = (0, 6)
+  | otherwise = (0, 70)
+
+inRange :: (Int, Int) -> Int -> Bool
+inRange (mini, maxi) int = mv >= mini && mV <= maxi
+  where
+    mv = min (int .&. 127) (int `shiftR` 7)
+    mV = max (int .&. 127) (int `shiftR` 7)
+
+intToPos :: Int -> String
+intToPos int = show x ++ "," ++ show y
+  where
+    x = int .&. 127
+    y = int `shiftR` 7
 
 shortestPath :: Bool -> Bytes -> Int
 shortestPath test bytes =
@@ -30,12 +45,12 @@ hasPath :: Bool -> Bytes -> Bool
 hasPath test bytes =
   member (goal test) . dfs [origin] (neighbours test bytes) $ empty
 
-neighbours :: Bool -> Bytes -> Pos -> [Pos]
+neighbours :: Bool -> Bytes -> Int -> [Int]
 neighbours test bytes pos =
   filter (\p -> inRange (range test) p && p `notMember` bytes) . map (pos +)
-    $ dirs
+    $ [-1, 1, -128, 128]
 
-binary :: Bool -> Int -> Int -> [Pos] -> Pos
+binary :: Bool -> Int -> Int -> [Int] -> Int
 binary test low high bytes
   | low > length bytes = error "notFound"
   | hasPath test highBytes = binary test high (2 * high) bytes
@@ -58,7 +73,7 @@ part1 test =
     . shortestPath test
     . fromList
     . take number
-    . map ((\[a, b] -> V2 (read a) (read b)) . splitOn ",")
+    . map ((\[a, b] -> read a + 128 * read b) . splitOn ",")
     . lines
     . unpack
   where
@@ -68,8 +83,8 @@ part1 test =
 
 part2 :: Bool -> Text -> String
 part2 test =
-  show
+  intToPos
     . binary test 1024 2048
-    . map ((\[a, b] -> V2 (read a) (read b)) . splitOn ",")
+    . map ((\[a, b] -> read a + 128 * read b) . splitOn ",")
     . lines
     . unpack
