@@ -1,11 +1,11 @@
 module Main where
 
 import           Data.Ix              (inRange)
-import           Data.List            (inits)
+import           Data.List            (inits, nub)
 import           Data.Map             as M (Map, empty, insert, notMember)
 import           Data.Maybe           (isJust)
 import           Data.Set             as S (Set, empty, fromList, member,
-                                            notMember)
+                                            notMember, toList)
 import           Data.Text            as T (Text)
 import qualified Data.Text.IO.Utf8    as TIO (readFile)
 import           Helpers.Graph        (Pos, dirs, origin)
@@ -15,6 +15,8 @@ import           Linear.V2            (V2 (..))
 import           System.Directory     (getHomeDirectory)
 import           Test.Tasty.Bench     (Benchmark, bcompare, bench, bgroup,
                                        defaultMain, nf)
+
+import           Debug.Trace
 
 inputPath = "/adventOfCode/input/2024/day18.txt"
 
@@ -35,10 +37,10 @@ listBfsSafe toSee paths neighbours isGoal
     toSee' =
       [ (node, filter (`M.notMember` paths) . neighbours $ node)
       | node <- toSee
-      , not . any (`M.notMember` paths) . neighbours $ node
+      , any (`M.notMember` paths) . neighbours $ node
       ]
     paths' = foldr (\(a, b) c -> foldr (`insert` a) c b) paths toSee'
-    toSee'' = concatMap snd toSee'
+    toSee'' = toList . fromList . concatMap snd $ toSee'
 
 bfsBench :: Set Pos -> Bool
 bfsBench walls = isJust . bfsSafeDist origin (neighbours walls) $ (== goal)
