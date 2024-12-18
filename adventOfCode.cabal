@@ -244,3 +244,14 @@ test-suite tests2024
                    , mono-traversable, mtl, multiset, psqueues, semialign, split
                    , statistics, text, unordered-containers, vector
     default-language: Haskell2010
+
+benchmark bench
+  main-is: Bench.hs
+  type: exitcode-stdio-1.0
+  hs-source-dirs: bench, lib
+  other-modules: Helpers.Search, Helpers.Graph, Helpers.Parsers.Text
+  build-depends: array, base, containers, directory, fgl, graphviz, hashable, linear
+                 , megaparsec, psqueues, tasty-bench, text, unordered-containers 
+  ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
+  -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
+  default-language: Haskell2010

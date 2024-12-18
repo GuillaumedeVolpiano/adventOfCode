@@ -5,12 +5,11 @@ module Day18
 
 import           Data.Ix              (inRange)
 import           Data.List            (inits)
-import           Data.Maybe           (fromJust, isJust)
-import           Data.Set             (Set, fromList, notMember)
+import           Data.Set             (Set, empty, fromList, member, notMember)
 import           Data.Text            (Text)
 import           Helpers.Graph        (Pos, dirs, origin)
 import           Helpers.Parsers.Text (signedInts)
-import           Helpers.Search       (bfsSafeDist)
+import           Helpers.Search       (bfsDist, dfs)
 import           Linear.V2            (V2 (..))
 
 type Bytes = Set Pos
@@ -21,9 +20,12 @@ goal test
 
 range test = (origin, goal test)
 
-shortestPath :: Bool -> Bytes -> Maybe Int
-shortestPath test bytes =
-  bfsSafeDist origin (neighbours test bytes) (== goal test)
+shortestPath :: Bool -> Bytes -> Int
+shortestPath test bytes = bfsDist origin (neighbours test bytes) (== goal test)
+
+hasPath :: Bool -> Bytes -> Bool
+hasPath test bytes =
+  member (goal test) . dfs [origin] (neighbours test bytes) $ empty
 
 neighbours :: Bool -> Bytes -> Pos -> [Pos]
 neighbours test bytes pos =
@@ -33,7 +35,6 @@ neighbours test bytes pos =
 part1 :: Bool -> Text -> String
 part1 test =
   show
-    . fromJust
     . shortestPath test
     . fromList
     . map (\[a, b] -> V2 a b)
@@ -49,7 +50,7 @@ part2 test =
   show
     . last
     . head
-    . dropWhile (isJust . shortestPath test . fromList)
+    . dropWhile (hasPath test . fromList)
     . drop 1025
     . inits
     . map (\[a, b] -> V2 a b)
