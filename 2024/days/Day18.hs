@@ -5,9 +5,10 @@ module Day18
 
 import           Data.Ix              (inRange)
 import           Data.List            (inits)
+import           Data.List.Split      (splitOn)
 import           Data.Maybe           (fromJust)
 import           Data.Set             (Set, empty, fromList, member, notMember)
-import           Data.Text            (Text)
+import           Data.Text            (Text, unpack)
 import           Helpers.Graph        (Pos, dirs, origin)
 import           Helpers.Parsers.Text (signedInts)
 import           Helpers.Search       (bfsSafeDist, dfs)
@@ -56,13 +57,19 @@ part1 test =
   show
     . shortestPath test
     . fromList
-    . map (\[a, b] -> V2 a b)
     . take number
-    . signedInts
+    . map ((\[a, b] -> V2 (read a) (read b)) . splitOn ",")
+    . lines
+    . unpack
   where
     number
       | test = 12
       | otherwise = 1024
 
 part2 :: Bool -> Text -> String
-part2 test = show . binary test 1024 2048 . map (\[a, b] -> V2 a b) . signedInts
+part2 test =
+  show
+    . binary test 1024 2048
+    . map ((\[a, b] -> V2 (read a) (read b)) . splitOn ",")
+    . lines
+    . unpack

@@ -2,6 +2,7 @@
 
 module Main where
 
+import           Control.Monad                   (when)
 import           Data.Map                        (Map, empty, fromList, (!))
 import           Data.Text                       (Text)
 import           Data.Time.Calendar              (toGregorian)
@@ -35,12 +36,15 @@ import           Helpers.General.Text            (customPreciseTimeIt,
                                                   retrieveInput, wallTimeIt)
 import           System.Console.CmdArgs.Implicit (Data, Typeable, args, cmdArgs,
                                                   def, help, opt, (&=))
+import           Test.Tasty.Bench                (bench, bgroup, defaultMain,
+                                                  env, nf)
 
 data Arguments = Arguments
   { day         :: Int
   , test        :: Bool
   , proxy       :: Bool
   , wallTime    :: Bool
+  , benchmarks  :: Bool
   , interactive :: Bool
   } deriving (Show, Data, Typeable)
 
@@ -92,6 +96,7 @@ main = do
           , test = def &= help "Run the test suite? Defaults to True if used"
           , proxy = def &= help "Use a proxy? Defaults to True if used"
           , wallTime = def &= help "Report wall Time rather than CPU time"
+          , benchmarks = def &= help "Run benchmarks on both parts"
           , interactive = def &= help "Run interactively"
           }
   args <- cmdArgs arguments
@@ -109,6 +114,16 @@ main = do
       result
         | interactive args = interSolver ! theDay $ input
         | otherwise = do
-            timer "Part 1." 4 . putStrLn $ solve1 (test args) input
-            timer "Part 2." 4 . putStrLn $ solve2 (test args) input
+          timer "Part 1." 4 . putStrLn $ solve1 (test args) input
+          timer "Part 2." 4 . putStrLn $ solve2 (test args) input
+      runBenchmarks =
+        defaultMain
+          [ env (retrieveInput year theDay False True False) $ \inputText ->
+              bgroup
+                "Benchmark"
+                [ bench "part 1" $ nf (solve1 False) inputText
+                , bench "part 2" $ nf (solve2 False) inputText
+                ]
+          ]
   result
+  runBenchmarks

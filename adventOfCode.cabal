@@ -29,7 +29,7 @@ library helpers
                    , Helpers.Maths, Helpers.Parsers, Helpers.Parsers.Text
                    , Helpers.Search, Helpers.Search.Int
   build-depends: array, base, containers, curl, directory, fgl, graphviz, hashable
-                 , linear, megaparsec, psqueues, regex-tdfa, split, text, time
+                 , linear, megaparsec, psqueues, regex-tdfa, split, time, text
                  , timeit, unordered-containers
   default-language: Haskell2010
 
@@ -213,7 +213,7 @@ executable aoc2024
     build-depends: arithmoi, array, base, cmdargs, containers
                    , criterion, curl, data-clist, directory, fgl, graphviz
                    , hashable, linear, megaparsec, mono-traversable, mtl, multiset, parallel, parser-combinators
-                   , psqueues, semialign, split, statistics
+                   , psqueues, semialign, split, statistics, tasty-bench 
                    , text >= 2.1, time, timeit
                    , unordered-containers, vector
     ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
@@ -248,10 +248,9 @@ test-suite tests2024
 benchmark bench
   main-is: Bench.hs
   type: exitcode-stdio-1.0
-  hs-source-dirs: bench, lib
+  hs-source-dirs: bench, lib, 2024/days
   other-modules: Helpers.Search, Helpers.Graph, Helpers.Parsers.Text
   build-depends: array, base, containers, directory, fgl, graphviz, hashable, linear
-                 , megaparsec, psqueues, tasty-bench, text, unordered-containers 
-  ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
-  -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
+                 , megaparsec, psqueues, split, tasty-bench, text, unordered-containers 
+  ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
   default-language: Haskell2010
