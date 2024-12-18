@@ -3,12 +3,13 @@ module Day18
   , part2
   ) where
 
+import           Control.Monad.State        (State, evalState, get, put)
 import           Data.Bits                  (shiftR, (.&.))
 import           Data.Either                (fromRight)
-import           Data.IntSet                (IntSet, empty, fromList, member,
-                                             notMember)
+import           Data.IntSet                as S (IntSet, difference, empty,
+                                                  fromList, intersection,
+                                                  member, notMember, null)
 import           Data.List                  (inits)
-import           Data.List.Split            (splitOn)
 import           Data.Maybe                 (fromJust)
 import           Data.Text                  (Text, unpack)
 import           Helpers.Parsers.Text       (Parser)
@@ -18,6 +19,17 @@ import           Text.Megaparsec.Char       (char, eol)
 import           Text.Megaparsec.Char.Lexer (decimal)
 
 type Bytes = IntSet
+
+data Maze =
+  Maze Low High Open Falling
+
+type Low = Int
+
+type High = Int
+
+type Open = IntSet
+
+type Falling = [Int]
 
 parseInput :: Parser [Int]
 parseInput = manyTill parseByte eof
@@ -40,6 +52,8 @@ range test
   | test = (0, 6)
   | otherwise = (0, 70)
 
+dirs = [-1, 1, -128, 128]
+
 inRange :: (Int, Int) -> Int -> Bool
 inRange (mini, maxi) int = mv >= mini && mV <= maxi
   where
@@ -56,31 +70,47 @@ shortestPath :: Bool -> Bytes -> Int
 shortestPath test bytes =
   fromJust . bfsSafeDist origin (neighbours test bytes) $ (== goal test)
 
-hasPath :: Bool -> Bytes -> Bool
-hasPath test bytes =
-  member (goal test) . dfs [origin] (neighbours test bytes) $ empty
-
 neighbours :: Bool -> Bytes -> Int -> [Int]
 neighbours test bytes pos =
   filter (\p -> inRange (range test) p && p `notMember` bytes) . map (pos +)
     $ [-1, 1, -128, 128]
 
-binary :: Bool -> Int -> Int -> [Int] -> Int
-binary test low high bytes
-  | low > length bytes = error "notFound"
-  | hasPath test highBytes = binary test high (2 * high) bytes
-  | low == high && not (hasPath test lowBytes) = bytes !! (low - 1)
-  | low == high = error "not found"
-  | high == low + 1 && hasPath test lowBytes = bytes !! (high - 1)
-  | high == low + 1 = bytes !! (low - 1)
-  | not (hasPath test lowBytes) = binary test low (div low 2) bytes
-  | hasPath test midBytes = binary test mid high bytes
-  | otherwise = binary test low mid bytes
+neighboursB :: Bool -> Bytes -> Int -> [Int]
+neighboursB test open pos =
+  filter (\p -> inRange (range test) p && p `member` open) . map (pos +) $ dirs
+
+binary :: Bool -> [Int] -> Int
+binary test falling = evalState (binaryState test) (Maze low high open later)
   where
-    highBytes = fromList . take high $ bytes
-    lowBytes = fromList . take low $ bytes
-    midBytes = fromList . take mid $ bytes
-    mid = div (high + low) 2
+    (incoming, later) = splitAt 1024 falling
+    low = 1024
+    high = 2 ^ (ceiling . logBase 2 . fromIntegral . length $ falling)
+    open = dfs [origin] (neighbours test (fromList incoming)) empty
+
+binaryState :: Bool -> State Maze Int
+binaryState test = do
+  (Maze low high open falling) <- get
+  let mid = div (high - low) 2
+      (incoming, later) = splitAt mid falling
+      incoming' = fromList incoming
+      open' = difference open incoming'
+      closed = intersection open incoming'
+      midVal = low + mid
+      midPaths = dfs [origin] (neighboursB test open') empty
+      low'
+        | S.null closed = midVal
+        | S.null open' || goal test `notMember` midPaths = low
+        | otherwise = midVal
+      (high', falling', open'')
+        | S.null closed = (high, later, open)
+        | low' == midVal = (high, later, midPaths)
+        | otherwise = (midVal, incoming, open)
+      result
+        | high == low + 1 = return (head falling)
+        | otherwise = do
+          put (Maze low' high' open'' falling')
+          binaryState test
+  result
 
 part1 :: Bool -> Text -> String
 part1 test =
@@ -92,12 +122,12 @@ part1 test =
     . parse parseInput "day18"
   where
     number
-      | test = 12
+      -- | test = 12
       | otherwise = 1024
 
 part2 :: Bool -> Text -> String
 part2 test =
   intToPos
-    . binary test 1024 2048
+    . binary test
     . fromRight (error "parser failed")
     . parse parseInput "day18"

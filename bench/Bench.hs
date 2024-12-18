@@ -9,6 +9,7 @@ import           Test.Tasty.Bench  (Benchmark, bcompare, bench, bgroup,
 
 inputPath = "/adventOfCode/input/2024/day18.txt"
 
+
 tests :: Text -> [Benchmark]
 tests input =
   [ bench "part 1" $ nf (Day18.part1 False) input
