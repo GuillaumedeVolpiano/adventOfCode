@@ -3,17 +3,32 @@ module Day18
   , part2
   ) where
 
-import           Data.Bits            (shiftR, (.&.))
-import           Data.IntSet          (IntSet, empty, fromList, member,
-                                       notMember)
-import           Data.List            (inits)
-import           Data.List.Split      (splitOn)
-import           Data.Maybe           (fromJust)
-import           Data.Text            (Text, unpack)
-import           Helpers.Parsers.Text (signedInts)
-import           Helpers.Search.Int   (bfsSafeDist, dfs)
+import           Data.Bits                  (shiftR, (.&.))
+import           Data.Either                (fromRight)
+import           Data.IntSet                (IntSet, empty, fromList, member,
+                                             notMember)
+import           Data.List                  (inits)
+import           Data.List.Split            (splitOn)
+import           Data.Maybe                 (fromJust)
+import           Data.Text                  (Text, unpack)
+import           Helpers.Parsers.Text       (Parser)
+import           Helpers.Search.Int         (bfsSafeDist, dfs)
+import           Text.Megaparsec            (eof, manyTill, parse)
+import           Text.Megaparsec.Char       (char, eol)
+import           Text.Megaparsec.Char.Lexer (decimal)
 
 type Bytes = IntSet
+
+parseInput :: Parser [Int]
+parseInput = manyTill parseByte eof
+
+parseByte :: Parser Int
+parseByte = do
+  x <- decimal
+  char ','
+  y <- decimal
+  eol
+  return (x + 128 * y)
 
 origin = 0
 
@@ -73,9 +88,8 @@ part1 test =
     . shortestPath test
     . fromList
     . take number
-    . map ((\[a, b] -> read a + 128 * read b) . splitOn ",")
-    . lines
-    . unpack
+    . fromRight (error "parser failed")
+    . parse parseInput "day18"
   where
     number
       | test = 12
@@ -85,6 +99,5 @@ part2 :: Bool -> Text -> String
 part2 test =
   intToPos
     . binary test 1024 2048
-    . map ((\[a, b] -> read a + 128 * read b) . splitOn ",")
-    . lines
-    . unpack
+    . fromRight (error "parser failed")
+    . parse parseInput "day18"
