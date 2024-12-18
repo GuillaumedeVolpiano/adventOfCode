@@ -1,16 +1,16 @@
 module Main where
 
 import           Data.Ix              (inRange)
-import           Data.List            (inits, nub)
-import           Data.Map             as M (Map, empty, insert, notMember)
+import           Data.List            (inits)
+import           Data.Map             as M (empty)
 import           Data.Maybe           (isJust)
 import           Data.Set             as S (Set, empty, fromList, member,
-                                            notMember, toList)
+                                            notMember)
 import           Data.Text            as T (Text)
 import qualified Data.Text.IO.Utf8    as TIO (readFile)
 import           Helpers.Graph        (Pos, dirs, origin)
 import           Helpers.Parsers.Text (signedInts)
-import           Helpers.Search       (bfsSafeDist, dfs)
+import           Helpers.Search       (bfsSafeDist, dfs, listBfsSafe)
 import           Linear.V2            (V2 (..))
 import           System.Directory     (getHomeDirectory)
 import           Test.Tasty.Bench     (Benchmark, bcompare, bench, bgroup,
@@ -26,21 +26,7 @@ range = (origin, goal)
 
 bfsListBench :: Set Pos -> Bool
 bfsListBench walls =
-  isJust . listBfsSafe [origin] M.empty (neighbours walls) $ (== goal)
-
-listBfsSafe :: Ord a => [a] -> Map a a -> (a -> [a]) -> (a -> Bool) -> Maybe [a]
-listBfsSafe toSee paths neighbours isGoal
-  | null toSee = Nothing
-  | any isGoal toSee = Just . filter isGoal $ toSee
-  | otherwise = listBfsSafe toSee'' paths' neighbours isGoal
-  where
-    toSee' =
-      [ (node, filter (`M.notMember` paths) . neighbours $ node)
-      | node <- toSee
-      , any (`M.notMember` paths) . neighbours $ node
-      ]
-    paths' = foldr (\(a, b) c -> foldr (`insert` a) c b) paths toSee'
-    toSee'' = toList . fromList . concatMap snd $ toSee'
+  isJust . listBfsSafe [origin] 0 M.empty (neighbours walls) $ (== goal)
 
 bfsBench :: Set Pos -> Bool
 bfsBench walls = isJust . bfsSafeDist origin (neighbours walls) $ (== goal)

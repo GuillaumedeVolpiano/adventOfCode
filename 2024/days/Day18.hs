@@ -3,16 +3,15 @@ module Day18
   , part2
   ) where
 
-import Data.Maybe (isJust)
 import           Data.Ix              (inRange)
 import           Data.List            (inits)
-import           Data.Set             as S (Set, empty, fromList, member, notMember, toList)
+import           Data.Maybe           (fromJust)
+import           Data.Set             (Set, empty, fromList, member, notMember)
 import           Data.Text            (Text)
 import           Helpers.Graph        (Pos, dirs, origin)
 import           Helpers.Parsers.Text (signedInts)
-import           Helpers.Search       (bfsDist, dfs)
+import           Helpers.Search       (bfsSafeDist, dfs)
 import           Linear.V2            (V2 (..))
-import Data.Map as M (Map, empty, notMember, insert)
 
 type Bytes = Set Pos
 
@@ -22,27 +21,35 @@ goal test
 
 range test = (origin, goal test)
 
-listBfsSafe :: Ord a => [a] -> Int -> Map a a -> (a -> [a]) -> (a -> Bool) -> Maybe (Int, [a], Map a a)
-listBfsSafe toSee dist paths neighbours isGoal
-  | null toSee = Nothing
-  | any isGoal toSee = Just (dist, filter isGoal toSee, paths)
-  | otherwise = listBfsSafe toSee'' (dist + 1) paths' neighbours isGoal
-  where
-    toSee' = [(node, filter (`M.notMember` paths) . neighbours $ node) | node <- toSee, any (`M.notMember` paths) . neighbours $ node]
-    toSee'' = toList . fromList . concatMap snd $ toSee'
-    paths' = foldr (\(a, b) c -> foldr (`insert` a) c b) paths toSee'
-
 shortestPath :: Bool -> Bytes -> Int
-shortestPath test bytes = (\(Just (a, _, _)) -> a) . listBfsSafe [origin] 0 M.empty (neighbours test bytes) $ (== goal test)
+shortestPath test bytes =
+  fromJust . bfsSafeDist origin (neighbours test bytes) $ (== goal test)
 
 hasPath :: Bool -> Bytes -> Bool
 hasPath test bytes =
-  isJust . listBfsSafe [origin] 0 M.empty (neighbours test bytes) $ (==goal test)
+  member (goal test) . dfs [origin] (neighbours test bytes) $ empty
 
 neighbours :: Bool -> Bytes -> Pos -> [Pos]
 neighbours test bytes pos =
-  filter (\p -> inRange (range test) p && p `S.notMember` bytes) . map (pos +)
+  filter (\p -> inRange (range test) p && p `notMember` bytes) . map (pos +)
     $ dirs
+
+binary :: Bool -> Int -> Int -> [Pos] -> Pos
+binary test low high bytes
+  | low > length bytes = error "notFound"
+  | hasPath test highBytes = binary test high (2 * high) bytes
+  | low == high && not (hasPath test lowBytes) = bytes !! (low - 1)
+  | low == high = error "not found"
+  | high == low + 1 && hasPath test lowBytes = bytes !! (high - 1)
+  | high == low + 1 = bytes !! (low - 1)
+  | not (hasPath test lowBytes) = binary test low (div low 2) bytes
+  | hasPath test midBytes = binary test mid high bytes
+  | otherwise = binary test low mid bytes
+  where
+    highBytes = fromList . take high $ bytes
+    lowBytes = fromList . take low $ bytes
+    midBytes = fromList . take mid $ bytes
+    mid = div (high + low) 2
 
 part1 :: Bool -> Text -> String
 part1 test =
@@ -58,12 +65,4 @@ part1 test =
       | otherwise = 1024
 
 part2 :: Bool -> Text -> String
-part2 test =
-  show
-    . last
-    . head
-    . dropWhile (hasPath test . fromList)
-    . drop 1025
-    . inits
-    . map (\[a, b] -> V2 a b)
-    . signedInts
+part2 test = show . binary test 1024 2048 . map (\[a, b] -> V2 a b) . signedInts

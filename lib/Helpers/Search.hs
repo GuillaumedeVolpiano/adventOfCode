@@ -27,14 +27,14 @@ import qualified Data.Graph    as G (Edge, Graph, Tree (Node), Vertex, dfs,
 import           Data.Hashable (Hashable)
 import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
                                      singleton)
-import           Data.List     as L (length)
-import           Data.Map      as M (Map, alter, empty, insert, lookup, member,
-                                     notMember, singleton, (!), keys, delete)
+import           Data.List     as L (length, null)
+import           Data.Map      as M (Map, alter, delete, empty, insert, keys,
+                                     lookup, member, notMember, singleton, (!))
 import           Data.Maybe    (fromJust, isNothing, mapMaybe)
 import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
                                       singleton, takeWhileL, (!?))
-import           Data.Set      as St (Set, empty, insert, member, notMember,
-                                      singleton)
+import           Data.Set      as St (Set, empty, insert, member,
+                                      notMember, singleton)
 
 type NodeFromVertex node key = G.Vertex -> (node, key, [key])
 
@@ -247,7 +247,8 @@ dijkstraAllShortestPaths queue dists paths neighbours isGoal
       | otherwise = Nothing
       where
         estDist' = estDist + anEdge
-    prunedPaths = foldr M.delete paths . filter ((> bestDist) . (M.!) dists) $ goalNodes
+    prunedPaths =
+      foldr M.delete paths . filter ((> bestDist) . (M.!) dists) $ goalNodes
     goalNodes = filter isGoal . keys $ dists
     bestDist = minimum . map (dists M.!) $ goalNodes
 
