@@ -21,12 +21,15 @@ type Presents = Int
 makeElves :: Int -> Seq Elf
 makeElves total = fromList [1 .. total]
 
--- some bitwise voodoo
+-- some bitwise voodoo (O(1) complexity) https://en.wikipedia.org/wiki/Josephus_problem#Bitwise
 distribute :: Int -> Int
 distribute elves = (clearBit elves msb `shiftL` 1) + 1
   where
     msb = finiteBitSize elves - countLeadingZeros elves - 1
 
+-- using two sequences for O(1) access to the middle element. If the overall
+-- number of elves is odd, the after sequence is going to be the longest. The
+-- overall complexity is O(n)
 midSplit :: Seq Elf -> (Seq Elf, Seq Elf)
 midSplit elves = Sq.splitAt (Sq.length elves `div` 2) elves
 
