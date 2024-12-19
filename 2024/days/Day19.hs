@@ -6,7 +6,8 @@ module Day19
 import           Data.Bifunctor       (second)
 import           Data.Either          (fromRight)
 import           Data.IntMap          as M (IntMap, fromList, keys, (!))
-import           Data.List            as L (groupBy, null, partition, sortBy)
+import           Data.List            as L (groupBy, length, null, partition,
+                                            sortBy)
 import           Data.Maybe           (mapMaybe)
 import           Data.MultiSet        as MS (MultiSet, deleteMaxAll, findMax,
                                              insertMany, null, occur, singleton)
@@ -14,35 +15,36 @@ import           Data.Ord             (Down (..), comparing)
 import           Data.Set             as S (Set, deleteFindMax, fromList,
                                             insert, map, member, null,
                                             singleton)
-import           Data.Text            as T (Text, null, pack)
+import           Data.Text            as T (Text, length, null, pack, splitAt)
 import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (many, manyTill, parse, sepBy)
 import           Text.Megaparsec.Char (eol, lowerChar, string)
 
-type Towels = IntMap (Set String)
+type Towels = IntMap (Set Text)
 
 newtype Pattern = Pattern
-  { getPattern :: String
+  { getPattern :: Text
   } deriving (Show, Eq)
 
 instance Ord Pattern where
   compare (Pattern a) (Pattern b) =
-    compare (length a) (length b) `mappend` compare a b
+    compare (T.length a) (T.length b) `mappend` compare a b
 
-pSplitAt :: Int -> Pattern -> (String, Pattern)
-pSplitAt x (Pattern p) = second Pattern . splitAt x $ p
+pSplitAt :: Int -> Pattern -> (Text, Pattern)
+pSplitAt x (Pattern p) = second Pattern . T.splitAt x $ p
 
 parseInput :: Parser (Towels, [Pattern])
 parseInput = do
   towels <-
     M.fromList
-      . fmap (\x -> (length . head $ x, S.fromList x))
-      . groupBy (\a b -> length a == length b)
-      . sortBy (comparing (Down . length))
+      . fmap (\x -> (T.length . head $ x, S.fromList x))
+      . groupBy (\a b -> T.length a == T.length b)
+      . sortBy (comparing (Down . T.length))
+      . fmap pack
       <$> many lowerChar `sepBy` string (pack ", ")
   eol
   eol
-  patterns <- many (Pattern <$> manyTill lowerChar eol)
+  patterns <- many (Pattern . pack <$> manyTill lowerChar eol)
   return (towels, patterns)
 
 -- Let's have a set of patterns. We take the
@@ -52,7 +54,7 @@ findPattern towels = searchPat . S.singleton
     searchPat :: Set Pattern -> Bool
     searchPat ps
       | S.null ps = False
-      | any (L.null . getPattern) samples' = True
+      | any (T.null . getPattern) samples' = True
       | otherwise = searchPat ps''
       where
         ps'' = foldr S.insert ps' samples'
@@ -80,11 +82,11 @@ findAllPatterns towels = countPat . MS.singleton
         testCount = occur toTest ps
         ps' = deleteMaxAll ps
         (nullSamples, nonNullSamples) =
-          partition (L.null . getPattern) . samples towels $ toTest
-        countNulls = testCount * length nullSamples
+          partition (T.null . getPattern) . samples towels $ toTest
+        countNulls = testCount * L.length nullSamples
 
 countPatterns :: Towels -> [Pattern] -> Int
-countPatterns towels = length . filter (findPattern towels)
+countPatterns towels = L.length . filter (findPattern towels)
 
 countAllPatterns :: Towels -> [Pattern] -> Int
 countAllPatterns towels = sum . fmap (findAllPatterns towels)
