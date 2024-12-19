@@ -44,7 +44,6 @@ data Arguments = Arguments
   , test        :: Bool
   , proxy       :: Bool
   , wallTime    :: Bool
-  -- , benchmarks  :: Bool
   , interactive :: Bool
   } deriving (Show, Data, Typeable)
 
@@ -99,7 +98,6 @@ main =
             , wallTime = def &= help "Report wall Time rather than CPU time"
             , interactive = def &= help "Run interactively"
             }
-          -- , benchmarks = def &= help "Run benchmarks on both parts"
     args <- cmdArgs arguments
     let year = 2024
         theDay =
