@@ -251,6 +251,6 @@ benchmark bench
   hs-source-dirs: bench, lib, 2024/days
   other-modules: Helpers.Search, Helpers.Graph, Helpers.Parsers.Text
   build-depends: array, base, containers, directory, fgl, graphviz, hashable, linear
-                 , megaparsec, mtl, psqueues, split, tasty-bench, text, unordered-containers 
+                 , megaparsec, mtl, multiset, psqueues, split, tasty-bench, text, unordered-containers 
   ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
   default-language: Haskell2010
