@@ -20,46 +20,28 @@ import           Data.List     as L (length)
 import           Data.Maybe    (fromJust, mapMaybe)
 import           Data.Sequence as Sq (Seq ((:<|), (:|>)), null, singleton)
 
-import           Debug.Trace
-
 bfsSafe ::
-     Seq Int
-  -> IntSet
-  -> IntMap Int
-  -> (Int -> [Int])
-  -> (Int -> Bool)
-  -> Maybe [Int]
-bfsSafe toSee seen paths neighbours isGoal
+     Seq Int -> IntMap Int -> (Int -> [Int]) -> (Int -> Bool) -> Maybe [Int]
+bfsSafe toSee paths neighbours isGoal
   | Sq.null toSee = Nothing
   | isGoal curPos = Just $ reconstructPath curPos paths
-  | otherwise = bfsSafe toSee' seen' paths' neighbours isGoal
+  | otherwise = bfsSafe toSee' paths' neighbours isGoal
   where
     (curPos :<| rest) = toSee
-    toConsider = filter (`S.notMember` seen) . neighbours $ curPos
+    toConsider = filter (`M.notMember` paths) . neighbours $ curPos
     toSee' = foldl (:|>) rest toConsider
-    seen' = foldl (flip S.insert) seen toConsider
     paths' = foldl (\a b -> M.insert b curPos a) paths toConsider
 
 bfsSafeDist :: Int -> (Int -> [Int]) -> (Int -> Bool) -> Maybe Int
 -- we need to reduce the distance by one because the path includes both the
 -- starting point and the goal
 bfsSafeDist start neighbours isGoal =
-  (+ (-1)) . L.length
-    <$> bfsSafe
-          (Sq.singleton start)
-          (S.singleton start)
-          M.empty
-          neighbours
-          isGoal
+  (+ (-1)) . L.length <$> bfsSafe (Sq.singleton start) M.empty neighbours isGoal
 
 bfsAll :: Seq Int -> IntMap Int -> (Int -> [Int]) -> IntMap Int
 bfsAll toSee seen neighbours
   | Sq.null toSee = seen
-  | otherwise =
-      bfsAll
-      toSee'
-      seen'
-      neighbours
+  | otherwise = bfsAll toSee' seen' neighbours
   where
     (curPos :<| rest) = toSee
     toConsider = filter (`M.notMember` seen) . neighbours $ curPos
