@@ -1,5 +1,10 @@
+{-# LANGUAGE TupleSections #-}
+
 module Helpers.Search.Int
   ( dfs
+  , dfsDists
+  , bfsAll
+  , bfsSafe
   , bfsSafeDist
   , dijkstraMech
   , dijkstraUncertainGoalVal
@@ -15,6 +20,8 @@ import           Data.List     as L (length)
 import           Data.Maybe    (fromJust, mapMaybe)
 import           Data.Sequence as Sq (Seq ((:<|), (:|>)), null, singleton)
 
+import           Debug.Trace
+
 bfsSafe ::
      Seq Int
   -> IntSet
@@ -25,8 +32,7 @@ bfsSafe ::
 bfsSafe toSee seen paths neighbours isGoal
   | Sq.null toSee = Nothing
   | isGoal curPos = Just $ reconstructPath curPos paths
-  | otherwise =
-    bfsSafe toSee' seen' paths' neighbours isGoal
+  | otherwise = bfsSafe toSee' seen' paths' neighbours isGoal
   where
     (curPos :<| rest) = toSee
     toConsider = filter (`S.notMember` seen) . neighbours $ curPos
@@ -46,6 +52,21 @@ bfsSafeDist start neighbours isGoal =
           neighbours
           isGoal
 
+bfsAll :: Seq Int -> IntMap Int -> (Int -> [Int]) -> IntMap Int
+bfsAll toSee seen neighbours
+  | Sq.null toSee = seen
+  | otherwise =
+      bfsAll
+      toSee'
+      seen'
+      neighbours
+  where
+    (curPos :<| rest) = toSee
+    toConsider = filter (`M.notMember` seen) . neighbours $ curPos
+    toSee' = foldl (:|>) rest toConsider
+    dist = 1 + seen ! curPos
+    seen' = foldr (`M.insert` dist) seen toConsider
+
 reconstructPath :: Int -> IntMap Int -> [Int]
 reconstructPath curPos paths
   | M.notMember curPos paths = [curPos]
@@ -56,6 +77,16 @@ dfs [] _ seen = seen
 dfs (node:ns) neighbours seen
   | S.member node seen = dfs ns neighbours seen
   | otherwise = dfs (neighbours node ++ ns) neighbours $ S.insert node seen
+
+dfsDists :: [(Int, Int)] -> (Int -> [Int]) -> IntMap Int -> IntMap Int
+dfsDists [] _ seen = seen
+dfsDists ((node, dist):ns) neighbours seen
+  | M.member node seen = dfsDists ns neighbours seen
+  | otherwise = dfsDists ns' neighbours seen'
+  where
+    toConsider = map (, dist + 1) . neighbours $ node
+    ns' = toConsider ++ ns
+    seen' = M.insert node dist seen
 
 dijkstraMech ::
      (Num p, Ord p)
