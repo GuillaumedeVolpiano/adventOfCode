@@ -26,7 +26,7 @@ manhattanDistance a b =
   abs ((a .&. 255) - (b .&. 255)) + abs (shiftR a 8 - shiftR b 8)
 
 countCheats :: Bool -> Int -> Text -> Int
-countCheats test cheatLast input = length . filter (>= threshold) $ cheated
+countCheats test cheatLast input = length cheated
   where
     assocsMaze =
       [(x + 256 * y, l !! y `index` x) | x <- [0 .. width], y <- [0 .. height]]
@@ -40,20 +40,19 @@ countCheats test cheatLast input = length . filter (>= threshold) $ cheated
     walkable = map fst . filter ((== '.') . snd) $ assocsMaze
     fromStart =
       bfsAll (Sq.singleton start) (M.singleton start 0) (neighbours maze)
-    toEnd = bfsAll (Sq.singleton end) (M.singleton end 0) (neighbours maze)
     noCollision pos =
-      filter
-        (\p ->
-           manhattanDistance p pos > 1 && manhattanDistance p pos <= cheatLast)
-        (end : walkable)
+      map (\p -> (pos, cheatDist pos p))
+        . filter
+            (\p ->
+               manhattanDistance p pos > 1
+                 && manhattanDistance p pos <= cheatLast
+                 && cheatDist pos p >= threshold)
+        $ (end : walkable)
     cheatFrom pos
       | null . noCollision $ pos = Nothing
-      | otherwise =
-        Just
-          (map (\p -> fromStart ! pos + manhattanDistance pos p + toEnd ! p)
-             . noCollision
-             $ pos)
-    cheated = map (refTime -) . concat . mapMaybe cheatFrom $ walkable
+      | otherwise = Just . noCollision $ pos
+    cheated = concat . mapMaybe cheatFrom $ (start : walkable)
+    cheatDist p1 p2 = fromStart ! p2 - fromStart ! p1 - manhattanDistance p1 p2
     threshold
       | test = 1
       | otherwise = 100
@@ -66,4 +65,4 @@ part1 :: Bool -> Text -> String
 part1 test = show . countCheats test 2
 
 part2 :: Bool -> Text -> String
-part2 _ _ = "Part 2"
+part2 test = show . countCheats test 20
