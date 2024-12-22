@@ -9,11 +9,11 @@ module Day22
 import           Data.Bits                  (shiftL, shiftR, xor, (.&.))
 import           Data.Either                (fromRight)
 import           Data.List                  (foldl', groupBy, nubBy, sortBy)
-import           Data.Map                   (Map, alter, elems)
-import qualified Data.Map                   as M (empty)
+import           Data.IntMap                   (IntMap, alter, elems)
+import qualified Data.IntMap                   as M (empty)
 import           Data.Ord                   (comparing)
-import           Data.Set                   (Set, insert, member)
-import qualified Data.Set                   as S (empty)
+import           Data.IntSet                   (IntSet, insert, member)
+import qualified Data.IntSet                   as S (empty)
 import           Data.Text                  (Text)
 import           Helpers.Parsers.Text       (Parser)
 import           Text.Megaparsec            (eof, manyTill, parse)
@@ -35,15 +35,15 @@ getDiffs a = zipWith (-) (tail a) a
 
 sequences ::
      [Int]
-  -> Set (Int, Int, Int, Int)
-  -> Map (Int, Int, Int, Int) Int
-  -> Map (Int, Int, Int, Int) Int
+  -> IntSet
+  -> IntMap Int
+  -> IntMap Int
 sequences [w, x, y, z] _ gainMap = gainMap
 sequences (a:xs@(b:c:d:e:_)) seen gainMap
   | diffs `member` seen = sequences xs seen gainMap
   | otherwise = sequences xs seen' gainMap'
   where
-    diffs = (b - a, c - b, d - c, e - d)
+    diffs = 19^4 * (b - a) + 19^3 * (c - b) + 19^2 * (d - c) + 19 * (e - d)
     seen' = insert diffs seen
     gainMap' = alter updateGain diffs gainMap
     updateGain Nothing  = Just e
