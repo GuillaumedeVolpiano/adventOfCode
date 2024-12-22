@@ -10,10 +10,10 @@ according to r/adventofcode when my own solution was much less efficient.
 
 <!-- AOC TILES BEGIN -->
 <h1 align="center">
-  Advent of Code - 492/494 ⭐
+  Advent of Code - 493/494 ⭐
 </h1>
 <h1 align="center">
-  2024 - 42 ⭐ - Haskell
+  2024 - 43 ⭐ - Haskell
 </h1>
 <a href="2024/days/Day1.hs">
   <img src=".aoc_tiles/tiles/2024/01.png" width="161px">
@@ -77,6 +77,9 @@ according to r/adventofcode when my own solution was much less efficient.
 </a>
 <a href="2024/days/Day21.hs">
   <img src=".aoc_tiles/tiles/2024/21.png" width="161px">
+</a>
+<a href="2024/days/Day22.hs">
+  <img src=".aoc_tiles/tiles/2024/22.png" width="161px">
 </a>
 <h1 align="center">
   2023 - 50 ⭐ - Haskell
