@@ -7,7 +7,7 @@ import           System.Directory  (getHomeDirectory)
 import           Test.Tasty.Bench  (Benchmark, bcompare, bench, bgroup,
                                     defaultMain, nf)
 
-inputPath = "/adventOfCode/input/2024/day20.txt"
+inputPath = "/adventOfCode/input/2024/day21.txt"
 
 
 tests :: Text -> [Benchmark]

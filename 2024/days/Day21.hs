@@ -19,7 +19,7 @@ type Ver = Int
 
 data Tree
   = Node (MultiSet Tree)
-  | Opt Tree Tree
+  | Branch Tree Tree
   | Leaf String
   deriving (Eq, Ord, Show)
 
@@ -29,7 +29,7 @@ mapMany f = foldOccur (insertMany . f) empty
 optify :: (String, String) -> Tree
 optify (a, b)
   | a == b = Leaf a
-  | otherwise = Opt (Leaf a) (Leaf b)
+  | otherwise = Branch (Leaf a) (Leaf b)
 
 shortestPathCode :: Int -> Int -> (Hor, Ver)
 shortestPathCode a b
@@ -93,9 +93,9 @@ botcode (ks, c) k
     , k)
 
 bindTree :: (String -> Tree) -> Tree -> Tree
-bindTree f (Leaf a)  = f a
-bindTree f (Node a)  = Node . mapMany (bindTree f) $ a
-bindTree f (Opt a b) = Opt (bindTree f a) (bindTree f b)
+bindTree f (Leaf a)     = f a
+bindTree f (Node a)     = Node . mapMany (bindTree f) $ a
+bindTree f (Branch a b) = Branch (bindTree f a) (bindTree f b)
 
 botOp :: Tree -> Tree
 botOp = simplify . bindTree (Node . fromList . fst . foldl' botcode ([], 'A'))
@@ -107,10 +107,10 @@ simplify n@(Node xs)
   | otherwise = n
   where
     xs' = foldOccur flatten empty xs
-simplify (Opt a b)
+simplify (Branch a b)
   | humanOp a' < humanOp b' = a'
   | humanOp b' < humanOp a = b'
-  | otherwise = Opt a' b'
+  | otherwise = Branch a' b'
   where
     a' = simplify a
     b' = simplify b
@@ -121,14 +121,14 @@ isNode _        = False
 
 flatten :: Tree -> Int -> MultiSet Tree -> MultiSet Tree
 flatten (Leaf a) b s = insertMany (Leaf a) b s
-flatten o@(Opt _ _) a s = insertMany (simplify o) a s
+flatten o@(Branch _ _) a s = insertMany (simplify o) a s
 flatten (Node xs) a s =
   foldOccur (\item count -> insertMany (simplify item) (a * count)) s xs
 
 humanOp :: Tree -> Int
-humanOp (Leaf a)  = length a
-humanOp (Node xs) = sum . mapMany humanOp $ xs
-humanOp (Opt a b) = min (humanOp a) (humanOp b)
+humanOp (Leaf a)     = length a
+humanOp (Node xs)    = sum . mapMany humanOp $ xs
+humanOp (Branch a b) = min (humanOp a) (humanOp b)
 
 input :: Int -> String -> Int
 input count string = humanOp . (!! count) . iterate botOp $ keyed
