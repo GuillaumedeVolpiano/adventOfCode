@@ -4,7 +4,7 @@ module Day23
   ) where
 
 import           Data.Either          (fromRight)
-import           Data.List            (intercalate, maximumBy, sort, sortBy)
+import           Data.List            (intercalate, maximumBy, sortBy)
 import           Data.Map.Strict      (Map, assocs, insertWith, keys, (!))
 import qualified Data.Map.Strict      as M (empty)
 import           Data.Ord             (comparing)
@@ -17,8 +17,6 @@ import qualified Data.Text            as T (head)
 import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (eof, manyTill, parse, (<|>))
 import           Text.Megaparsec.Char (char, eol, lowerChar)
-
-import           Debug.Trace
 
 type LAN = Map Node (Set Node)
 
@@ -53,12 +51,6 @@ triplets lan node = unions . S.map thirds $ neighbours
     thirds x =
       S.map (fromList . (: [node, x])) . S.filter (member node . (lan !))
         $ lan ! x
-
-findAllTriangles :: LAN -> Set (Set Node)
-findAllTriangles lan = findTriangles . keys $ lan
-  where
-    findTriangles [a, b] = S.empty
-    findTriangles (n:ns) = triplets lan n `union` findTriangles ns
 
 bronKerboschOrdering ::
      LAN -> [Node] -> Set Node -> Set Node -> Set Node -> Set Node
