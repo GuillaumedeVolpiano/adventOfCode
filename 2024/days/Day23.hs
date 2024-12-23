@@ -3,10 +3,12 @@ module Day23
   , part2
   ) where
 
+import           Data.Bits            (shiftL, shiftR, (.&.))
+import           Data.Char            (chr, ord)
 import           Data.Either          (fromRight)
+import           Data.IntMap.Strict   (IntMap, assocs, insertWith, keys, (!))
+import qualified Data.IntMap.Strict   as M (empty)
 import           Data.List            (intercalate, maximumBy, sortBy)
-import           Data.Map.Strict      (Map, assocs, insertWith, keys, (!))
-import qualified Data.Map.Strict      as M (empty)
 import           Data.Ord             (comparing)
 import           Data.Set             (Set, delete, difference, fromList,
                                        insert, intersection, member, singleton,
@@ -18,31 +20,34 @@ import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (eof, manyTill, parse, (<|>))
 import           Text.Megaparsec.Char (char, eol, lowerChar)
 
-type LAN = Map Node (Set Node)
+type LAN = IntMap (Set Node)
 
-type Node = Text
+type Node = Int
 
-newtype SizeSort = SizeSort
-  { getSet :: Set Node
-  } deriving (Show, Eq)
+encode :: String -> Int
+encode [a, b] = shiftL (ord a) 8 + ord b
 
-instance Ord SizeSort where
-  compare a b =
-    compare (length . getSet $ a) (length . getSet $ b) `mappend` compare a b
+decode :: Int -> String
+decode int = [chr . shiftR int $ 8, chr $ int .&. 255]
 
 parseInput :: Parser LAN
 parseInput = parseEdge <|> (eof >> return M.empty)
 
 parseEdge :: Parser LAN
 parseEdge = do
-  a <- pack <$> manyTill lowerChar (char '-')
-  b <- pack <$> manyTill lowerChar eol
+  a <- encode <$> manyTill lowerChar (char '-')
+  b <- encode <$> manyTill lowerChar eol
   insertWith union a (singleton b) . insertWith union b (singleton a)
     <$> parseInput
 
 findTriconnectedTs :: LAN -> Int
 findTriconnectedTs lan =
-  size . unions . map (triplets lan) . filter ((== 't') . T.head) . keys $ lan
+  size
+    . unions
+    . map (triplets lan)
+    . filter ((== ord 't') . flip shiftR 8)
+    . keys
+    $ lan
 
 triplets :: LAN -> Node -> Set (Set Node)
 triplets lan node = unions . S.map thirds $ neighbours
@@ -98,7 +103,7 @@ bronKerboschPivot lan clique nodes seen
 findLargestInterconnected :: LAN -> String
 findLargestInterconnected lan =
   intercalate ","
-    . map unpack
+    . map decode
     . toList
     . bronKerboschOrdering
         lan
