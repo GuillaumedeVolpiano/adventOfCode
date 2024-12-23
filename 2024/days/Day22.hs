@@ -8,12 +8,12 @@ module Day22
 
 import           Data.Bits                  (shiftL, shiftR, xor, (.&.))
 import           Data.Either                (fromRight)
+import           Data.IntMap.Strict         (IntMap, elems, insertWith)
+import qualified Data.IntMap.Strict         as M (empty)
+import           Data.IntSet                (IntSet, insert, member)
+import qualified Data.IntSet                as S (empty)
 import           Data.List                  (foldl', groupBy, nubBy, sortBy)
-import           Data.IntMap                   (IntMap, alter, elems)
-import qualified Data.IntMap                   as M (empty)
 import           Data.Ord                   (comparing)
-import           Data.IntSet                   (IntSet, insert, member)
-import qualified Data.IntSet                   as S (empty)
 import           Data.Text                  (Text)
 import           Helpers.Parsers.Text       (Parser)
 import           Text.Megaparsec            (eof, manyTill, parse)
@@ -34,20 +34,27 @@ getDiffs :: [Int] -> [Int]
 getDiffs a = zipWith (-) (tail a) a
 
 sequences ::
-     [Int]
-  -> IntSet
-  -> IntMap Int
-  -> IntMap Int
-sequences [w, x, y, z] _ gainMap = gainMap
-sequences (a:xs@(b:c:d:e:_)) seen gainMap
-  | diffs `member` seen = sequences xs seen gainMap
-  | otherwise = sequences xs seen' gainMap'
+     Int -> IntSet -> (Int, Int, Int, Int, Int) -> IntMap Int -> IntMap Int
+sequences counter seen (a, b, c, d, e) gainMap
+  | counter == 2001 = gainMap
+  | diffs `member` seen = sequences counter' seen (b, c, d, e', f) gainMap
+  | otherwise = sequences counter' seen' (b, c, d, e', f) gainMap'
   where
-    diffs = 19^4 * (b - a) + 19^3 * (c - b) + 19^2 * (d - c) + 19 * (e - d)
+    f = secret e
+    e' = e `mod` 10
+    counter' = counter + 1
+    diffs =
+      19 ^ 4 * (b - a) + 19 ^ 3 * (c - b) + 19 ^ 2 * (d - c) + 19 * (e' - d)
     seen' = insert diffs seen
-    gainMap' = alter updateGain diffs gainMap
-    updateGain Nothing  = Just e
-    updateGain (Just s) = Just (s + e)
+    gainMap' = insertWith (+) diffs e' gainMap
+
+initSequence :: Int -> (Int, Int, Int, Int, Int)
+initSequence salt = (salt `mod` 10, b `mod` 10, c `mod` 10, d `mod` 10, e)
+  where
+    b = secret salt
+    c = secret b
+    d = secret c
+    e = secret d
 
 secret :: Int -> Int
 secret a = prune sec3
@@ -70,10 +77,7 @@ getNthSecret n = (!! n) . iterate secret
 
 bestBananas :: [Int] -> Int
 bestBananas =
-  maximum
-    . elems
-    . foldl' (\m p -> sequences p S.empty m) M.empty
-    . map (map (`mod` 10) . getNSecrets 2001)
+  maximum . elems . foldr (sequences 4 S.empty . initSequence) M.empty
 
 part1 :: Bool -> Text -> String
 part1 _ =
