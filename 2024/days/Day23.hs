@@ -8,19 +8,21 @@ import           Data.Char            (chr, ord)
 import           Data.Either          (fromRight)
 import           Data.IntMap.Strict   (IntMap, assocs, insertWith, keys, (!))
 import qualified Data.IntMap.Strict   as M (empty)
+import           Data.IntSet          (IntSet, delete, difference, fromList,
+                                       insert, intersection, member, singleton,
+                                       size, toList, union)
+import qualified Data.IntSet          as IS (empty, foldr, null)
 import           Data.List            (intercalate, maximumBy, sortBy)
 import           Data.Ord             (comparing)
-import           Data.Set             (Set, delete, difference, fromList,
-                                       insert, intersection, member, singleton,
-                                       size, toList, union, unions)
-import qualified Data.Set             as S (empty, filter, map, null)
+import           Data.Set             (Set)
+import qualified Data.Set             as S (fromList, size, unions)
 import           Data.Text            (Text, pack, unpack)
 import qualified Data.Text            as T (head)
 import           Helpers.Parsers.Text (Parser)
 import           Text.Megaparsec      (eof, manyTill, parse, (<|>))
 import           Text.Megaparsec.Char (char, eol, lowerChar)
 
-type LAN = IntMap (Set Node)
+type LAN = IntMap IntSet
 
 type Node = Int
 
@@ -42,23 +44,25 @@ parseEdge = do
 
 findTriconnectedTs :: LAN -> Int
 findTriconnectedTs lan =
-  size
-    . unions
+  S.size
+    . S.unions
     . map (triplets lan)
     . filter ((== ord 't') . flip shiftR 8)
     . keys
     $ lan
 
-triplets :: LAN -> Node -> Set (Set Node)
-triplets lan node = unions . S.map thirds $ neighbours
+triplets :: LAN -> Node -> Set IntSet
+triplets lan node = S.unions . map thirds . toList $ neighbours
   where
     neighbours = lan ! node
     thirds x =
-      S.map (fromList . (: [node, x])) . S.filter (member node . (lan !))
+      S.fromList
+        . map (fromList . (: [node, x]))
+        . filter (member node . (lan !))
+        . toList
         $ lan ! x
 
-bronKerboschOrdering ::
-     LAN -> [Node] -> Set Node -> Set Node -> Set Node -> Set Node
+bronKerboschOrdering :: LAN -> [Node] -> IntSet -> IntSet -> IntSet -> IntSet
 bronKerboschOrdering lan ordering nodes seen clique
   | null ordering = clique
   | otherwise = bronKerboschOrdering lan ordering' nodes' seen' clique''
@@ -76,13 +80,13 @@ bronKerboschOrdering lan ordering nodes seen clique
         (intersection nodes $ lan ! v)
         (intersection seen $ lan ! v)
 
-bronKerboschPivot :: LAN -> Set Node -> Set Node -> Set Node -> Set Node
+bronKerboschPivot :: LAN -> IntSet -> IntSet -> IntSet -> IntSet
 bronKerboschPivot lan clique nodes seen
-  | S.null nodes && S.null seen = clique
-  | S.null nodes = S.empty
+  | IS.null nodes && IS.null seen = clique
+  | IS.null nodes = IS.empty
   | otherwise = clique'
   where
-    (_, _, _, clique') = foldr bkp (clique, nodes, seen, S.empty) toConsider
+    (_, _, _, clique') = IS.foldr bkp (clique, nodes, seen, IS.empty) toConsider
     clique''
       | size clique' > size clique = clique'
       | otherwise = clique
@@ -109,11 +113,11 @@ findLargestInterconnected lan =
         lan
         degeneracyOrdering
         (fromList . keys $ lan)
-        S.empty
-    $ S.empty
+        IS.empty
+    $ IS.empty
   where
     degeneracyOrdering =
-      map fst . sortBy (comparing (length . snd)) . assocs $ lan
+      map fst . sortBy (comparing (size . snd)) . assocs $ lan
 
 part1 :: Bool -> Text -> String
 part1 _ =
