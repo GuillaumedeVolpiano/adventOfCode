@@ -2,18 +2,18 @@ module Main where
 
 import           Data.Text         as T (Text)
 import qualified Data.Text.IO.Utf8 as TIO (readFile)
-import qualified Day23
+import qualified Day24
 import           System.Directory  (getHomeDirectory)
 import           Test.Tasty.Bench  (Benchmark, bcompare, bench, bgroup,
                                     defaultMain, nf)
 
-inputPath = "/adventOfCode/input/2024/day23.txt"
+inputPath = "/adventOfCode/input/2024/day24.txt"
 
 
 tests :: Text -> [Benchmark]
 tests input =
-  [ bench "part 1" $ nf (Day23.part1 False) input
-  , bench "part 2" $ nf (Day23.part2 False) input
+  [ bench "part 1" $ nf (Day24.part1 False) input
+  , bench "part 2" $ nf (Day24.part2 False) input
   ]
 
 main :: IO ()

@@ -6,8 +6,8 @@ module Day24
   ) where
 
 import           Data.Bifunctor             (bimap, first)
-import           Data.Bits                  (setBit, shiftL, shiftR, testBit,
-                                             xor, (.&.))
+import           Data.Bits                  (bit, shiftL, shiftR, testBit, xor,
+                                             (.&.))
 import           Data.Char                  (chr, isLower, ord)
 import           Data.Either                (fromRight)
 import           Data.IntMap                (IntMap, assocs, empty, fromList,
@@ -189,12 +189,38 @@ passedFull register gates =
 passedFullTests :: Register -> Gates -> Int -> Bool
 passedFullTests register gates k =
   all (uncurry (testFullNumbers register gates))
-    $ [(x, y) | x <- [0, setBit 0 k], y <- [0, setBit 0 k]]
+    $ [(x, y) | x <- [0, bit k], y <- [0, bit k]]
+
+passedCarry :: Register -> Gates -> Bool
+passedCarry register gates =
+  all (passedCarryTests register gates) [2 .. bitSize - 1]
+  where
+    bitSize = div (size register) 2
+
+passedCarryTests :: Register -> Gates -> Int -> Bool
+passedCarryTests register gates k =
+  all (uncurry (testFullNumbers register gates))
+    $ [ (a + b + c, d + e + f)
+      | a <- [0, bit k]
+      , b <- [0, bit (k - 1)]
+      , c <- [0, bit (k - 1) - 1]
+      , a /= 0 || b /= 0 || c /= 0
+      , d <- [0, bit k]
+      , e <- [0, bit (k - 1)]
+      , f <- [0, bit (k - 1) - 1]
+      , d /= 0 || e /= 0 || f /= 0
+      ]
+
+passedLargest :: Register -> Gates -> Bool
+passedLargest register gates =
+  testFullNumbers register gates ((2 ^ bs) - 1) ((2 ^ bs) - 1)
+  where
+    bs = div (size register) 2
 
 failedTests :: Bool -> (Register, Gates) -> Int -> Bool
 failedTests test (register, gates) k =
   not . all (uncurry (testNumbers test register gates k))
-    $ [(x, y) | x <- [0, setBit 0 k], y <- [0, setBit 0 k]]
+    $ [(x, y) | x <- [0, bit k], y <- [0, bit k]]
 
 ancestors :: Gates -> Int -> [Int]
 ancestors g@(Gates gates) int
@@ -222,7 +248,12 @@ suc = encodeInt 'z' . (+ 1) . read . tail . decode
 searchFix :: (Register, Gates) -> [String]
 searchFix pair@(register, gates) =
   map (intercalate "," . sort . fst)
-    . filter (passedFull register . snd)
+    . filter
+        (\x ->
+           passedCarry register (snd x)
+             && passedLargest register (snd x)
+             && testGates register (snd x)
+             && passedFull register (snd x))
     . foldl' concatFix [([], gates)]
     . faultyEntries False
     $ pair
