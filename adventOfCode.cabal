@@ -20,276 +20,1062 @@ maintainer:         guillaumedevolpiano@gmail.com
 -- copyright:
 -- category:
 extra-source-files:
-    CHANGELOG.md
-    README.md
+  CHANGELOG.md
+  README.md
 
 library helpers
-  hs-source-dirs: lib
-  exposed-modules: Helpers.General, Helpers.General.Text, Helpers.Graph
-                   , Helpers.Maths, Helpers.Parsers, Helpers.Parsers.Text
-                   , Helpers.Search, Helpers.Search.Int
-  build-depends: array, base, containers, curl, directory, fgl, graphviz, hashable
-                 , linear, megaparsec, psqueues, regex-tdfa, split, time, text
-                 , timeit, unordered-containers
+  hs-source-dirs:   lib
+  exposed-modules:
+    Helpers.General
+    Helpers.General.Text
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers
+    Helpers.Parsers.Text
+    Helpers.Search
+    Helpers.Search.Int
+
+  build-depends:
+    , array
+    , base
+    , containers
+    , curl
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , psqueues
+    , regex-tdfa
+    , split
+    , text
+    , time
+    , timeit
+    , unordered-containers
+
   default-language: Haskell2010
 
 executable aoc2015
-    main-is:          Main.hs
-    hs-source-dirs: 2015 2015/days, lib
-    other-modules: Helpers.General.Text, Helpers.Graph, Helpers.Maths
-                   , Helpers.Parsers.Text, Helpers.Search
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
+  main-is:          Main.hs
+  hs-source-dirs:   2015 2015/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General.Text
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers.Text
+    Helpers.Search
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends: arithmoi, array, base, base16-bytestring, bytestring, cmdargs, containers 
-                   , criterion, cryptohash-md5, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, mtl, parallel, parser-combinators
-                   , psqueues, regex-pcre, regex-tdfa, split, text, text-show, time, timeit
-                   , transformers, unordered-containers, vector
-    ghc-options: -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
-    default-language: Haskell2010
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , base16-bytestring
+    , bytestring
+    , cmdargs
+    , containers
+    , criterion
+    , cryptohash-md5
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mtl
+    , parallel
+    , parser-combinators
+    , psqueues
+    , regex-pcre
+    , regex-tdfa
+    , split
+    , text
+    , text-show
+    , time
+    , timeit
+    , transformers
+    , unordered-containers
+    , vector
+
+  ghc-options:
+    -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
+    /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
+
+  default-language: Haskell2010
 
 library days2015
-  hs-source-dirs: 2015/days, lib
-  exposed-modules: Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
-  other-modules: Helpers.General.Text, Helpers.Graph, Helpers.Maths
-                 , Helpers.Parsers.Text, Helpers.Search
-  build-depends: arithmoi, array, base, base16-bytestring, bytestring, cmdargs, containers 
-                 , criterion, cryptohash-md5, curl, data-clist, directory, fgl, graphviz
-                 , hashable, linear, megaparsec, mtl, parallel, parser-combinators
-                 , psqueues, regex-pcre, regex-tdfa, split, text, text-show, time, timeit
-                 , transformers, unordered-containers, vector
+  hs-source-dirs:   2015/days lib
+  exposed-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+
+  other-modules:
+    Helpers.General.Text
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers.Text
+    Helpers.Search
+
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , base16-bytestring
+    , bytestring
+    , cmdargs
+    , containers
+    , criterion
+    , cryptohash-md5
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mtl
+    , parallel
+    , parser-combinators
+    , psqueues
+    , regex-pcre
+    , regex-tdfa
+    , split
+    , text
+    , text-show
+    , time
+    , timeit
+    , transformers
+    , unordered-containers
+    , vector
+
   default-language: Haskell2010
 
 executable aoc2016
-    main-is:          Main.hs
-    hs-source-dirs: 2016 2016/days, lib
-    other-modules: Helpers.General.Text, Helpers.Graph, Helpers.Maths
-                   , Helpers.Parsers.Text, Helpers.Search
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25, MD5
-    build-depends: arithmoi, array, base, base16-bytestring, bytestring, cmdargs, containers 
-                   , criterion, cryptohash-md5, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, mtl, parallel, parser-combinators
-                   , psqueues, regex-pcre, regex-tdfa, split, text, text-show, time, timeit
-                   , transformers, unordered-containers, vector
-    ghc-options: -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
-    default-language: Haskell2010
+  main-is:          Main.hs
+  hs-source-dirs:   2016 2016/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General.Text
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers.Text
+    Helpers.Search
+    MD5
+
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , base16-bytestring
+    , bytestring
+    , cmdargs
+    , containers
+    , criterion
+    , cryptohash-md5
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mtl
+    , parallel
+    , parser-combinators
+    , psqueues
+    , regex-pcre
+    , regex-tdfa
+    , split
+    , text
+    , text-show
+    , time
+    , timeit
+    , transformers
+    , unordered-containers
+    , vector
+
+  ghc-options:
+    -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
+    /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
+
+  default-language: Haskell2010
 
 library days2016
-  hs-source-dirs: 2016/days, lib
-  exposed-modules: Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25, MD5
-  other-modules: Helpers.General.Text, Helpers.Graph, Helpers.Maths
-                 , Helpers.Parsers.Text, Helpers.Search
-  build-depends: arithmoi, array, base, base16-bytestring, bytestring, cmdargs, containers 
-                 , criterion, cryptohash-md5, curl, data-clist, directory, fgl, graphviz
-                 , hashable, linear, megaparsec, mtl, parallel, parser-combinators
-                 , psqueues, regex-pcre, regex-tdfa, split, text, text-show, time, timeit
-                 , transformers, unordered-containers, vector
+  hs-source-dirs:   2016/days lib
+  exposed-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    MD5
+
+  other-modules:
+    Helpers.General.Text
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers.Text
+    Helpers.Search
+
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , base16-bytestring
+    , bytestring
+    , cmdargs
+    , containers
+    , criterion
+    , cryptohash-md5
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mtl
+    , parallel
+    , parser-combinators
+    , psqueues
+    , regex-pcre
+    , regex-tdfa
+    , split
+    , text
+    , text-show
+    , time
+    , timeit
+    , transformers
+    , unordered-containers
+    , vector
+
   default-language: Haskell2010
-  
+
 executable aoc2017
-    main-is:          Main.hs
-    hs-source-dirs: 2017 2017/days, lib
-    other-modules: Helpers.General, Helpers.Graph, Helpers.Maths, Helpers.Parsers, Helpers.Search
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
-                   , KnotHash
+  main-is:          Main.hs
+  hs-source-dirs:   2017 2017/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers
+    Helpers.Search
+    KnotHash
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends: arithmoi, array, base, cmdargs, containers 
-                   , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, parallel, parser-combinators
-                   , psqueues, regex-pcre, regex-tdfa, split, text, time, timeit
-                   , transformers, unordered-containers, vector
-    ghc-options: -threaded
-    default-language: Haskell2010
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , cmdargs
+    , containers
+    , criterion
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , parallel
+    , parser-combinators
+    , psqueues
+    , regex-pcre
+    , regex-tdfa
+    , split
+    , text
+    , time
+    , timeit
+    , transformers
+    , unordered-containers
+    , vector
 
+  ghc-options:      -threaded
+  default-language: Haskell2010
 
 executable aoc2018
-    main-is:          Main.hs
-    hs-source-dirs: 2018 2018/days, lib
-    other-modules: Helpers.General, Helpers.Graph, Helpers.Maths, Helpers.Parsers, Helpers.Search
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
-                   , Computer
+  main-is:          Main.hs
+  hs-source-dirs:   2018 2018/days lib
+  other-modules:
+    Computer
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers
+    Helpers.Search
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends: arithmoi, array, base , cmdargs, containers 
-                   , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, lens, linear, megaparsec, monad-loops, mtl
-                   , multiset, parallel, psqueues, split, text, time, timeit
-                   , unordered-containers, utility-ht, vector
-    ghc-options: -O1 -threaded
-    default-language: Haskell2010
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , cmdargs
+    , containers
+    , criterion
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , lens
+    , linear
+    , megaparsec
+    , monad-loops
+    , mtl
+    , multiset
+    , parallel
+    , psqueues
+    , split
+    , text
+    , time
+    , timeit
+    , unordered-containers
+    , utility-ht
+    , vector
+
+  ghc-options:      -O1 -threaded
+  default-language: Haskell2010
 
 executable aoc2019
-    main-is:          Main.hs
-    hs-source-dirs: 2019 2019/days, lib
-    other-modules: Helpers.General, Helpers.Graph, Helpers.Maths, Helpers.Parsers, Helpers.Search
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
-                   , Intcode
+  main-is:          Main.hs
+  hs-source-dirs:   2019 2019/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers
+    Helpers.Search
+    Intcode
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends: arithmoi, array, base , cmdargs, containers 
-                   , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, lens, linear, megaparsec, monad-loops, mtl
-                   , multiset, parallel, psqueues, split, text, time, timeit
-                   , unordered-containers, vector
-    ghc-options: -O1 -threaded
-    default-language: Haskell2010
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , cmdargs
+    , containers
+    , criterion
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , lens
+    , linear
+    , megaparsec
+    , monad-loops
+    , mtl
+    , multiset
+    , parallel
+    , psqueues
+    , split
+    , text
+    , time
+    , timeit
+    , unordered-containers
+    , vector
+
+  ghc-options:      -O1 -threaded
+  default-language: Haskell2010
 
 executable aoc2020
-    main-is:          Main.hs
-    hs-source-dirs: 2020 2020/days, lib
-    other-modules: Helpers.General, Helpers.Graph, Helpers.Maths, Helpers.Parsers, Helpers.Search
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
+  main-is:          Main.hs
+  hs-source-dirs:   2020 2020/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers
+    Helpers.Search
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends: arithmoi, array, base , cmdargs, containers 
-                   , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, monad-loops, mtl, parallel
-                   , psqueues, split, text, time, timeit, unordered-containers
-                   , vector
-    ghc-options: -threaded
-    default-language: Haskell2010
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , cmdargs
+    , containers
+    , criterion
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , monad-loops
+    , mtl
+    , parallel
+    , psqueues
+    , split
+    , text
+    , time
+    , timeit
+    , unordered-containers
+    , vector
+
+  ghc-options:      -threaded
+  default-language: Haskell2010
 
 executable aoc2021
-    main-is:          Main.hs
-    hs-source-dirs: 2021, 2021/days, lib
-    other-modules: Helpers.General, Helpers.Parsers, Helpers.Search
-                   , Helpers.Graph, Day1, Day2, Day3, Day4, Day5, Day6, Day7
-                   , Day8, Day9, Day10, Day11, Day12, Day13, Day14, Day15
-                   , Day16, Day17, Day18, Day19, Day20, Day21, Day22, Day23
-                   , Day24,Day25
+  main-is:          Main.hs
+  hs-source-dirs:   2021 2021/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General
+    Helpers.Graph
+    Helpers.Parsers
+    Helpers.Search
 
-   -- LANGUAGE extensions used by modules in this package.
-   -- other-extensions:
-    build-depends: array, base , cmdargs, containers, curl
-                   , data-clist, directory, fgl, graphviz, hashable, linear
-                   , megaparsec, mtl, multiset, psqueues, regex-tdfa, split
-                   , text, timeit, time, unordered-containers
-    default-language: Haskell2010
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , array
+    , base
+    , cmdargs
+    , containers
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mtl
+    , multiset
+    , psqueues
+    , regex-tdfa
+    , split
+    , text
+    , time
+    , timeit
+    , unordered-containers
+
+  default-language: Haskell2010
 
 executable aoc2022
-    main-is:          Main.hs
-    hs-source-dirs: 2022, 2022/days, lib
-    other-modules: Helpers.General, Helpers.Search, Day1, Day2, Day3, Day4, Day5,
-                  Day6, Day7, Day8, Day9, Day10, Day11, Day12, Day13, Day14, Day15, 
-                  Day16, Day17, Day18, Day19, Day20, Day21, Day22, Day23, Day24,
-                  Day25
---
---    -- LANGUAGE extensions used by modules in this package.
---    -- other-extensions:
-    build-depends: array, base, cmdargs, containers, curl
-                    , data-clist, directory, hashable, linear, megaparsec
-                    , psqueues, regex-tdfa, split, timeit, time
-                    , unordered-containers
-    default-language: Haskell2010
+  main-is:          Main.hs
+  hs-source-dirs:   2022 2022/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General
+    Helpers.Search
+
+  --
+  --    -- LANGUAGE extensions used by modules in this package.
+  --    -- other-extensions:
+  build-depends:
+    , array
+    , base
+    , cmdargs
+    , containers
+    , curl
+    , data-clist
+    , directory
+    , hashable
+    , linear
+    , megaparsec
+    , psqueues
+    , regex-tdfa
+    , split
+    , time
+    , timeit
+    , unordered-containers
+
+  default-language: Haskell2010
+
 --
 executable aoc2023
-    main-is:          Main.hs
-    hs-source-dirs: 2023 2023/days, lib
-    other-modules: Helpers.General, Helpers.Graph, Helpers.Maths, Helpers.Parsers, Helpers.Search
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25,Part
+  main-is:          Main.hs
+  hs-source-dirs:   2023 2023/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers
+    Helpers.Search
+    Part
 
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends: arithmoi, array, base, cmdargs, containers 
-                   , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, parallel, parser-combinators
-                   , psqueues, regex-pcre, regex-tdfa, split, text, time, timeit
-                   , unordered-containers
-    ghc-options: -threaded
-    default-language: Haskell2010
+  -- LANGUAGE extensions used by modules in this package.
+  -- other-extensions:
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , cmdargs
+    , containers
+    , criterion
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , parallel
+    , parser-combinators
+    , psqueues
+    , regex-pcre
+    , regex-tdfa
+    , split
+    , text
+    , time
+    , timeit
+    , unordered-containers
+
+  ghc-options:      -threaded
+  default-language: Haskell2010
 
 executable aoc2024
-    main-is:          Main.hs
-    hs-source-dirs: 2024 2024/days, lib
-    other-modules: Helpers.General.Text, Helpers.Graph
-                   , Helpers.Maths, Helpers.Parsers.Text, Helpers.Search
-                   , Helpers.Search.Int, Day1, Day2, Day3, Day4, Day5, Day6
-                   , Day7, Day8, Day9, Day10, Day11, Day12, Day13, Day14
-                   , Day15, Day16, Day17, Day18, Day19, Day20, Day21, Day22
-                   , Day23, Day24, Day25
-    build-depends: arithmoi, array, base, cmdargs, containers
-                   , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, mono-traversable, mtl, multiset, parallel, parser-combinators
-                   , psqueues, semialign, split, statistics, tasty-bench 
-                   , text >= 2.1, time, timeit
-                   , unordered-containers, vector
-    -- ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
-    ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm  -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
-    default-language: Haskell2010
+  main-is:          Main.hs
+  hs-source-dirs:   2024 2024/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.General.Text
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers.Text
+    Helpers.Search
+    Helpers.Search.Int
+
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , cmdargs
+    , containers
+    , criterion
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mono-traversable
+    , mtl
+    , multiset
+    , parallel
+    , parser-combinators
+    , psqueues
+    , semialign
+    , split
+    , statistics
+    , tasty-bench
+    , text                  >=2.1
+    , time
+    , timeit
+    , unordered-containers
+    , vector
+
+  -- ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
+  ghc-options:
+    -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
+    -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
+
+  default-language: Haskell2010
 
 library days2024
-  hs-source-dirs: 2024/days, lib
-  exposed-modules: Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9, Day10
-                   , Day11, Day12, Day13, Day14, Day15, Day16, Day17, Day18
-                   , Day19, Day20, Day21, Day22, Day23, Day24, Day25
-  other-modules: Helpers.General.Text, Helpers.Graph, Helpers.Maths,
-                 Helpers.Parsers.Text, Helpers.Search.Int
-  build-depends: arithmoi, array, base, cmdargs, containers
-                   , criterion, curl, data-clist, directory, fgl, graphviz
-                   , hashable, linear, megaparsec, mono-traversable, mtl, multiset, parallel, parser-combinators
-                   , psqueues, semialign, split, statistics, tasty-bench 
-                   , text >= 2.1, time, timeit
-                   , unordered-containers, vector
+  hs-source-dirs:   2024/days lib
+  exposed-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+
+  other-modules:
+    Helpers.General.Text
+    Helpers.Graph
+    Helpers.Maths
+    Helpers.Parsers.Text
+    Helpers.Search.Int
+
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , cmdargs
+    , containers
+    , criterion
+    , curl
+    , data-clist
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mono-traversable
+    , mtl
+    , multiset
+    , parallel
+    , parser-combinators
+    , psqueues
+    , semialign
+    , split
+    , statistics
+    , tasty-bench
+    , text                  >=2.1
+    , time
+    , timeit
+    , unordered-containers
+    , vector
+
   default-language: Haskell2010
 
 test-suite tests2016
-    type: exitcode-stdio-1.0
-    main-is: Tests.hs
-    hs-source-dirs: test/2016, 2016/days, lib
-    -- other-modules: Helpers.Parsers, Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-    --               , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-     --              , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
-    build-depends: array, base, base16-bytestring, containers, cryptohash-md5
-                   , directory, fgl, graphviz, hashable, HUnit, linear, megaparsec
-                   , mono-traversable, mtl, multiset, psqueues, semialign
-                   , split, text, text-show, unordered-containers, vector
-    default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test/2016 2016/days lib
+
+  -- other-modules: Helpers.Parsers, Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
+  --               , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
+  --              , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
+  build-depends:
+    , array
+    , base
+    , base16-bytestring
+    , containers
+    , cryptohash-md5
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , HUnit
+    , linear
+    , megaparsec
+    , mono-traversable
+    , mtl
+    , multiset
+    , psqueues
+    , semialign
+    , split
+    , text
+    , text-show
+    , unordered-containers
+    , vector
+
+  default-language: Haskell2010
 
 test-suite tests2024
-    type: exitcode-stdio-1.0
-    main-is: Tests.hs
-    hs-source-dirs: test/2024, 2024/days, lib
-    other-modules: Helpers.Parsers, Helpers.Graph, Helpers.Parsers.Text, Helpers.Search
-                   , Helpers.Search.Int
-                   , Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
-                   , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
-                   , Day18, Day19, Day20, Day21, Day22, Day23, Day24, Day25
-    build-depends: arithmoi, array, base, containers, fgl, graphviz, hashable, HUnit, linear, megaparsec
-                   , mono-traversable, mtl, multiset, parallel, psqueues, semialign, split
-                   , statistics, text, unordered-containers, vector
-    default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test/2024 2024/days lib
+  other-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day13
+    Day14
+    Day15
+    Day16
+    Day17
+    Day18
+    Day19
+    Day2
+    Day20
+    Day21
+    Day22
+    Day23
+    Day24
+    Day25
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Helpers.Graph
+    Helpers.Parsers
+    Helpers.Parsers.Text
+    Helpers.Search
+    Helpers.Search.Int
+
+  build-depends:
+    , arithmoi
+    , array
+    , base
+    , containers
+    , fgl
+    , graphviz
+    , hashable
+    , HUnit
+    , linear
+    , megaparsec
+    , mono-traversable
+    , mtl
+    , multiset
+    , parallel
+    , psqueues
+    , semialign
+    , split
+    , statistics
+    , text
+    , unordered-containers
+    , vector
+
+  default-language: Haskell2010
 
 benchmark bench
-  main-is: Bench.hs
-  type: exitcode-stdio-1.0
-  hs-source-dirs: bench, lib, 2024/days
-  other-modules: Helpers.Search, Helpers.Graph, Helpers.Parsers.Text, Day24
-  build-depends: array, base, containers, directory, fgl, graphviz, hashable, linear
-                 , megaparsec, mtl, multiset, psqueues, split, tasty-bench, text, unordered-containers 
-  ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
+  main-is:          Bench.hs
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   bench lib 2024/days
+  other-modules:
+    Day24
+    Helpers.Graph
+    Helpers.Parsers.Text
+    Helpers.Search
+
+  build-depends:
+    , array
+    , base
+    , containers
+    , directory
+    , fgl
+    , graphviz
+    , hashable
+    , linear
+    , megaparsec
+    , mtl
+    , multiset
+    , psqueues
+    , split
+    , tasty-bench
+    , text
+    , unordered-containers
+
+  ghc-options:
+    -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
+    -fllvm -threaded -O3 -rtsopts -with-rtsopts=-N8
+
   default-language: Haskell2010
