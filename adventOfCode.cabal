@@ -1051,6 +1051,7 @@ benchmark bench
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench lib 2024/days
   other-modules:
+    Day6
     Day24
     Helpers.Graph
     Helpers.Parsers.Text
@@ -1073,6 +1074,7 @@ benchmark bench
     , tasty-bench
     , text
     , unordered-containers
+    , vector
 
   ghc-options:
     -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc

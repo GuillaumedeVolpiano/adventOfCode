@@ -3,78 +3,98 @@ module Day6
   , part2
   ) where
 
-import           Data.Array.Unboxed          (UArray, assocs, (!?))
-import           Data.Hashable               (Hashable, hashWithSalt)
-import           Data.HashSet                as S (HashSet, empty, filter,
-                                                   insert, member, size, toList)
-import           Data.List                   as L (filter, unfoldr)
-import           Data.Maybe                  (isNothing)
-import           Data.Text                   (Text)
-import           Helpers.Graph               (Pos, left, north, right)
-import           Helpers.Parsers.Text        (arrayFromText)
+import           Data.Array.Unboxed  (UArray, assocs, (!?))
+import           Data.Bits           (shiftL, shiftR, (.&.))
+import           Data.IntSet         (IntSet, empty, insert, member, size)
+import qualified Data.IntSet         as S (filter)
+import           Data.List           as L (filter, unfoldr)
+import           Data.Maybe          (fromJust, isNothing)
+import           Data.Text           (Text, index)
+import qualified Data.Text           as T (length, lines)
+import           Data.Vector.Unboxed (Vector, elemIndex, generate, (!))
 
-data Guard =
-  Guard Pos Dir
-  deriving (Show, Eq, Ord)
+-- first 8 bits for x, next 8 bits for y, then two bits for direction,
+-- starting at 0 for north, rotating clockwise
+type Guard = Int
 
-type Dir = Pos
+type Map = Vector Char
 
-type Map = UArray Pos Char
+type Seen = IntSet
 
-type Seen = HashSet Pos
-
-type FullSeen = HashSet Guard
-
-type Obstacle = Pos
-
-instance Hashable Guard where
-  hashWithSalt s (Guard p d) = hashWithSalt s (p, d)
+type Obstacle = Int
 
 getGuard :: Map -> Guard
-getGuard map = Guard pos north
+getGuard = fromJust . elemIndex '^'
+
+right :: Guard -> Guard
+right guard
+  | shiftR guard 16 == 3 = guard .&. 65535
+  | otherwise = guard + 2 ^ 16
+
+left :: Guard -> Guard
+left guard
+  | shiftR guard 16 == 0 = guard + shiftL 3 16
+  | otherwise = guard - 2 ^ 16
+
+move :: Guard -> Guard
+move guard
+  | dir == 0 = guard - 2 ^ 8
+  | dir == 1 = guard + 1
+  | dir == 2 = guard + 2 ^ 8
+  | dir == 3 = guard - 1
   where
-    pos = fst . head . L.filter ((== '^') . snd) . assocs $ map
+    dir = shiftR guard 16
 
 followGuard :: Map -> (Seen, Guard) -> Maybe (Seen, (Seen, Guard))
-followGuard map (seen, guard@(Guard pos dir))
-  | isNothing . (!?) map $ pos = Nothing
-  | map !? pos == Just '#' = Just (seen, (seen, backtrack guard))
+followGuard map (seen, guard)
+  | map ! pos == '0' = Nothing
+  | map ! pos == '#' = Just (seen, (seen, backtrack guard))
   | otherwise = Just (seen', (seen', guard'))
   where
-    pos' = pos + dir
+    guard' = move guard
     seen' = insert pos seen
-    guard' = Guard pos' dir
+    pos = guard .&. 65535
 
 backtrack :: Guard -> Guard
-backtrack (Guard pos dir) = Guard pos' dir'
-  where
-    dir' = right dir
-    pos' = pos - dir + dir'
+backtrack = left . move . right . right
 
-track :: Map -> HashSet Pos
+track :: Map -> Seen
 track map = last . unfoldr (followGuard map) $ (empty, guard)
   where
     guard = getGuard map
 
-isLoop :: Map -> Guard -> FullSeen -> Obstacle -> Bool
-isLoop map guard@(Guard pos dir) seen obstacle
+isLoop :: Map -> Guard -> Seen -> Obstacle -> Bool
+isLoop map guard seen obstacle
   | guard `member` seen = True
-  | isNothing . (!?) map $ pos = False
-  | pos == obstacle || map !? pos == Just '#' =
+  | map ! pos == '0' = False
+  | pos == obstacle || map ! pos == '#' =
     isLoop map (backtrack guard) seen' obstacle
   | otherwise = isLoop map guard' seen obstacle
   where
-    pos' = pos + dir
-    guard' = Guard pos' dir
+    guard' = move guard
     seen' = insert guard seen
+    pos = guard .&. 65535
 
 findLoops :: Map -> Int
 findLoops map = size . S.filter (isLoop map guard empty) . track $ map
   where
     guard = getGuard map
 
+createMap :: Text -> Map
+createMap input = generate (2 ^ 16) indexMap
+  where
+    linedInput = T.lines input
+    yMax = length linedInput
+    xMax = T.length . head $ linedInput
+    indexMap i
+      | x >= xMax || y >= yMax = '0'
+      | otherwise = linedInput !! y `index` x
+      where
+        x = i .&. 255
+        y = shiftR i 8
+
 part1 :: Bool -> Text -> String
-part1 _ = show . size . track . arrayFromText
+part1 _ = show . size . track . createMap
 
 part2 :: Bool -> Text -> String
-part2 _ = show . findLoops . arrayFromText
+part2 _ = show . findLoops . createMap
