@@ -11,34 +11,49 @@ module Helpers.Search.Int
   , dijkstraAllShortestPaths
   ) where
 
-import           Data.IntMap   as IM (IntMap, alter, delete, empty, insert, keys,
-                                     member, notMember, singleton, (!))
-import           Data.IntPSQ   as Q (IntPSQ, insert, minView, null, singleton)
-import           Data.IntSet   as S (IntSet, insert, member, notMember,
-                                     singleton)
-import           Data.List     as L (length)
-import           Data.Maybe    (fromJust, mapMaybe, catMaybes, isNothing, isJust)
-import           Data.Sequence as Sq (Seq ((:<|), (:|>)), null, singleton)
-import Data.Map (Map)
-import qualified Data.Map as M (fromList, insert, (!?))
+import           Data.IntMap.Strict as IM (IntMap, alter, delete, empty, insert,
+                                           keys, member, notMember, singleton,
+                                           (!))
+import           Data.IntPSQ        as Q (IntPSQ, insert, minView, null,
+                                          singleton)
+import           Data.IntSet        as S (IntSet, insert, member, notMember,
+                                          singleton)
+import           Data.List          as L (length)
+import           Data.Map           (Map)
+import qualified Data.Map           as M (fromList, insert, (!?))
+import           Data.Maybe         (catMaybes, fromJust, isJust, isNothing,
+                                     mapMaybe)
+import           Data.Sequence      as Sq (Seq ((:<|), (:|>)), null, singleton)
 
 bfsSafe ::
-     Seq Int -> IntMap Int -> (Int -> [Int]) -> (Int -> Bool) -> Maybe [Int]
-bfsSafe toSee paths neighbours isGoal
+     Seq Int
+  -> IntSet
+  -> IntMap Int
+  -> (Int -> [Int])
+  -> (Int -> Bool)
+  -> Maybe [Int]
+bfsSafe toSee seen paths neighbours isGoal
   | Sq.null toSee = Nothing
   | isGoal curPos = Just $ reconstructPath curPos paths
-  | otherwise = bfsSafe toSee' paths' neighbours isGoal
+  | otherwise = bfsSafe toSee' seen' paths' neighbours isGoal
   where
     (curPos :<| rest) = toSee
-    toConsider = filter (`IM.notMember` paths) . neighbours $ curPos
-    toSee' = foldl (:|>) rest toConsider
-    paths' = foldl (\a b -> IM.insert b curPos a) paths toConsider
+    toConsider = filter (`S.notMember` seen) . neighbours $ curPos
+    toSee' = foldr (flip (:|>)) rest toConsider
+    seen' = foldr S.insert seen toConsider
+    paths' = foldr (`IM.insert` curPos) paths toConsider
 
 bfsSafeDist :: Int -> (Int -> [Int]) -> (Int -> Bool) -> Maybe Int
 -- we need to reduce the distance by one because the path includes both the
 -- starting point and the goal
 bfsSafeDist start neighbours isGoal =
-  (+ (-1)) . L.length <$> bfsSafe (Sq.singleton start) IM.empty neighbours isGoal
+  (+ (-1)) . L.length
+    <$> bfsSafe
+          (Sq.singleton start)
+          (S.singleton start)
+          IM.empty
+          neighbours
+          isGoal
 
 bfsAll :: Seq Int -> IntMap Int -> (Int -> [Int]) -> IntMap Int
 bfsAll toSee seen neighbours
@@ -137,18 +152,32 @@ dijkstraAllShortestPaths queue dists paths neighbours isGoal
     goalNodes = filter isGoal . keys $ dists
     bestDist = minimum . map (dists IM.!) $ goalNodes
 
-floydWarshall :: (Num a, Ord a) => [Int] -> (Int -> [(Int, a)]) -> Map (Int, Int) a
+floydWarshall ::
+     (Num a, Ord a) => [Int] -> (Int -> [(Int, a)]) -> Map (Int, Int) a
 floydWarshall vertices neighbours = dists
   where
     dists = undefined
     initialMap = M.fromList . concat . foldr makeEdges [] $ vertices
-    potEdges = [(i, j, k) | i <- vertices, j <- vertices, i /= j, k <- vertices, i /= k, j /=k]
+    potEdges =
+      [ (i, j, k)
+      | i <- vertices
+      , j <- vertices
+      , i /= j
+      , k <- vertices
+      , i /= k
+      , j /= k
+      ]
     dists' = foldr fw initialMap potEdges
-    makeEdges v = (:) (((v, v), 0) : (map (\(v', d) -> ((v, v'), d)) . neighbours $ v))
-    fw (i, j, k) distMap 
+    makeEdges v =
+      (:) (((v, v), 0) : (map (\(v', d) -> ((v, v'), d)) . neighbours $ v))
+    fw (i, j, k) distMap
       | isNothing . checkDist (i, j, k) $ distMap = distMap
-      | otherwise = M.insert (i, j) (fromJust . checkDist (i, j, k) $ distMap) distMap
+      | otherwise =
+        M.insert (i, j) (fromJust . checkDist (i, j, k) $ distMap) distMap
     checkDist (i, j, k) distMap
-      | isNothing (distSum (i, j, k) distMap) || (isJust (distMap M.!? (i, j)) && distMap M.!? (i, j) <= distSum (i, j, k) distMap) = Nothing
+      | isNothing (distSum (i, j, k) distMap)
+          || (isJust (distMap M.!? (i, j))
+                && distMap M.!? (i, j) <= distSum (i, j, k) distMap) = Nothing
       | otherwise = distSum (i, j, k) distMap
-    distSum (i, j, k) distMap = (+) <$> distMap M.!? (i, k) <*> distMap M.!? (k, j)
+    distSum (i, j, k) distMap =
+      (+) <$> distMap M.!? (i, k) <*> distMap M.!? (k, j)

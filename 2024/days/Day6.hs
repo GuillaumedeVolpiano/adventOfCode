@@ -17,14 +17,14 @@ import           Data.Vector.Unboxed (Vector, elemIndex, generate, (!))
 -- starting at 0 for north, rotating clockwise
 type Guard = Int
 
-type Map = Vector Char
+type Map = Vector Int
 
 type Seen = IntSet
 
 type Obstacle = Int
 
 getGuard :: Map -> Guard
-getGuard = fromJust . elemIndex '^'
+getGuard = fromJust . elemIndex 2
 
 right :: Guard -> Guard
 right guard
@@ -47,8 +47,8 @@ move guard
 
 followGuard :: Map -> (Seen, Guard) -> Maybe (Seen, (Seen, Guard))
 followGuard map (seen, guard)
-  | map ! pos == '0' = Nothing
-  | map ! pos == '#' = Just (seen, (seen, backtrack guard))
+  | map ! pos == 3 = Nothing
+  | map ! pos == 0 = Just (seen, (seen, backtrack guard))
   | otherwise = Just (seen', (seen', guard'))
   where
     guard' = move guard
@@ -66,8 +66,8 @@ track map = last . unfoldr (followGuard map) $ (empty, guard)
 isLoop :: Map -> Guard -> Seen -> Obstacle -> Bool
 isLoop map guard seen obstacle
   | guard `member` seen = True
-  | map ! pos == '0' = False
-  | pos == obstacle || map ! pos == '#' =
+  | map ! pos == 3 = False
+  | pos == obstacle || map ! pos == 0 =
     isLoop map (backtrack guard) seen' obstacle
   | otherwise = isLoop map guard' seen obstacle
   where
@@ -87,11 +87,14 @@ createMap input = generate (2 ^ 16) indexMap
     yMax = length linedInput
     xMax = T.length . head $ linedInput
     indexMap i
-      | x >= xMax || y >= yMax = '0'
-      | otherwise = linedInput !! y `index` x
+      | x >= xMax || y >= yMax = 3
+      | otherwise = classify $ linedInput !! y `index` x
       where
         x = i .&. 255
         y = shiftR i 8
+    classify '^' = 2
+    classify '#' = 0
+    classify _   = 1
 
 part1 :: Bool -> Text -> String
 part1 _ = show . size . track . createMap

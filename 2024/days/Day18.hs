@@ -4,7 +4,7 @@ module Day18
   ) where
 
 import           Control.Monad.State        (State, evalState, get, put)
-import           Data.Bits                  (shiftR, (.&.))
+import           Data.Bits                  (shiftL, shiftR, (.&.))
 import           Data.Either                (fromRight)
 import           Data.IntSet                as S (IntSet, difference, empty,
                                                   fromList, intersection,
@@ -13,10 +13,14 @@ import           Data.List                  (inits)
 import           Data.Maybe                 (fromJust)
 import           Data.Text                  (Text, unpack)
 import           Helpers.Parsers.Text       (Parser)
-import           Helpers.Search.Int         (bfsSafeDist, dfs)
+import           Helpers.Search.Int         (bfsSafe, bfsSafeDist, dfs)
 import           Text.Megaparsec            (eof, manyTill, parse)
 import           Text.Megaparsec.Char       (char, eol)
 import           Text.Megaparsec.Char.Lexer (decimal)
+
+import qualified Data.IntMap                as M (empty)
+import           Data.Sequence              (singleton)
+import           Debug.Trace
 
 type Bytes = IntSet
 
@@ -40,13 +44,13 @@ parseByte = do
   char ','
   y <- decimal
   eol
-  return (x + 128 * y)
+  return (x + shiftL y 7)
 
 origin = 0
 
 goal test
-  | test = 6 + 6 * 128
-  | otherwise = 70 + 70 * 128
+  | test = 6 + shiftL 6 7
+  | otherwise = 70 + shiftL 70 7
 
 range test
   | test = (0, 6)
@@ -122,7 +126,7 @@ part1 test =
     . parse parseInput "day18"
   where
     number
-      -- | test = 12
+      | test = 12
       | otherwise = 1024
 
 part2 :: Bool -> Text -> String

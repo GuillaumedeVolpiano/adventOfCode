@@ -6,6 +6,7 @@ module Day20
 import           Data.Array.Unboxed (UArray, array, (!?))
 import           Data.Bits          (shiftR, (.&.))
 import           Data.IntMap        (empty)
+import qualified Data.IntSet        as S (singleton)
 import           Data.List          (foldl')
 import           Data.Maybe         (mapMaybe)
 import           Data.Sequence      (singleton)
@@ -45,8 +46,12 @@ countCheats test cheatLast input =
       reverse
         . fst
         . foldr (\p (ps, dist) -> ((p, dist) : ps, dist + 1)) ([], 0)
-        <$> bfsSafe (singleton start) empty (neighbours maze) (== end) :: Maybe
-        [(Int, Int)]
+        <$> bfsSafe
+              (singleton start)
+              (S.singleton start)
+              empty
+              (neighbours maze)
+              (== end) :: Maybe [(Int, Int)]
     fromStart = take (length path - threshold test - 1) path
     toEnd = drop (threshold test + 1) path
 
