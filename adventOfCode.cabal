@@ -1052,10 +1052,12 @@ benchmark bench
   hs-source-dirs:   bench lib 2024/days
   other-modules:
     Day6
+    Day20
     Day24
     Helpers.Graph
     Helpers.Parsers.Text
     Helpers.Search
+    Helpers.Search.Int
 
   build-depends:
     , array
