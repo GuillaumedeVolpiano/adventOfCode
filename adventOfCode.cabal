@@ -1055,6 +1055,7 @@ benchmark bench
   other-modules:
     Day6
     Day20
+    Day22
     Day24
     Helpers.Graph
     Helpers.Parsers.Text
@@ -1070,6 +1071,7 @@ benchmark bench
     , graphviz
     , hashable
     , linear
+    , massiv
     , megaparsec
     , mtl
     , multiset
