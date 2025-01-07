@@ -858,6 +858,7 @@ executable aoc2024
     , graphviz
     , hashable
     , linear
+    , massiv
     , megaparsec
     , mono-traversable
     , mtl
@@ -932,6 +933,7 @@ library days2024
     , graphviz
     , hashable
     , linear
+    , massiv
     , megaparsec
     , mono-traversable
     , mtl

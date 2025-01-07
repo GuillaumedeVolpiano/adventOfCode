@@ -6,14 +6,16 @@ module Day22
   , getDiffs
   ) where
 
+import           Control.Monad              (forM_)
+import           Control.Monad.ST           (ST, runST)
 import           Data.Bits                  (shiftL, shiftR, xor, (.&.))
 import           Data.Either                (fromRight)
-import           Data.IntMap.Strict         (IntMap, elems, insertWith)
-import qualified Data.IntMap.Strict         as M (empty)
-import           Data.IntSet                (IntSet, insert, member)
-import qualified Data.IntSet                as S (empty)
-import           Data.List                  (foldl', groupBy, nubBy, sortBy)
-import           Data.Ord                   (comparing)
+import           Data.Massiv.Array          (Comp (..), Ix4, P, Sz (Sz4),
+                                             maximum', toIx4)
+import           Data.Massiv.Array.Mutable  (MArray, modify_, newMArray, write_)
+import qualified Data.Massiv.Array.Mutable  as MA (read)
+import           Data.Massiv.Array.Unsafe   (unsafeFreeze)
+import           Data.Maybe                 (fromJust)
 import           Data.Text                  (Text)
 import           Helpers.Parsers.Text       (Parser)
 import           Text.Megaparsec            (eof, manyTill, parse)
@@ -33,28 +35,49 @@ parseNumber = do
 getDiffs :: [Int] -> [Int]
 getDiffs a = zipWith (-) (tail a) a
 
-sequences ::
-     Int -> IntSet -> (Int, Int, Int, Int, Int) -> IntMap Int -> IntMap Int
-sequences counter seen (a, b, c, d, e) gainMap
-  | counter == 2001 = gainMap
-  | diffs `member` seen = sequences counter' seen (b, c, d, e', f) gainMap
-  | otherwise = sequences counter' seen' (b, c, d, e', f) gainMap'
-  where
-    f = secret e
-    e' = e `mod` 10
-    counter' = counter + 1
-    diffs =
-      19 ^ 4 * (b - a) + 19 ^ 3 * (c - b) + 19 ^ 2 * (d - c) + 19 * (e' - d)
-    seen' = insert diffs seen
-    gainMap' = insertWith (+) diffs e' gainMap
+sequences :: [Int] -> ST s Int
+sequences salts = do
+  bananas <- newMArray (Sz4 20 20 20 20) 0 :: ST s (MArray s P Ix4 Int)
+  seen <- newMArray (Sz4 20 20 20 20) 0 :: ST s (MArray s P Ix4 Int)
+  forM_ salts $ \salt -> do
+    let initIndex = initSequence salt
+    innerSeq 4 bananas seen salt initIndex
+  maximum' <$> unsafeFreeze Seq bananas
+
+innerSeq ::
+     Int
+  -> MArray s P Ix4 Int
+  -> MArray s P Ix4 Int
+  -> Int
+  -> (Int, Int, Int, Int, Int)
+  -> ST s ()
+innerSeq 2001 _ _ _ _ = return ()
+innerSeq counter bananas seen salt (a, b, c, d, e) = do
+  let f = secret e
+      e' = e `mod` 10
+      d' = 9 + d - e'
+      counter' = counter + 1
+      nexts = (b, c, d', e', f)
+      index = toIx4 (a, b, c, d')
+  curVal <- MA.read bananas index
+  redundant <- MA.read seen index
+  if redundant == Just salt
+    then innerSeq counter' bananas seen salt nexts
+    else write_ seen index salt
+           >> write_ bananas index (e' + fromJust curVal)
+           >> innerSeq counter' bananas seen salt nexts
 
 initSequence :: Int -> (Int, Int, Int, Int, Int)
-initSequence salt = (salt `mod` 10, b `mod` 10, c `mod` 10, d `mod` 10, e)
+initSequence salt = (9 - b' + a', 9 - c' + b', 9 - d' + c', d', e)
   where
     b = secret salt
     c = secret b
     d = secret c
     e = secret d
+    a' = salt `mod` 10
+    b' = b `mod` 10
+    c' = c `mod` 10
+    d' = d `mod` 10
 
 secret :: Int -> Int
 secret a = prune sec3
@@ -76,8 +99,7 @@ getNthSecret :: Int -> Int -> Int
 getNthSecret n = (!! n) . iterate secret
 
 bestBananas :: [Int] -> Int
-bestBananas =
-  maximum . elems . foldr (sequences 4 S.empty . initSequence) M.empty
+bestBananas salts = runST $ sequences salts
 
 part1 :: Bool -> Text -> String
 part1 _ =
