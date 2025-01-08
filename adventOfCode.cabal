@@ -238,6 +238,7 @@ executable aoc2016
     Helpers.Parsers.Text
     Helpers.Search
     MD5
+    Assembunny
 
   build-depends:
     , arithmoi
@@ -307,6 +308,7 @@ library days2016
     Day8
     Day9
     MD5
+    Assembunny
 
   other-modules:
     Helpers.General.Text
