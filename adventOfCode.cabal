@@ -207,6 +207,7 @@ executable aoc2016
   main-is:          Main.hs
   hs-source-dirs:   2016 2016/days lib
   other-modules:
+    Assembunny
     Day1
     Day10
     Day11
@@ -238,7 +239,6 @@ executable aoc2016
     Helpers.Parsers.Text
     Helpers.Search
     MD5
-    Assembunny
 
   build-depends:
     , arithmoi
@@ -256,6 +256,7 @@ executable aoc2016
     , fgl
     , graphviz
     , hashable
+    , infinite-list
     , linear
     , megaparsec
     , mtl
@@ -282,6 +283,7 @@ executable aoc2016
 library days2016
   hs-source-dirs:   2016/days lib
   exposed-modules:
+    Assembunny
     Day1
     Day10
     Day11
@@ -308,7 +310,6 @@ library days2016
     Day8
     Day9
     MD5
-    Assembunny
 
   other-modules:
     Helpers.General.Text
@@ -333,6 +334,7 @@ library days2016
     , fgl
     , graphviz
     , hashable
+    , infinite-list
     , linear
     , megaparsec
     , mtl
@@ -1055,10 +1057,10 @@ benchmark bench
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench lib 2024/days
   other-modules:
-    Day6
     Day20
     Day22
     Day24
+    Day6
     Helpers.Graph
     Helpers.Parsers.Text
     Helpers.Search

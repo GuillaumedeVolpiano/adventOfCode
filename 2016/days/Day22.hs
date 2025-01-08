@@ -17,8 +17,6 @@ import           Text.Megaparsec            (empty, eof, manyTill, parse,
 import           Text.Megaparsec.Char       (char, eol, letterChar)
 import qualified Text.Megaparsec.Char.Lexer as MCL (decimal, lexeme, space)
 
-import           Debug.Trace
-
 type Disk = IntMap (Used, Available)
 
 type Used = Int

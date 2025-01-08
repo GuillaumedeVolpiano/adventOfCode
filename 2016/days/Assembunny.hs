@@ -31,9 +31,12 @@ data Instruction
   | CPYReg Char Char
   | Inc Char
   | Dec Char
-  | JNZReg Char Int
-  | JNZVal Int Int
-  deriving (Eq, Ord)
+  | JnzReg Char Int
+  | JnzVal Int Int
+  | JnzValReg Int Char
+  | TglVal Int
+  | TglReg Char
+  deriving (Eq, Ord, Show)
 
 type Register = Map Char Int
 
@@ -55,23 +58,35 @@ prettyPrint line (CPYReg reg1 reg2) =
     ++ ": set register "
     ++ reg2
     : " to the value of register "
-    ++ show reg1
+    ++ reg1
+    : ""
 prettyPrint line (Inc reg) =
   show line ++ ": increase register " ++ reg : " by 1"
 prettyPrint line (Dec reg) =
   show line ++ ": decrease register " ++ reg : " by 1"
-prettyPrint line (JNZReg reg offset) =
+prettyPrint line (JnzReg reg offset) =
   show line
     ++ ": if register "
     ++ reg
     : " is not 0 then jump to line "
     ++ show (line + offset)
-prettyPrint line (JNZVal val offset) =
+prettyPrint line (JnzVal val offset) =
   show line
     ++ ": if value "
     ++ show val
     ++ " is not 0 then jump to line "
     ++ show (line + offset)
+prettyPrint line (TglVal offset) =
+  show line ++ ": toggle instruction at line " ++ show (line + offset)
+prettyPrint line (TglReg reg) =
+  show line ++ ": toggle instruction based on value of register " ++ reg : ""
+prettyPrint line (JnzValReg val reg) =
+  show line
+    ++ ": if "
+    ++ show val
+    ++ " is not 0 then jump based on value of register "
+    ++ reg
+    : ""
 
 spaceConsumer :: Parser ()
 spaceConsumer = L.space (void . char $ ' ') A.empty A.empty
@@ -90,8 +105,11 @@ parseProgram =
              <|> parseCPYVal
              <|> parseInc
              <|> parseDec
-             <|> try parseJNZReg
-             <|> parseJNZVal)
+             <|> try parseJnzReg
+             <|> try parseJnzVal
+             <|> parseJnzValReg
+             <|> try parseTglVal
+             <|> parseTglReg)
           eof
 
 parseCPYReg :: Parser Instruction
@@ -125,22 +143,44 @@ parseDec = do
   optional eol
   return $ Dec reg
 
-parseJNZReg :: Parser Instruction
-parseJNZReg = do
+parseJnzReg :: Parser Instruction
+parseJnzReg = do
   string "jnz "
   reg <- lowerChar
   char ' '
   offset <- signed
   optional eol
-  return $ JNZReg reg offset
+  return $ JnzReg reg offset
 
-parseJNZVal :: Parser Instruction
-parseJNZVal = do
+parseJnzVal :: Parser Instruction
+parseJnzVal = do
   string "jnz "
   val <- signed
   offset <- signed
   optional eol
-  return $ JNZVal val offset
+  return $ JnzVal val offset
+
+parseJnzValReg :: Parser Instruction
+parseJnzValReg = do
+  string "jnz "
+  val <- signed
+  offset <- lowerChar
+  optional eol
+  return $ JnzValReg val offset
+
+parseTglVal :: Parser Instruction
+parseTglVal = do
+  string "tgl "
+  val <- signed
+  optional eol
+  return $ TglVal val
+
+parseTglReg :: Parser Instruction
+parseTglReg = do
+  string "tgl "
+  reg <- lowerChar
+  optional eol
+  return $ TglReg reg
 
 setRegister :: Program -> Char -> Int -> Program
 setRegister (Program p r i) ad v = Program p r' i
@@ -163,19 +203,19 @@ runInstruction instruction program = program' instruction
     val (CPYVal v _)   = v
     val (Inc reg)      = findWithDefault 0 reg register + 1
     val (Dec reg)      = findWithDefault 0 reg register - 1
-    val (JNZReg reg _) = findWithDefault 0 reg register
-    val (JNZVal val _) = val
+    val (JnzReg reg _) = findWithDefault 0 reg register
+    val (JnzVal val _) = val
     reg (CPYReg _ reg) = reg
     reg (CPYVal _ reg) = reg
     reg (Inc reg)      = reg
     reg (Dec reg)      = reg
-    offset (JNZVal _ off) = off
-    offset (JNZReg _ off) = off
+    offset (JnzVal _ off) = off
+    offset (JnzReg _ off) = off
     register' = insert (reg instruction) (val instruction) register
-    program' (JNZVal _ _)
+    program' (JnzVal _ _)
       | val instruction /= 0 = offsetPointer
       | otherwise = advancePointer program
-    program' (JNZReg _ _)
+    program' (JnzReg _ _)
       | val instruction /= 0 = offsetPointer
       | otherwise = advancePointer program
     program' _ = advancePointer program {getRegister = register'}
