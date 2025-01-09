@@ -25,8 +25,6 @@ import           Helpers.Search.Int   (bfsSafeDist)
 import           Text.Megaparsec      (ParsecT, eof, runParserT, (<|>))
 import           Text.Megaparsec.Char (char, eol, numberChar)
 
-import           Debug.Trace
-
 type Parser = ParsecT Void Text (State Int) (EdgePos, Maze)
 
 type EdgePos = IntMap Int
