@@ -58,41 +58,7 @@ library helpers
 
 executable aoc2015
   main-is:          Main.hs
-  hs-source-dirs:   2015 2015/days lib
-  other-modules:
-    Day1
-    Day10
-    Day11
-    Day12
-    Day13
-    Day14
-    Day15
-    Day16
-    Day17
-    Day18
-    Day19
-    Day2
-    Day20
-    Day21
-    Day22
-    Day23
-    Day24
-    Day25
-    Day3
-    Day4
-    Day5
-    Day6
-    Day7
-    Day8
-    Day9
-    Helpers.General.Text
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers.Text
-    Helpers.Search
-
-  -- LANGUAGE extensions used by modules in this package.
-  -- other-extensions:
+  hs-source-dirs:   2015
   build-depends:
     , arithmoi
     , array
@@ -105,10 +71,12 @@ executable aoc2015
     , cryptohash-md5
     , curl
     , data-clist
+    , days2015
     , directory
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , megaparsec
     , mtl
@@ -133,7 +101,7 @@ executable aoc2015
   default-language: Haskell2010
 
 library days2015
-  hs-source-dirs:   2015/days lib
+  hs-source-dirs:   2015/days
   exposed-modules:
     Day1
     Day10
@@ -161,13 +129,6 @@ library days2015
     Day8
     Day9
 
-  other-modules:
-    Helpers.General.Text
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers.Text
-    Helpers.Search
-
   build-depends:
     , arithmoi
     , array
@@ -184,6 +145,7 @@ library days2015
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , megaparsec
     , mtl
@@ -205,41 +167,7 @@ library days2015
 
 executable aoc2016
   main-is:          Main.hs
-  hs-source-dirs:   2016 2016/days lib
-  other-modules:
-    Assembunny
-    Day1
-    Day10
-    Day11
-    Day12
-    Day13
-    Day14
-    Day15
-    Day16
-    Day17
-    Day18
-    Day19
-    Day2
-    Day20
-    Day21
-    Day22
-    Day23
-    Day24
-    Day25
-    Day3
-    Day4
-    Day5
-    Day6
-    Day7
-    Day8
-    Day9
-    Helpers.General.Text
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers.Text
-    Helpers.Search
-    MD5
-
+  hs-source-dirs:   2016
   build-depends:
     , arithmoi
     , array
@@ -252,10 +180,12 @@ executable aoc2016
     , cryptohash-md5
     , curl
     , data-clist
+    , days2016
     , directory
     , fgl
     , graphviz
     , hashable
+    , helpers
     , infinite-list
     , linear
     , megaparsec
@@ -281,7 +211,7 @@ executable aoc2016
   default-language: Haskell2010
 
 library days2016
-  hs-source-dirs:   2016/days lib
+  hs-source-dirs:   2016/days
   exposed-modules:
     Assembunny
     Day1
@@ -311,13 +241,6 @@ library days2016
     Day9
     MD5
 
-  other-modules:
-    Helpers.General.Text
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers.Text
-    Helpers.Search
-
   build-depends:
     , arithmoi
     , array
@@ -334,6 +257,7 @@ library days2016
     , fgl
     , graphviz
     , hashable
+    , helpers
     , infinite-list
     , linear
     , megaparsec
@@ -356,7 +280,7 @@ library days2016
 
 executable aoc2017
   main-is:          Main.hs
-  hs-source-dirs:   2017 2017/days lib
+  hs-source-dirs:   2017 2017/days
   other-modules:
     Day1
     Day10
@@ -383,11 +307,6 @@ executable aoc2017
     Day7
     Day8
     Day9
-    Helpers.General
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers
-    Helpers.Search
     KnotHash
 
   -- LANGUAGE extensions used by modules in this package.
@@ -405,6 +324,7 @@ executable aoc2017
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , megaparsec
     , parallel
@@ -425,7 +345,7 @@ executable aoc2017
 
 executable aoc2018
   main-is:          Main.hs
-  hs-source-dirs:   2018 2018/days lib
+  hs-source-dirs:   2018 2018/days
   other-modules:
     Computer
     Day1
@@ -453,11 +373,6 @@ executable aoc2018
     Day7
     Day8
     Day9
-    Helpers.General
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers
-    Helpers.Search
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -474,6 +389,7 @@ executable aoc2018
     , fgl
     , graphviz
     , hashable
+    , helpers
     , lens
     , linear
     , megaparsec
@@ -495,7 +411,7 @@ executable aoc2018
 
 executable aoc2019
   main-is:          Main.hs
-  hs-source-dirs:   2019 2019/days lib
+  hs-source-dirs:   2019 2019/days
   other-modules:
     Day1
     Day10
@@ -522,11 +438,6 @@ executable aoc2019
     Day7
     Day8
     Day9
-    Helpers.General
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers
-    Helpers.Search
     Intcode
 
   -- LANGUAGE extensions used by modules in this package.
@@ -544,6 +455,7 @@ executable aoc2019
     , fgl
     , graphviz
     , hashable
+    , helpers
     , lens
     , linear
     , megaparsec
@@ -564,7 +476,7 @@ executable aoc2019
 
 executable aoc2020
   main-is:          Main.hs
-  hs-source-dirs:   2020 2020/days lib
+  hs-source-dirs:   2020 2020/days
   other-modules:
     Day1
     Day10
@@ -591,11 +503,6 @@ executable aoc2020
     Day7
     Day8
     Day9
-    Helpers.General
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers
-    Helpers.Search
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -612,6 +519,7 @@ executable aoc2020
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , megaparsec
     , monad-loops
@@ -630,7 +538,7 @@ executable aoc2020
 
 executable aoc2021
   main-is:          Main.hs
-  hs-source-dirs:   2021 2021/days lib
+  hs-source-dirs:   2021 2021/days
   other-modules:
     Day1
     Day10
@@ -657,10 +565,6 @@ executable aoc2021
     Day7
     Day8
     Day9
-    Helpers.General
-    Helpers.Graph
-    Helpers.Parsers
-    Helpers.Search
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -675,6 +579,7 @@ executable aoc2021
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , megaparsec
     , mtl
@@ -691,7 +596,7 @@ executable aoc2021
 
 executable aoc2022
   main-is:          Main.hs
-  hs-source-dirs:   2022 2022/days lib
+  hs-source-dirs:   2022 2022/days
   other-modules:
     Day1
     Day10
@@ -718,8 +623,6 @@ executable aoc2022
     Day7
     Day8
     Day9
-    Helpers.General
-    Helpers.Search
 
   --
   --    -- LANGUAGE extensions used by modules in this package.
@@ -733,6 +636,7 @@ executable aoc2022
     , data-clist
     , directory
     , hashable
+    , helpers
     , linear
     , megaparsec
     , psqueues
@@ -747,7 +651,7 @@ executable aoc2022
 --
 executable aoc2023
   main-is:          Main.hs
-  hs-source-dirs:   2023 2023/days lib
+  hs-source-dirs:   2023 2023/days
   other-modules:
     Day1
     Day10
@@ -774,11 +678,6 @@ executable aoc2023
     Day7
     Day8
     Day9
-    Helpers.General
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers
-    Helpers.Search
     Part
 
   -- LANGUAGE extensions used by modules in this package.
@@ -796,6 +695,7 @@ executable aoc2023
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , megaparsec
     , parallel
@@ -814,40 +714,7 @@ executable aoc2023
 
 executable aoc2024
   main-is:          Main.hs
-  hs-source-dirs:   2024 2024/days lib
-  other-modules:
-    Day1
-    Day10
-    Day11
-    Day12
-    Day13
-    Day14
-    Day15
-    Day16
-    Day17
-    Day18
-    Day19
-    Day2
-    Day20
-    Day21
-    Day22
-    Day23
-    Day24
-    Day25
-    Day3
-    Day4
-    Day5
-    Day6
-    Day7
-    Day8
-    Day9
-    Helpers.General.Text
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers.Text
-    Helpers.Search
-    Helpers.Search.Int
-
+  hs-source-dirs:   2024
   build-depends:
     , arithmoi
     , array
@@ -857,10 +724,12 @@ executable aoc2024
     , criterion
     , curl
     , data-clist
+    , days2024
     , directory
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , massiv
     , megaparsec
@@ -888,7 +757,7 @@ executable aoc2024
   default-language: Haskell2010
 
 library days2024
-  hs-source-dirs:   2024/days lib
+  hs-source-dirs:   2024/days
   exposed-modules:
     Day1
     Day10
@@ -916,13 +785,6 @@ library days2024
     Day8
     Day9
 
-  other-modules:
-    Helpers.General.Text
-    Helpers.Graph
-    Helpers.Maths
-    Helpers.Parsers.Text
-    Helpers.Search.Int
-
   build-depends:
     , arithmoi
     , array
@@ -936,6 +798,7 @@ library days2024
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , massiv
     , megaparsec
@@ -960,7 +823,7 @@ library days2024
 test-suite tests2016
   type:             exitcode-stdio-1.0
   main-is:          Tests.hs
-  hs-source-dirs:   test/2016 2016/days lib
+  hs-source-dirs:   test/2016
 
   -- other-modules: Helpers.Parsers, Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9
   --               , Day10, Day11, Day12, Day13, Day14, Day15, Day16, Day17
@@ -971,10 +834,12 @@ test-suite tests2016
     , base16-bytestring
     , containers
     , cryptohash-md5
+    , days2016
     , directory
     , fgl
     , graphviz
     , hashable
+    , helpers
     , HUnit
     , linear
     , megaparsec
@@ -994,47 +859,17 @@ test-suite tests2016
 test-suite tests2024
   type:             exitcode-stdio-1.0
   main-is:          Tests.hs
-  hs-source-dirs:   test/2024 2024/days lib
-  other-modules:
-    Day1
-    Day10
-    Day11
-    Day12
-    Day13
-    Day14
-    Day15
-    Day16
-    Day17
-    Day18
-    Day19
-    Day2
-    Day20
-    Day21
-    Day22
-    Day23
-    Day24
-    Day25
-    Day3
-    Day4
-    Day5
-    Day6
-    Day7
-    Day8
-    Day9
-    Helpers.Graph
-    Helpers.Parsers
-    Helpers.Parsers.Text
-    Helpers.Search
-    Helpers.Search.Int
-
+  hs-source-dirs:   test/2024
   build-depends:
     , arithmoi
     , array
     , base
     , containers
+    , days2024
     , fgl
     , graphviz
     , hashable
+    , helpers
     , HUnit
     , linear
     , megaparsec
@@ -1055,25 +890,17 @@ test-suite tests2024
 benchmark bench
   main-is:          Bench.hs
   type:             exitcode-stdio-1.0
-  hs-source-dirs:   bench lib 2024/days
-  other-modules:
-    Day20
-    Day22
-    Day24
-    Day6
-    Helpers.Graph
-    Helpers.Parsers.Text
-    Helpers.Search
-    Helpers.Search.Int
-
+  hs-source-dirs:   bench
   build-depends:
     , array
     , base
     , containers
+    , days2016
     , directory
     , fgl
     , graphviz
     , hashable
+    , helpers
     , linear
     , massiv
     , megaparsec
