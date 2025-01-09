@@ -34,6 +34,7 @@ data Instruction
   | JnzReg Char Int
   | JnzVal Int Int
   | JnzValReg Int Char
+  | Out Char
   | TglVal Int
   | TglReg Char
   deriving (Eq, Ord, Show)
@@ -76,6 +77,7 @@ prettyPrint line (JnzVal val offset) =
     ++ show val
     ++ " is not 0 then jump to line "
     ++ show (line + offset)
+prettyPrint line (Out reg) = show line ++ ": output register " ++ reg : ""
 prettyPrint line (TglVal offset) =
   show line ++ ": toggle instruction at line " ++ show (line + offset)
 prettyPrint line (TglReg reg) =
@@ -108,6 +110,7 @@ parseProgram =
              <|> try parseJnzReg
              <|> try parseJnzVal
              <|> parseJnzValReg
+             <|> parseOut
              <|> try parseTglVal
              <|> parseTglReg)
           eof
@@ -167,6 +170,13 @@ parseJnzValReg = do
   offset <- lowerChar
   optional eol
   return $ JnzValReg val offset
+
+parseOut :: Parser Instruction
+parseOut = do
+  string "out "
+  reg <- lowerChar
+  optional eol
+  return $ Out reg
 
 parseTglVal :: Parser Instruction
 parseTglVal = do
