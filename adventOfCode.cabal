@@ -60,40 +60,13 @@ executable aoc2015
   main-is:          Main.hs
   hs-source-dirs:   2015
   build-depends:
-    , arithmoi
-    , array
-    , base
-    , base16-bytestring
-    , bytestring
-    , cmdargs
-    , containers
-    , criterion
-    , cryptohash-md5
-    , curl
-    , data-clist
-    , days2015
-    , directory
-    , fgl
-    , graphviz
-    , hashable
-    , helpers
-    , linear
-    , megaparsec
-    , mtl
-    , parallel
-    , parser-combinators
-    , psqueues
-    , regex-pcre
-    , regex-tdfa
-    , split
-    , text
-    , text-show
-    , time
-    , timeit
-    , transformers
-    , unordered-containers
-    , vector
-
+   , base
+   , cmdargs
+   , containers
+   , days2015
+   , helpers
+   , text
+   , time
   ghc-options:
     -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
     /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
@@ -130,38 +103,9 @@ library days2015
     Day9
 
   build-depends:
-    , arithmoi
-    , array
-    , base
-    , base16-bytestring
-    , bytestring
-    , cmdargs
-    , containers
-    , criterion
-    , cryptohash-md5
-    , curl
-    , data-clist
-    , directory
-    , fgl
-    , graphviz
-    , hashable
-    , helpers
-    , linear
-    , megaparsec
-    , mtl
-    , parallel
-    , parser-combinators
-    , psqueues
-    , regex-pcre
-    , regex-tdfa
-    , split
-    , text
-    , text-show
-    , time
-    , timeit
-    , transformers
-    , unordered-containers
-    , vector
+   , base
+   , helpers
+   , text
 
   default-language: Haskell2010
 
@@ -823,6 +767,60 @@ library days2024
     , vector
 
   default-language: Haskell2010
+
+-- executable aoc2025
+--   main-is:          Main.hs
+--   hs-source-dirs:   2025
+--   build-depends:
+--    , base
+--    , cmdargs
+--    , containers
+--    , days2025
+--    , helpers
+--    , text
+--    , time
+--   ghc-options:
+--     -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
+--     /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
+-- 
+--   default-language: Haskell2010
+-- 
+-- library days2025
+--   hs-source-dirs:   2025/days
+--   exposed-modules:
+--     Day1
+--     Day10
+--     Day11
+--     Day12
+--     Day13
+--     Day14
+--     Day15
+--     Day16
+--     Day17
+--     Day18
+--     Day19
+--     Day2
+--     Day20
+--     Day21
+--     Day22
+--     Day23
+--     Day24
+--     Day25
+--     Day3
+--     Day4
+--     Day5
+--     Day6
+--     Day7
+--     Day8
+--     Day9
+-- 
+--   build-depends:
+--    , base
+--    , helpers
+--    , text
+-- 
+--   default-language: Haskell2010
+
 
 test-suite tests2016
   type:             exitcode-stdio-1.0

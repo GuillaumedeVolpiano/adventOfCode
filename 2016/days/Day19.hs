@@ -6,7 +6,7 @@ module Day19
 import           Data.Bits            (clearBit, countLeadingZeros,
                                        finiteBitSize, shiftL)
 import           Data.Sequence        as Sq (Seq ((:<|), (:|>)), fromList,
-                                             length, splitAt, (><))
+                                             length, splitAt, (><), null)
 import           Data.Text            (Text)
 import           Helpers.Parsers.Text (signedInts)
 
@@ -37,7 +37,7 @@ midSplit elves = (fromList [1 .. mid], fromList [mid + 1 .. elves])
 
 distributeOpposite :: Seq Elf -> Seq Elf -> Int
 distributeOpposite before after
-  | Sq.length before == 0 && Sq.length after == 1 = loser
+  | Sq.null before = loser
   | otherwise = distributeOpposite before'' after''
   where
     (e :<| before') = before
