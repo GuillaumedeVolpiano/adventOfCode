@@ -204,6 +204,7 @@ executable aoc2016
     , transformers
     , unordered-containers
     , vector
+    , wide-word
 
   ghc-options:
     -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
@@ -277,6 +278,7 @@ library days2016
     , transformers
     , unordered-containers
     , vector
+    , wide-word
 
   default-language: Haskell2010
 
