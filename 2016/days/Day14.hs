@@ -9,12 +9,13 @@ import           Data.ByteString.Base16 (encode)
 import           Data.List              as L (init, isInfixOf)
 import           Data.Maybe             (fromJust, isJust)
 import           Data.Text              as T (Text, append, init, unpack)
-import           Data.Text.Encoding     (encodeUtf8)
+import           Data.Text.Encoding     (decodeUtf8, encodeUtf8)
 import           MD5                    (md5Concat)
 import           TextShow               (showt)
 
 showMap :: [Int] -> Text -> [String]
-showMap indices salt = map (flip md5Concat salt . showt) indices
+showMap indices salt =
+  map (T.unpack . decodeUtf8 . flip md5Concat salt . showt) indices
 
 findKeys :: Int -> [String] -> [Int]
 findKeys index (h:ashes)

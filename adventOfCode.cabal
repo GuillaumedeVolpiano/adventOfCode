@@ -173,6 +173,7 @@ executable aoc2016
     , array
     , base
     , base16-bytestring
+    , binary
     , bytestring
     , cmdargs
     , containers
@@ -206,7 +207,7 @@ executable aoc2016
 
   ghc-options:
     -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
-    /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
+    /usr/lib/llvm/18/bin/llc "-with-rtsopts=-N8 -p"
 
   default-language: Haskell2010
 
@@ -246,6 +247,7 @@ library days2016
     , array
     , base
     , base16-bytestring
+    , binary
     , bytestring
     , cmdargs
     , containers
@@ -910,6 +912,7 @@ benchmark bench
     , split
     , tasty-bench
     , text
+    , text-show
     , unordered-containers
     , vector
 

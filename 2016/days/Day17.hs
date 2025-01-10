@@ -3,13 +3,14 @@ module Day17
   , part2
   ) where
 
-import           Data.Hashable (Hashable, hashWithSalt)
-import           Data.Ix       (inRange)
-import           Data.Text     as T (Text, empty, init, length, pack, snoc,
-                                     unpack)
-import           Helpers.Graph (Pos, east, north, origin, south, west)
-import           Linear.V2     (V2 (..))
-import           MD5           (md5Concat)
+import qualified Data.ByteString as B (take, unpack)
+import           Data.Hashable   (Hashable, hashWithSalt)
+import           Data.Ix         (inRange)
+import           Data.Text       (Text, empty, pack, snoc)
+import qualified Data.Text       as T (init, length, unpack)
+import           Helpers.Graph   (Pos, east, north, origin, south, west)
+import           Linear.V2       (V2 (..))
+import           MD5             (md5Concat)
 
 import           Debug.Trace
 
@@ -44,17 +45,17 @@ listBFSLongest xs nexts isGoal longest
 longestPath :: Text -> Int
 longestPath passcode =
   listBFSLongest
-    [Search origin T.empty]
+    [Search origin empty]
     (neighbours passcode)
     ((== goal) . getPos)
     0
 
 bestPath :: Text -> String
 bestPath passcode =
-  unpack
+  T.unpack
     . getPath
     . head
-    . listBFS [Search origin T.empty] (neighbours passcode)
+    . listBFS [Search origin empty] (neighbours passcode)
     $ ((== goal) . getPos)
 
 neighbours :: Text -> Search -> [Search]
@@ -63,9 +64,10 @@ neighbours passcode (Search pos path) =
   where
     openDoors =
       map fst
-        . filter (flip elem ['b' .. 'f'] . snd)
+        . filter (flip elem [11 .. 16] . snd)
         . zip dirPairs
-        . take 4
+        . B.unpack
+        . B.take 4
         . md5Concat path
         $ passcode :: [(Char, Pos)]
     step (char, dir) = Search (pos + dir) (snoc path char)
