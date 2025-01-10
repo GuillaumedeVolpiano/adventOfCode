@@ -60,13 +60,14 @@ executable aoc2015
   main-is:          Main.hs
   hs-source-dirs:   2015
   build-depends:
-   , base
-   , cmdargs
-   , containers
-   , days2015
-   , helpers
-   , text
-   , time
+    , base
+    , cmdargs
+    , containers
+    , days2015
+    , helpers
+    , text
+    , time
+
   ghc-options:
     -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
     /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
@@ -103,9 +104,12 @@ library days2015
     Day9
 
   build-depends:
-   , base
-   , helpers
-   , text
+    , base
+    , containers
+    , helpers
+    , megaparsec
+    , mtl
+    , text
 
   default-language: Haskell2010
 
