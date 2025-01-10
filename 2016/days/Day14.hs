@@ -5,19 +5,26 @@ module Day14
   ) where
 
 import           Crypto.Hash.MD5        (hash)
+import           Data.Bits              (shiftR, (.&.))
+import qualified Data.ByteString        as BS (unpack)
 import           Data.ByteString.Base16 (encode)
 import           Data.List              as L (init, isInfixOf)
 import           Data.Maybe             (fromJust, isJust)
-import           Data.Text              as T (Text, append, init, unpack)
+import           Data.Text              (Text, append)
+import qualified Data.Text              as T (init)
 import           Data.Text.Encoding     (decodeUtf8, encodeUtf8)
+import           Data.Word              (Word8)
 import           MD5                    (md5Concat)
+import           Numeric                (showHex)
 import           TextShow               (showt)
 
-showMap :: [Int] -> Text -> [String]
-showMap indices salt =
-  map (T.unpack . decodeUtf8 . flip md5Concat salt . showt) indices
+saltHash :: Text -> Int -> [Word8]
+saltHash salt = dedup . BS.unpack . flip md5Concat salt . showt
 
-findKeys :: Int -> [String] -> [Int]
+dedup :: [Word8] -> [Word8]
+dedup = concatMap (\i -> [shiftR i 4, i .&. 15])
+
+findKeys :: Int -> [[Word8]] -> [Int]
 findKeys index (h:ashes)
   | isKey = index : findKeys (index + 1) ashes
   | otherwise = findKeys (index + 1) ashes
@@ -32,19 +39,19 @@ findKeys index (h:ashes)
       | a == b && a == c = Just a
       | otherwise = findThree xs
 
-stretch :: Text -> Int -> String
+stretch :: Text -> Int -> [Word8]
 stretch a =
-  tail
-    . L.init
-    . show
-    . (!! 2017)
-    . iterate (encode . hash)
+  dedup
+    . BS.unpack
+    . (!! 2016)
+    . iterate (hash . encode)
+    . hash
     . encodeUtf8
     . append a
     . showt
 
 part1 :: Bool -> Text -> String
-part1 _ = show . (!! 63) . findKeys 0 . showMap [0 ..] . T.init
+part1 _ = show . (!! 63) . findKeys 0 . flip map [0 ..] . saltHash . T.init
 
 part2 :: Bool -> Text -> String
 part2 _ = show . (!! 63) . findKeys 0 . flip map [0 ..] . stretch . T.init
