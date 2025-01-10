@@ -30,8 +30,10 @@ distribute elves = (clearBit elves msb `shiftL` 1) + 1
 -- using two sequences for O(1) access to the middle element. If the overall
 -- number of elves is odd, the after sequence is going to be the longest. The
 -- overall complexity is O(n)
-midSplit :: Seq Elf -> (Seq Elf, Seq Elf)
-midSplit elves = Sq.splitAt (Sq.length elves `div` 2) elves
+midSplit :: Int -> (Seq Elf, Seq Elf)
+midSplit elves = (fromList [1 .. mid], fromList [mid + 1 .. elves])
+  where
+    mid = elves `div` 2
 
 distributeOpposite :: Seq Elf -> Seq Elf -> Int
 distributeOpposite before after
@@ -51,10 +53,4 @@ part1 _ = show . distribute . head . head . signedInts
 
 part2 :: Bool -> Text -> String
 part2 _ =
-  show
-    . uncurry distributeOpposite
-    . midSplit
-    . makeElves
-    . head
-    . head
-    . signedInts
+  show . uncurry distributeOpposite . midSplit . head . head . signedInts
