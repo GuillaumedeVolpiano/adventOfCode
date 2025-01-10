@@ -3,10 +3,9 @@ module Day1
   , part2
   ) where
 
-import           Data.List            (elemIndex)
-import           Data.Maybe           (fromJust)
-import           Data.Text            (Text, unpack)
-import           Helpers.Parsers.Text
+import           Data.List  (elemIndex)
+import           Data.Maybe (fromJust)
+import           Data.Text  (Text, unpack)
 
 calc :: Char -> Int -> Int
 calc ')'  = (+ (-1))
