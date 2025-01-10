@@ -5,7 +5,6 @@ module Day14
   ) where
 
 import           Crypto.Hash.MD5        (hash)
-import           Data.Bits              (shiftR, (.&.))
 import qualified Data.ByteString        as BS (unpack)
 import           Data.ByteString.Base16 (encode)
 import           Data.List              as L (init, isInfixOf)
@@ -14,15 +13,12 @@ import           Data.Text              (Text, append)
 import qualified Data.Text              as T (init)
 import           Data.Text.Encoding     (decodeUtf8, encodeUtf8)
 import           Data.Word              (Word8)
-import           MD5                    (md5Concat)
+import           MD5                    (dedup, md5Concat)
 import           Numeric                (showHex)
 import           TextShow               (showt)
 
 saltHash :: Text -> Int -> [Word8]
-saltHash salt = dedup . BS.unpack . flip md5Concat salt . showt
-
-dedup :: [Word8] -> [Word8]
-dedup = concatMap (\i -> [shiftR i 4, i .&. 15])
+saltHash salt = flip md5Concat salt . showt
 
 findKeys :: Int -> [[Word8]] -> [Int]
 findKeys index (h:ashes)

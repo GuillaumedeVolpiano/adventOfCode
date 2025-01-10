@@ -3,16 +3,12 @@ module Day17
   , part2
   ) where
 
-import qualified Data.ByteString as B (take, unpack)
-import           Data.Hashable   (Hashable, hashWithSalt)
-import           Data.Ix         (inRange)
-import           Data.Text       (Text, empty, pack, snoc)
-import qualified Data.Text       as T (init, length, unpack)
-import           Helpers.Graph   (Pos, east, north, origin, south, west)
-import           Linear.V2       (V2 (..))
-import           MD5             (md5Concat)
-
-import           Debug.Trace
+import           Data.Ix       (inRange)
+import           Data.Text     (Text, empty, pack, snoc)
+import qualified Data.Text     as T (init, length, unpack)
+import           Helpers.Graph (Pos, east, north, origin, south, west)
+import           Linear.V2     (V2 (..))
+import           MD5           (md5ConcatTake)
 
 data Search = Search
   { getPos  :: Pos
@@ -66,9 +62,7 @@ neighbours passcode (Search pos path) =
       map fst
         . filter (flip elem [11 .. 16] . snd)
         . zip dirPairs
-        . B.unpack
-        . B.take 4
-        . md5Concat path
+        . md5ConcatTake 2 path
         $ passcode :: [(Char, Pos)]
     step (char, dir) = Search (pos + dir) (snoc path char)
 
