@@ -105,11 +105,14 @@ library days2015
 
   build-depends:
     , base
+    , bytestring
     , containers
+    , cryptohash-md5
     , helpers
     , megaparsec
     , mtl
     , text
+    , text-show
 
   default-language: Haskell2010
 
