@@ -109,10 +109,13 @@ library days2015
     , containers
     , cryptohash-md5
     , helpers
+    , linear
     , megaparsec
     , mtl
+    , multiset
     , text
     , text-show
+    , vector
 
   default-language: Haskell2010
 
@@ -828,6 +831,17 @@ library days2024
 -- 
 --   default-language: Haskell2010
 
+test-suite tests2015
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test/2015
+  build-depends:
+    , base
+    , days2015
+    , tasty
+    , tasty-hunit
+
+  default-language: Haskell2010
 
 test-suite tests2016
   type:             exitcode-stdio-1.0
@@ -901,27 +915,14 @@ benchmark bench
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench
   build-depends:
-    , array
     , base
-    , containers
-    , days2016
+    , days2015
     , directory
-    , fgl
-    , graphviz
-    , hashable
     , helpers
-    , linear
-    , massiv
     , megaparsec
     , mtl
-    , multiset
-    , psqueues
-    , split
     , tasty-bench
     , text
-    , text-show
-    , unordered-containers
-    , vector
 
   ghc-options:
     -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
