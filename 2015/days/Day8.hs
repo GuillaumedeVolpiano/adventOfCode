@@ -7,8 +7,8 @@ module Day8
 
 import           Data.ByteString (ByteString)
 import           Data.Void
-import           FlatParse.Basic (Result (OK), anyChar, char, eof, runParser,
-                                  switch, (<|>))
+import           FlatParse.Basic (Result (OK), anyAsciiChar, char, eof,
+                                  runParser, switch, (<|>))
 import qualified FlatParse.Basic as F (Parser)
 
 type Parser = F.Parser Void Int
@@ -24,18 +24,19 @@ parseChar =
   $(switch
       [|case _ of
           "\""  -> (+ 1) <$> parseLine parseChar
-          "\\x" -> anyChar >> anyChar >> (+ 3) <$> parseLine parseChar
-          "\\"  -> anyChar >> (+ 1) <$> parseLine parseChar
-          _     -> anyChar >> parseLine parseChar|])
+          "\\x" -> anyAsciiChar >> anyAsciiChar >> (+ 3) <$> parseLine parseChar
+          "\\"  -> anyAsciiChar >> (+ 1) <$> parseLine parseChar
+          _     -> anyAsciiChar >> parseLine parseChar|])
 
 parseChar' :: Parser
 parseChar' =
   $(switch
       [|case _ of
-          "\""  -> (+ 2) <$> parseLine parseChar'
-          "\\x" -> anyChar >> anyChar >> (+ 1) <$> parseLine parseChar'
-          "\\"  -> anyChar >> (+ 2) <$> parseLine parseChar'
-          _     -> anyChar >> parseLine parseChar'|])
+          "\"" -> (+ 2) <$> parseLine parseChar'
+          "\\x" ->
+            anyAsciiChar >> anyAsciiChar >> (+ 1) <$> parseLine parseChar'
+          "\\" -> anyAsciiChar >> (+ 2) <$> parseLine parseChar'
+          _ -> anyAsciiChar >> parseLine parseChar'|])
 
 extract :: Result Void Int -> Int
 extract (OK result _) = result
