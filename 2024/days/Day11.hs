@@ -3,14 +3,15 @@ module Day11
   , part2
   ) where
 
-import           Data.Either          (fromRight)
-import           Data.MultiSet        as MS (MultiSet, distinctElems,
-                                             distinctSize, empty, fromList,
-                                             insertMany, occur, size)
-import           Data.Text            (Text)
-import           Helpers.Parsers.Text (Parser, decimal)
-import           Text.Megaparsec      (eof, manyTill, parse)
-import           Text.Megaparsec.Char (eol)
+import           Data.ByteString            (ByteString)
+import           Data.Either                (fromRight)
+import           Data.MultiSet              as MS (MultiSet, distinctElems,
+                                                   distinctSize, empty,
+                                                   fromList, insertMany, occur,
+                                                   size)
+import           Helpers.Parsers.ByteString (Parser, decimal)
+import           Text.Megaparsec            (eof, manyTill, parse)
+import           Text.Megaparsec.Byte       (eol)
 
 type Stones = MultiSet Int
 
@@ -30,7 +31,7 @@ collatz stones stone stones'
     splitter = ceiling . logBase 10 . fromIntegral $ (stone + 1)
     split = [stone `mod` 10 ^ div splitter 2, stone `div` 10 ^ div splitter 2]
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . size
@@ -39,7 +40,7 @@ part1 _ =
     . fromRight (error "input could not be parsed")
     . parse parseInput "day11"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . size

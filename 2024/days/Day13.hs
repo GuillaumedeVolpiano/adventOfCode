@@ -4,21 +4,22 @@ module Day13
   ) where
 
 import           Control.Applicative        (empty)
-import           Data.Char                  (isAlpha)
+import           Data.ByteString            (ByteString)
 import           Data.Either                (fromRight)
 import           Data.Maybe                 (mapMaybe)
 import           Data.Ratio                 (Ratio, denominator, numerator, (%))
-import           Data.Text                  (Text)
+import           Data.Word8                 (_colon, _comma, _equal, _plus,
+                                             _quotesingle, _space, isAlpha)
 import           Helpers.Graph              (Pos, origin)
-import           Helpers.Parsers.Text       (Parser)
+import           Helpers.Parsers.ByteString (Parser)
 import           Helpers.Search             (dijkstraGoalValSafe)
 import           Linear.Matrix              (det22, inv22, transpose, (!*))
 import           Linear.V1                  (V1 (..))
 import           Linear.V2                  (V2 (..))
 import           Text.Megaparsec            (eof, manyTill, optional, parse,
                                              takeWhileP)
-import           Text.Megaparsec.Char       (eol)
-import qualified Text.Megaparsec.Char.Lexer as L (decimal, lexeme, space)
+import           Text.Megaparsec.Byte       (eol)
+import qualified Text.Megaparsec.Byte.Lexer as L (decimal, lexeme, space)
 
 data ClawMachine =
   ClawMachine A B Prize
@@ -32,7 +33,12 @@ type Prize = V2 (Ratio Int)
 
 space :: Parser ()
 space = do
-  _ <- takeWhileP Nothing (\c -> isAlpha c || c `elem` " ' :+,=")
+  _ <-
+    takeWhileP
+      Nothing
+      (\c ->
+         isAlpha c
+           || c `elem` [_space, _quotesingle, _colon, _plus, _comma, _equal])
   return ()
 
 parseTwo :: Parser (V2 (Ratio Int))
@@ -67,7 +73,7 @@ farAwayPrize :: ClawMachine -> ClawMachine
 farAwayPrize (ClawMachine a b (V2 xp yp)) =
   ClawMachine a b $ V2 (xp + 10 ^ 13) (yp + 10 ^ 13)
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . sum
@@ -75,7 +81,7 @@ part1 _ =
     . fromRight (error "could not parse input")
     . parse parseInput "day13"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . sum

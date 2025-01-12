@@ -12,6 +12,7 @@ module Helpers.Parsers.ByteString
   , custom
   , digits
   , digitArrayFromByteString
+  , digitToInt
   , lines
   , signedInt
   , signedDouble
@@ -30,19 +31,22 @@ module Helpers.Parsers.ByteString
 
 import           Control.Applicative        as A (empty)
 import           Data.Array.IArray          (IArray)
-import           Data.Array.Unboxed         (UArray, array)
-import           Data.ByteString            (ByteString, cons, pack, split)
+import           Data.Array.Unboxed         (UArray, array, (!))
+import           Data.ByteString            (ByteString, cons, pack, split,
+                                             unpack)
 import qualified Data.ByteString            as BS (concat, empty, length)
-import           Data.ByteString.Char8      (index)
 import qualified Data.ByteString.Char8      as BSC (foldr)
 import           Data.ByteString.UTF8       (fromString)
-import           Data.Char                  (digitToInt)
+import qualified Data.Char                  as C (digitToInt)
 import           Data.Either                (fromRight)
 import           Data.List                  as L (length)
 import           Data.Maybe                 (Maybe (Just, Nothing), catMaybes)
 import           Data.Void                  (Void)
-import           Data.Word8                 (_hyphen, _period, _space, isAlpha,
-                                             isAlphaNum, isDigit, isSpace)
+import           Data.Word                  (Word8)
+import           Data.Word8                 (_0, _1, _2, _3, _4, _5, _6, _7, _8,
+                                             _9, _hyphen, _period, _space,
+                                             isAlpha, isAlphaNum, isDigit,
+                                             isSpace)
 import           Linear.V2                  (V2 (..))
 import           Prelude                    hiding (lines)
 import           Text.Megaparsec            (Parsec, eof, manyTill, optional,
@@ -59,8 +63,23 @@ type Parser = Parsec Void ByteString
 
 type Pos = V2 Int
 
+digitArray =
+  array
+    (_0, _9)
+    [ (_0, 0)
+    , (_1, 1)
+    , (_2, 2)
+    , (_3, 3)
+    , (_4, 4)
+    , (_5, 5)
+    , (_6, 6)
+    , (_7, 7)
+    , (_8, 8)
+    , (_9, 9)
+    ] :: UArray Word8 Int
+
 lines :: ByteString -> [ByteString]
-lines = split 10
+lines = init . split 10
 
 -- the supplied parser must consume all the line, including the new line
 -- character
@@ -88,6 +107,9 @@ consume = do
 digits :: Parser (Maybe ByteString)
 digits = do
   Just <$> takeWhile1P Nothing isDigit
+
+digitToInt :: Word8 -> Int
+digitToInt = (!) digitArray
 
 signedInt :: Parser (Maybe Int)
 signedInt = Just <$> L.signed spaceConsumer decimal
@@ -145,15 +167,6 @@ complexParser ::
 complexParser splitters pats =
   map (zipWith parseLineList pats . splitOnSplitters splitters) . lines
 
-make2DByteStringArray :: [ByteString] -> UArray (V2 Int) Char
-make2DByteStringArray l =
-  array
-    (V2 0 0, V2 width height)
-    [(V2 x y, l !! y `index` x) | x <- [0 .. width], y <- [0 .. height]]
-  where
-    width = BS.length (head l) - 1
-    height = length l - 1
-
 make2DArray :: IArray UArray a => [[a]] -> UArray (V2 Int) a
 make2DArray l =
   array
@@ -163,8 +176,8 @@ make2DArray l =
     width = L.length (head l) - 1
     height = L.length l - 1
 
-arrayFromByteString :: ByteString -> UArray Pos Char
-arrayFromByteString = make2DByteStringArray . lines
+arrayFromByteString :: ByteString -> UArray Pos Word8
+arrayFromByteString = make2DArray . map unpack . lines
 
 boolArrayFromByteString :: Char -> ByteString -> UArray Pos Bool
 boolArrayFromByteString test =
@@ -172,7 +185,7 @@ boolArrayFromByteString test =
 
 digitArrayFromByteString :: ByteString -> UArray Pos Int
 digitArrayFromByteString =
-  make2DArray . map (BSC.foldr ((:) . digitToInt) []) . lines
+  make2DArray . map (BSC.foldr ((:) . C.digitToInt) []) . lines
 
 splitOnSpace :: ByteString -> [[ByteString]]
 splitOnSpace = parseList notSpace

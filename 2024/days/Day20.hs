@@ -3,20 +3,23 @@ module Day20
   , part2
   ) where
 
-import           Data.Array.Unboxed (UArray, array, (!?))
-import           Data.Bits          (shiftR, (.&.))
-import           Data.IntMap        (empty)
-import qualified Data.IntSet        as S (singleton)
-import           Data.List          (foldl')
-import           Data.Maybe         (mapMaybe)
-import           Data.Sequence      (singleton)
-import           Data.Text          (Text, index)
-import qualified Data.Text          as T (length, lines)
-import           Helpers.Search.Int (bfsSafe)
+import           Data.Array.Unboxed         (UArray, array, (!?))
+import           Data.Bits                  (shiftR, (.&.))
+import           Data.ByteString            (ByteString, index)
+import qualified Data.ByteString            as B (length)
+import           Data.IntMap                (empty)
+import qualified Data.IntSet                as S (singleton)
+import           Data.List                  (foldl')
+import           Data.Maybe                 (mapMaybe)
+import           Data.Sequence              (singleton)
+import           Data.Word                  (Word8)
+import           Data.Word8                 (_E, _S, _period)
+import qualified Helpers.Parsers.ByteString as P (lines)
+import           Helpers.Search.Int         (bfsSafe)
 
 type Pos = Int
 
-type Maze = UArray Pos Char
+type Maze = UArray Pos Word8
 
 origin = 0
 
@@ -30,18 +33,18 @@ manhattanDistance :: Int -> Int -> Int
 manhattanDistance a b =
   abs ((a .&. 255) - (b .&. 255)) + abs (shiftR a 8 - shiftR b 8)
 
-countCheats :: Bool -> Int -> Text -> Int
+countCheats :: Bool -> Int -> ByteString -> Int
 countCheats test cheatLast input =
   length . cheated test fromStart toEnd $ cheatLast
   where
     assocsMaze =
       [(x + 256 * y, l !! y `index` x) | x <- [0 .. width], y <- [0 .. height]]
-    l = T.lines input
+    l = P.lines input
     height = length l - 1
-    width = (-1 +) . T.length . head $ l
+    width = (-1 +) . B.length . head $ l
     maze = array (origin, width + 256 * height) assocsMaze
-    start = fst . head . filter ((== 'S') . snd) $ assocsMaze
-    end = fst . head . filter ((== 'E') . snd) $ assocsMaze
+    start = fst . head . filter ((== _S) . snd) $ assocsMaze
+    end = fst . head . filter ((== _E) . snd) $ assocsMaze
     (Just path) =
       reverse
         . fst
@@ -67,10 +70,10 @@ cheated test fromStart toEnd cheatLast =
 
 neighbours :: Maze -> Pos -> [Pos]
 neighbours maze pos =
-  filter (\p -> maze !? p `elem` [Just '.', Just 'E']) . map (pos +) $ dirs
+  filter (\p -> maze !? p `elem` [Just _period, Just _E]) . map (pos +) $ dirs
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 test = show . countCheats test 2
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 test = show . countCheats test 20

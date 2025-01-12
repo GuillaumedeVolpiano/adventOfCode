@@ -10,8 +10,8 @@ import           Data.Bits            (shiftL, shiftR, testBit, xor, (.&.))
 import           Data.Char            (intToDigit)
 import           Data.IntMap          (IntMap, fromList, insert, (!))
 import           Data.List            (foldl', intersperse)
-import           Data.Text            (Text)
-import           Helpers.Parsers.Text (signedInts)
+import           Data.ByteString            (ByteString)
+import           Helpers.Parsers.ByteString (signedInts)
 
 data Program = Program
   { getPointer  :: Pointer
@@ -174,7 +174,7 @@ executeSimplified number
     c' = number `shiftR` b'
     b'' = b' `xor` c' `xor` 4
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 test input
   | test =
     intersperse ','
@@ -194,5 +194,5 @@ part1 test input
       . signedInts
       $ input
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 test = show . findVal test . makeProgram . signedInts

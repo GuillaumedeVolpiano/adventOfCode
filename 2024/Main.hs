@@ -3,8 +3,10 @@
 module Main where
 
 import           Control.Monad                   (when)
+import           Data.ByteString                 (ByteString)
+import           Data.ByteString.Char8           (pack)
+import qualified Data.ByteString.Char8           as C (putStrLn)
 import           Data.Map                        (Map, empty, fromList, (!))
-import           Data.Text                       (Text)
 import           Data.Time.Calendar              (toGregorian)
 import           Data.Time.Clock                 (getCurrentTime, utctDay)
 import           Day1
@@ -32,12 +34,10 @@ import           Day6
 import           Day7
 import           Day8
 import           Day9
-import           Helpers.General.Text            (customPreciseTimeIt,
+import           Helpers.General.ByteString      (customPreciseTimeIt,
                                                   retrieveInput, wallTimeIt)
 import           System.Console.CmdArgs.Implicit (Data, Typeable, args, cmdArgs,
                                                   def, help, opt, (&=))
-import           Test.Tasty.Bench                (bench, bgroup, defaultMain,
-                                                  env, nf)
 
 data Arguments = Arguments
   { day         :: Int
@@ -47,7 +47,7 @@ data Arguments = Arguments
   , interactive :: Bool
   } deriving (Show, Data, Typeable)
 
-type Solver = (Bool -> Text -> String)
+type Solver = (Bool -> ByteString -> String)
 
 type Day = (Solver, Solver)
 
@@ -83,36 +83,35 @@ solver =
 interSolver = empty
 
 main :: IO ()
-main =
-  do
-    time <- getCurrentTime
-    let (_, _, curDay) = toGregorian . utctDay $ time
-        arguments =
-          Arguments
-            { day =
-                def
-                  &= help "Which day to process. Defaults to the current day"
-                  &= opt curDay
-            , test = def &= help "Run the test suite? Defaults to True if used"
-            , proxy = def &= help "Use a proxy? Defaults to True if used"
-            , wallTime = def &= help "Report wall Time rather than CPU time"
-            , interactive = def &= help "Run interactively"
-            }
-    args <- cmdArgs arguments
-    let year = 2024
-        theDay =
-          case day args of
-            0 -> curDay
-            _ -> day args
-    input <- retrieveInput year theDay (test args) True (proxy args)
-    let (solve1, solve2) = solver ! theDay
-        timer =
-          if wallTime args
-            then wallTimeIt
-            else customPreciseTimeIt
-        result
-          | interactive args = interSolver ! theDay $ input
-          | otherwise = do
-            timer "Part 1." 4 . putStrLn $ solve1 (test args) input
-            timer "Part 2." 4 . putStrLn $ solve2 (test args) input
-    result
+main = do
+  time <- getCurrentTime
+  let (_, _, curDay) = toGregorian . utctDay $ time
+      arguments =
+        Arguments
+          { day =
+              def
+                &= help "Which day to process. Defaults to the current day"
+                &= opt curDay
+          , test = def &= help "Run the test suite? Defaults to True if used"
+          , proxy = def &= help "Use a proxy? Defaults to True if used"
+          , wallTime = def &= help "Report wall Time rather than CPU time"
+          , interactive = def &= help "Run interactively"
+          }
+  args <- cmdArgs arguments
+  let year = 2024
+      theDay =
+        case day args of
+          0 -> curDay
+          _ -> day args
+  input <- retrieveInput year theDay (test args) True (proxy args)
+  let (solve1, solve2) = solver ! theDay
+      timer =
+        if wallTime args
+          then wallTimeIt
+          else customPreciseTimeIt
+      result
+        | interactive args = interSolver ! theDay $ input
+        | otherwise = do
+          timer "Part 1." 4 . C.putStrLn . pack $ solve1 (test args) input
+          timer "Part 2." 4 . C.putStrLn . pack $ solve2 (test args) input
+  result

@@ -7,6 +7,7 @@ import           Control.Monad.State.Lazy   (State, evalState, get, put,
                                              runState)
 import           Data.Bifunctor             (first)
 import           Data.Bits                  (shiftL, shiftR, (.&.), (.|.))
+import           Data.ByteString            (ByteString, pack)
 import           Data.Char                  (chr, ord)
 import           Data.Either                (fromRight)
 import           Data.IntMap.Strict         (IntMap, elems, empty, fromList,
@@ -19,11 +20,13 @@ import qualified Data.IntSet                as S (empty, insert, member,
 import           Data.List                  (intercalate, partition, sort,
                                              sortBy, (\\))
 import           Data.Maybe                 (catMaybes)
-import           Data.Text                  (Text, pack)
-import           Helpers.Parsers.Text       (Parser)
+import           Data.Word                  (Word8)
+import           Data.Word8                 (_0, _A, _D, _N, _O, _R, _X, _colon,
+                                             _greater, _hyphen, _space, _x, _z)
+import           Helpers.Parsers.ByteString (Parser)
 import           Text.Megaparsec            (eof, manyTill, parse, (<|>))
-import           Text.Megaparsec.Char       (alphaNumChar, char, eol, string)
-import           Text.Megaparsec.Char.Lexer (decimal)
+import           Text.Megaparsec.Byte       (alphaNumChar, char, eol, string)
+import           Text.Megaparsec.Byte.Lexer (decimal)
 
 type Register = IntMap Bool
 
@@ -31,7 +34,7 @@ data Op
   = AND
   | OR
   | XOR
-  deriving (Show, Eq, Ord, Read)
+  deriving (Show, Eq, Ord)
 
 type Pre = (Int, Op)
 
@@ -46,6 +49,12 @@ type FullAdders = IntMap Gates
 
 -- helper functions to manipulate the gates (encode and decode them, insert them
 -- into an IntMap, sort them)
+opify :: [Word8] -> Op
+opify op
+  | op == [_A, _N, _D] = AND
+  | op == [_O, _R] = OR
+  | op == [_X, _O, _R] = XOR
+
 insertGates :: Int -> Op -> Int -> Int -> Gates -> Gates
 insertGates dest op cell1 cell2 =
   insertWith
@@ -55,8 +64,8 @@ insertGates dest op cell1 cell2 =
     . insertWith (\(_, b) (c, d) -> (c, b ++ d)) cell1 ([], [dest])
     . insertWith (\(_, b) (c, d) -> (c, b ++ d)) cell2 ([], [dest])
 
-encode :: String -> Int
-encode = foldr (\c -> (+ ord c) . flip shiftL 7) 0
+encode :: [Word8] -> Int
+encode = foldr (\c -> (+ fromIntegral c) . flip shiftL 7) 0
 
 decode :: Int -> String
 decode 0 = ""
@@ -118,9 +127,13 @@ parseGates =
 
 parseGate :: Parser Gates
 parseGate = do
-  cell1 <- encode <$> manyTill alphaNumChar (char ' ')
-  op <- read <$> manyTill alphaNumChar (char ' ')
-  cell2 <- encode <$> manyTill alphaNumChar (string . pack $ " -> ")
+  cell1 <- encode <$> manyTill alphaNumChar (char _space)
+  op <- opify <$> manyTill alphaNumChar (char _space)
+  cell2 <-
+    encode
+      <$> manyTill
+            alphaNumChar
+            (string . pack $ [_space, _hyphen, _greater, _space])
   dest <- encode <$> manyTill alphaNumChar eol
   insertGates dest op cell1 cell2 <$> parseGates
 
@@ -132,7 +145,7 @@ parseRegister =
 
 parseCell :: Parser Register
 parseCell = do
-  cell <- encode <$> manyTill alphaNumChar (string . pack $ ": ")
+  cell <- encode <$> manyTill alphaNumChar (string . pack $ [_colon, _space])
   value <- (== 1) <$> decimal
   eol
   insert cell value <$> parseRegister
@@ -141,7 +154,7 @@ parseCell = do
 -- and starting from  x00
 articulations :: Gates -> [Int]
 articulations gates =
-  evalState (flip findArticulations 0 . encode $ "x00")
+  evalState (flip findArticulations 0 . encode $ [_x, _0, _0])
     $ AS gates S.empty empty empty empty empty
 
 findArticulations :: Int -> Int -> State ArticulationsState [Int]
@@ -241,7 +254,7 @@ findOutlyingGates gates adders = keys gates \\ (concatMap keys . elems $ adders)
 checkAdder :: Gates -> Bool
 checkAdder gates
   | hasCin gates = testAdder halfAdderTests && testAdder carryTests
-  | z == encode "z00" = testAdder zeroHalfAdderTests
+  | z == encode [_z, _0, _0] = testAdder zeroHalfAdderTests
   | otherwise = False
   where
     gateNames = keys gates
@@ -323,7 +336,7 @@ fixOutlier gates adders adder
   | hasCin adder && length toSwap > 2 =
     error ("can't decide between " ++ (intercalate ", " . map decode $ toSwap))
   | hasCin adder = map decode toSwap
-  | z == encode "z00" = error "implement fixer for z00"
+  | z == encode [_z, _0, _0] = error "implement fixer for z00"
   | (== 2) . length . filter (isChar 'z') $ gateNames =
     error ("implement fixer for last bits " ++ (tail . decode $ z))
   | otherwise = [decode z, toCout]
@@ -398,14 +411,14 @@ calcNumber = extract . evalGates
     zs = sortBy compareCoded . filter (isChar 'z') . keys
     extract r = foldr (fromBin . (r !)) 0 . zs $ r
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . calcNumber
     . fromRight (error "parser error")
     . parse parseInput "day24"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _
 --  unlines
 --    . searchFix

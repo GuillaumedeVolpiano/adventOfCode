@@ -3,19 +3,20 @@ module Day12
   , part2
   ) where
 
-import           Data.Array.Unboxed   (UArray, assocs, bounds, range, (!))
-import           Data.List            (groupBy, sort, sortBy)
-import           Data.List            as L (null)
-import           Data.Maybe           (mapMaybe)
-import           Data.Set             as S (Set, delete, deleteFindMin,
-                                            difference, fromList, insert,
-                                            member, null, singleton, size,
-                                            toList)
-import           Data.Text            (Text)
-import           Helpers.Graph        (Pos, dirs, east, neighbours, north,
-                                       south, west)
-import           Helpers.Parsers.Text (arrayFromText)
-import           Linear.V2            (V2 (..))
+import           Data.Array.Unboxed         (UArray, assocs, bounds, range, (!))
+import           Data.ByteString            (ByteString)
+import           Data.List                  (groupBy, sort, sortBy)
+import           Data.List                  as L (null)
+import           Data.Maybe                 (mapMaybe)
+import           Data.Set                   as S (Set, delete, deleteFindMin,
+                                                  difference, fromList, insert,
+                                                  member, null, singleton, size,
+                                                  toList)
+import           Data.Word                  (Word8)
+import           Helpers.Graph              (Pos, dirs, east, neighbours, north,
+                                             south, west)
+import           Helpers.Parsers.ByteString (arrayFromByteString)
+import           Linear.V2                  (V2 (..))
 
 type Garden = [Plot]
 
@@ -36,7 +37,7 @@ vGroup p@(V2 x0 y0) ls@(xs@((V2 x1 y1):_):ys)
   | x0 == x1 && abs (y0 - y1) == 1 = (p : xs) : ys
   | otherwise = [p] : ls
 
-buildGarden :: UArray Pos Char -> Garden
+buildGarden :: UArray Pos Word8 -> Garden
 buildGarden array = garden plots
   where
     plots = fromList . range . bounds $ array
@@ -47,7 +48,7 @@ buildGarden array = garden plots
         (plot, p) = deleteFindMin poss
         (region, poss') = buildRegion array (singleton plot) [plot] p
 
-buildRegion :: UArray Pos Char -> Plot -> [Pos] -> Set Pos -> (Plot, Set Pos)
+buildRegion :: UArray Pos Word8 -> Plot -> [Pos] -> Set Pos -> (Plot, Set Pos)
 buildRegion array seen toSee poss
   | L.null toSee = (seen, poss)
   | otherwise = buildRegion array seen' toSee' poss'
@@ -115,8 +116,8 @@ getAreaSides plot = (area, sides)
 price :: [(Int, Int)] -> Int
 price = sum . map (uncurry (*))
 
-part1 :: Bool -> Text -> String
-part1 _ = show . price . map getAreaPerim . buildGarden . arrayFromText
+part1 :: Bool -> ByteString -> String
+part1 _ = show . price . map getAreaPerim . buildGarden . arrayFromByteString
 
-part2 :: Bool -> Text -> String
-part2 _ = show . price . map getAreaSides . buildGarden . arrayFromText
+part2 :: Bool -> ByteString -> String
+part2 _ = show . price . map getAreaSides . buildGarden . arrayFromByteString

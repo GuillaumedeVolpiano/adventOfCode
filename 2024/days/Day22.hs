@@ -9,6 +9,7 @@ module Day22
 import           Control.Monad              (forM_)
 import           Control.Monad.ST           (ST, runST)
 import           Data.Bits                  (shiftL, shiftR, xor, (.&.))
+import           Data.ByteString            (ByteString)
 import           Data.Either                (fromRight)
 import           Data.Massiv.Array          (Comp (..), Ix4, P, Sz (Sz4),
                                              maximum', toIx4)
@@ -16,11 +17,10 @@ import           Data.Massiv.Array.Mutable  (MArray, modify_, newMArray, write_)
 import qualified Data.Massiv.Array.Mutable  as MA (read)
 import           Data.Massiv.Array.Unsafe   (unsafeFreeze)
 import           Data.Maybe                 (fromJust)
-import           Data.Text                  (Text)
-import           Helpers.Parsers.Text       (Parser)
+import           Helpers.Parsers.ByteString (Parser)
 import           Text.Megaparsec            (eof, manyTill, parse)
-import           Text.Megaparsec.Char       (eol)
-import           Text.Megaparsec.Char.Lexer (decimal)
+import           Text.Megaparsec.Byte       (eol)
+import           Text.Megaparsec.Byte.Lexer (decimal)
 
 parseInput :: Parser [Int]
 parseInput = manyTill parseNumber eof
@@ -101,7 +101,7 @@ getNthSecret n = (!! n) . iterate secret
 bestBananas :: [Int] -> Int
 bestBananas salts = runST $ sequences salts
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . sum
@@ -109,7 +109,7 @@ part1 _ =
     . fromRight (error "parse failed")
     . parse parseInput "day22"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . bestBananas

@@ -3,23 +3,25 @@ module Day9
   , part2
   ) where
 
-import           Control.Monad.State  (State, evalState, get, put)
-import           Data.Bifunctor       (first, second)
-import           Data.Char            (digitToInt)
-import           Data.Either          (fromRight)
-import           Data.Function        (on)
-import           Data.IntMap          as M (IntMap, delete, fromList, insert,
-                                            lookup, notMember, null, size, (!))
-import           Data.IntSet          as S (IntSet, delete, empty, findMin,
-                                            insert, null, singleton)
-import           Data.List            as L (delete, groupBy, minimumBy, null,
-                                            partition, sort)
-import           Data.Maybe           (fromJust, isJust)
-import           Data.Ord             (comparing)
-import           Data.Text            (Text)
-import           Data.Void            (Void)
-import           Text.Megaparsec      (ParsecT, runParserT, (<|>))
-import           Text.Megaparsec.Char (eol, numberChar)
+import           Control.Monad.State        (State, evalState, get, put)
+import           Data.Bifunctor             (first, second)
+import           Data.ByteString            (ByteString)
+import           Data.Either                (fromRight)
+import           Data.Function              (on)
+import           Data.IntMap                as M (IntMap, delete, fromList,
+                                                  insert, lookup, notMember,
+                                                  null, size, (!))
+import           Data.IntSet                as S (IntSet, delete, empty,
+                                                  findMin, insert, null,
+                                                  singleton)
+import           Data.List                  as L (delete, groupBy, minimumBy,
+                                                  null, partition, sort)
+import           Data.Maybe                 (fromJust, isJust)
+import           Data.Ord                   (comparing)
+import           Data.Void                  (Void)
+import           Helpers.Parsers.ByteString (digitToInt)
+import           Text.Megaparsec            (ParsecT, runParserT, (<|>))
+import           Text.Megaparsec.Byte       (digitChar, eol)
 
 data FileBlock = FileBlock
   { getIndex  :: Index
@@ -49,7 +51,7 @@ instance Ord EmptyBlock where
 
 type BlockMap = IntMap IntSet
 
-type Parser = ParsecT Void Text (State (Bool, Int, Int, Files))
+type Parser = ParsecT Void ByteString (State (Bool, Int, Int, Files))
 
 parseInput :: Parser (Files, Blocks)
 parseInput =
@@ -61,7 +63,7 @@ parseInput =
 parseBlocks :: Parser (Files, Blocks)
 parseBlocks = do
   (isEmpty, pos, index, files) <- get
-  blockLength <- digitToInt <$> numberChar
+  blockLength <- digitToInt <$> digitChar
   let pos' = pos + blockLength
       state
         | blockLength == 0 && isEmpty = put (False, pos, index, files)
@@ -138,7 +140,7 @@ checksum :: FileBlock -> Int
 checksum (FileBlock index filePos fileLength) =
   (fileLength * filePos + div (fileLength * (fileLength - 1)) 2) * index
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . foldr ((+) . checksum) 0
@@ -147,7 +149,7 @@ part1 _ =
     . flip evalState (False, 0, 0, [])
     . runParserT parseInput ""
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . foldr ((+) . checksum) 0

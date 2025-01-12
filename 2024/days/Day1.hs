@@ -5,8 +5,8 @@ module Day1
 
 import           Data.List       (sort, transpose)
 import           Data.MultiSet   as MS (fromList, minView, null, occur)
-import           Helpers.Parsers.Text (signedInts)
-import Data.Text (Text)
+import           Helpers.Parsers.ByteString (signedInts)
+import Data.ByteString (ByteString)
 
 diff :: [[Int]] -> Int
 diff [a, b] = sum . map abs . zipWith (-) a $ b
@@ -19,8 +19,8 @@ similarity [a, b] = sum . map appears $ a
     b' = fromList b
     appears x = (* x) . occur x $ b'
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ = show . diff . map sort . transpose . signedInts
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ = show . similarity . transpose . signedInts

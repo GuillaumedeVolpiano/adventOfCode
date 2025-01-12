@@ -4,12 +4,12 @@ module Day7
   ) where
 
 import           Control.Parallel.Strategies (parList, rseq, runEval)
+import           Data.ByteString             (ByteString)
 import           Data.Either                 (fromRight)
-import           Data.Text                   (Text, pack)
-import           Helpers.Parsers.Text        (Parser, decimal, string)
+import           Helpers.Parsers.ByteString  (Parser, decimal, string)
 import           Text.Megaparsec             (eof, many, manyTill, optional,
                                               parse)
-import           Text.Megaparsec.Char        (eol)
+import           Text.Megaparsec.Byte        (eol)
 
 data Equation =
   Equation Test Numbers
@@ -43,7 +43,7 @@ a ^|| b = pad a b + b
   where
     pad a b = a * 10 ^ ((1 +) . floor . logBase 10 . fromIntegral $ b)
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . foldr (\(Equation t _) -> (t +)) 0
@@ -53,7 +53,7 @@ part1 _ =
     . fromRight []
     . parse parseInput ""
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . foldr (\(Equation t _) -> (t +)) 0

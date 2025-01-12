@@ -3,31 +3,35 @@ module Day23
   , part2
   ) where
 
-import           Data.Bits            (shiftL, shiftR, (.&.))
-import           Data.Char            (chr, ord)
-import           Data.Either          (fromRight)
-import           Data.IntMap.Strict   (IntMap, assocs, insertWith, keys, (!))
-import qualified Data.IntMap.Strict   as M (empty)
-import           Data.IntSet          (IntSet, delete, difference, fromList,
-                                       insert, intersection, member, singleton,
-                                       size, toList, union)
-import qualified Data.IntSet          as IS (empty, foldr, null)
-import           Data.List            (intercalate, maximumBy, sortBy)
-import           Data.Ord             (comparing)
-import           Data.Set             (Set)
-import qualified Data.Set             as S (fromList, size, unions)
-import           Data.Text            (Text, pack, unpack)
-import qualified Data.Text            as T (head)
-import           Helpers.Parsers.Text (Parser)
-import           Text.Megaparsec      (eof, manyTill, parse, (<|>))
-import           Text.Megaparsec.Char (char, eol, lowerChar)
+import           Data.Bits                  (shiftL, shiftR, (.&.))
+import           Data.ByteString            (ByteString, pack, unpack)
+import qualified Data.ByteString            as T (head)
+import           Data.Char                  (chr, ord)
+import           Data.Either                (fromRight)
+import           Data.IntMap.Strict         (IntMap, assocs, insertWith, keys,
+                                             (!))
+import qualified Data.IntMap.Strict         as M (empty)
+import           Data.IntSet                (IntSet, delete, difference,
+                                             fromList, insert, intersection,
+                                             member, singleton, size, toList,
+                                             union)
+import qualified Data.IntSet                as IS (empty, foldr, null)
+import           Data.List                  (intercalate, maximumBy, sortBy)
+import           Data.Ord                   (comparing)
+import           Data.Set                   (Set)
+import qualified Data.Set                   as S (fromList, size, unions)
+import           Data.Word                  (Word8)
+import           Data.Word8                 (_hyphen)
+import           Helpers.Parsers.ByteString (Parser)
+import           Text.Megaparsec            (eof, manyTill, parse, (<|>))
+import           Text.Megaparsec.Byte       (char, eol, lowerChar)
 
 type LAN = IntMap IntSet
 
 type Node = Int
 
-encode :: String -> Int
-encode [a, b] = shiftL (ord a) 8 + ord b
+encode :: [Word8] -> Int
+encode [a, b] = shiftL (fromIntegral a) 8 + fromIntegral b
 
 decode :: Int -> String
 decode int = [chr . shiftR int $ 8, chr $ int .&. 255]
@@ -37,7 +41,7 @@ parseInput = parseEdge <|> (eof >> return M.empty)
 
 parseEdge :: Parser LAN
 parseEdge = do
-  a <- encode <$> manyTill lowerChar (char '-')
+  a <- encode <$> manyTill lowerChar (char _hyphen)
   b <- encode <$> manyTill lowerChar eol
   insertWith union a (singleton b) . insertWith union b (singleton a)
     <$> parseInput
@@ -119,14 +123,14 @@ findLargestInterconnected lan =
     degeneracyOrdering =
       map fst . sortBy (comparing (size . snd)) . assocs $ lan
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . findTriconnectedTs
     . fromRight (error "parser error")
     . parse parseInput "day23"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   findLargestInterconnected
     . fromRight (error "parser error")

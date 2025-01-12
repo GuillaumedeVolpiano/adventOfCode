@@ -5,22 +5,22 @@ module Day18
 
 import           Control.Monad.State        (State, evalState, get, put)
 import           Data.Bits                  (shiftL, shiftR, (.&.))
+import           Data.ByteString            (ByteString, unpack)
 import           Data.Either                (fromRight)
 import           Data.IntSet                as S (IntSet, difference, empty,
                                                   fromList, intersection,
                                                   member, notMember, null)
 import           Data.List                  (inits)
 import           Data.Maybe                 (fromJust)
-import           Data.Text                  (Text, unpack)
-import           Helpers.Parsers.Text       (Parser)
+import           Helpers.Parsers.ByteString (Parser)
 import           Helpers.Search.Int         (bfsSafe, bfsSafeDist, dfs)
 import           Text.Megaparsec            (eof, manyTill, parse)
-import           Text.Megaparsec.Char       (char, eol)
-import           Text.Megaparsec.Char.Lexer (decimal)
+import           Text.Megaparsec.Byte       (char, eol)
+import           Text.Megaparsec.Byte.Lexer (decimal)
 
 import qualified Data.IntMap                as M (empty)
 import           Data.Sequence              (singleton)
-import           Debug.Trace
+import           Data.Word8                 (_comma)
 
 type Bytes = IntSet
 
@@ -41,7 +41,7 @@ parseInput = manyTill parseByte eof
 parseByte :: Parser Int
 parseByte = do
   x <- decimal
-  char ','
+  char _comma
   y <- decimal
   eol
   return (x + shiftL y 7)
@@ -116,7 +116,7 @@ binaryState test = do
           binaryState test
   result
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 test =
   show
     . shortestPath test
@@ -129,7 +129,7 @@ part1 test =
       | test = 12
       | otherwise = 1024
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 test =
   intToPos
     . binary test

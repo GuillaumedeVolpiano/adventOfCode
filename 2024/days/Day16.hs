@@ -3,18 +3,20 @@ module Day16
   , part2
   ) where
 
-import           Data.Bits          (clearBit, complementBit, setBit, shiftR,
-                                     testBit, (.&.), (.|.))
-import           Data.Hashable      (Hashable, hashWithSalt)
-import           Data.IntMap        as M (IntMap, empty, notMember, singleton,
-                                          (!))
-import           Data.IntPSQ        as Q (singleton)
-import           Data.IntSet        as S (IntSet, empty, foldr, fromList, map,
-                                          member, size, union, unions)
-import           Data.Maybe         (fromJust, mapMaybe)
-import           Data.Text          (Text, unpack)
-import           Helpers.Search.Int (dijkstraAllShortestPaths,
-                                     dijkstraUncertainGoalVal)
+import           Data.Bits                  (clearBit, complementBit, setBit,
+                                             shiftR, testBit, (.&.), (.|.))
+import           Data.ByteString            (ByteString, unpack)
+import           Data.IntMap                (IntMap, notMember, (!))
+import qualified Data.IntMap                as M (empty, singleton)
+import qualified Data.IntPSQ                as Q (singleton)
+import           Data.IntSet                as S (IntSet, fromList, member,
+                                                  size, union, unions)
+import qualified Data.IntSet                as S (empty, foldr, map)
+import           Data.Maybe                 (fromJust, mapMaybe)
+import           Data.Word8                 (_E, _S, _numbersign)
+import qualified Helpers.Parsers.ByteString as P (lines)
+import           Helpers.Search.Int         (dijkstraAllShortestPaths,
+                                             dijkstraUncertainGoalVal)
 
 type Maze = IntSet
 
@@ -59,18 +61,18 @@ dijkstra (start, maze, goalPos) =
     (neighbours maze)
     ((== goalPos) . (.&. 65535)) -- 2^16 - 1
 
-initialise :: Text -> (Reindeer, Maze, Int)
+initialise :: ByteString -> (Reindeer, Maze, Int)
 initialise input = (start, maze, goalPos)
   where
     literalMaze =
       concat
         . zipWith (\a b -> zipWith (\c d -> (256 * a + c, d)) [0 ..] b) [0 ..]
-        . lines
-        . unpack
+        . map unpack
+        . P.lines
         $ input
-    maze = fromList . fmap fst . filter ((== '#') . snd) $ literalMaze
-    startPos = fst . head . filter ((== 'S') . snd) $ literalMaze
-    goalPos = fst . head . filter ((== 'E') . snd) $ literalMaze
+    maze = fromList . fmap fst . filter ((== _numbersign) . snd) $ literalMaze
+    startPos = fst . head . filter ((== _S) . snd) $ literalMaze
+    goalPos = fst . head . filter ((== _E) . snd) $ literalMaze
     start = right startPos
 
 neighbours :: Maze -> Reindeer -> [(Reindeer, Int)]
@@ -98,10 +100,10 @@ allPaths (reindeer, maze, goalPos) =
       | otherwise =
         S.map (.&. 65535) ps `union` S.foldr (union . reconstruct) S.empty ps
       where
-        ps = paths M.! p
+        ps = paths ! p
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ = show . dijkstra . initialise
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ = show . allPaths . initialise

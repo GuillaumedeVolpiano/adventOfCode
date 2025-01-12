@@ -3,15 +3,14 @@ module Day25
   , part2
   ) where
 
-import           Data.Bifunctor       (first, second)
-import           Data.Either          (fromRight)
-import           Data.Text            (Text)
-import           Helpers.Parsers.Text (Parser)
-import           Text.Megaparsec      (eof, manyTill, parse, someTill, try,
-                                       (<|>))
-import           Text.Megaparsec.Char (char, eol)
-
-import           Debug.Trace
+import           Data.Bifunctor             (first, second)
+import           Data.ByteString            (ByteString)
+import           Data.Either                (fromRight)
+import           Data.Word8                 (_numbersign, _period)
+import           Helpers.Parsers.ByteString (Parser)
+import           Text.Megaparsec            (eof, manyTill, parse, someTill,
+                                             try, (<|>))
+import           Text.Megaparsec.Byte       (char, eol)
 
 type Key = [Bool]
 
@@ -42,7 +41,9 @@ parseLast = do
 
 parseLine :: Parser [Bool]
 parseLine =
-  someTill ((char '#' >> return True) <|> (char '.' >> return False)) eol
+  someTill
+    ((char _numbersign >> return True) <|> (char _period >> return False))
+    eol
 
 countFits :: ([Lock], [Key]) -> Int
 countFits (locks, keys) = foldr checkFits 0 keys
@@ -50,9 +51,9 @@ countFits (locks, keys) = foldr checkFits 0 keys
     checkFits key = (+) . length . filter and . map (fit key) $ locks
     fit = zipWith (\a b -> not a || not b)
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show . countFits . fromRight (error "parse failed") . parse parseInput "day25"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ _ = "Part 2"

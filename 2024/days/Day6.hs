@@ -3,15 +3,18 @@ module Day6
   , part2
   ) where
 
-import           Data.Array.Unboxed  (UArray, assocs, (!?))
-import           Data.Bits           (shiftL, shiftR, (.&.))
-import           Data.IntSet         (IntSet, empty, insert, member, size)
-import qualified Data.IntSet         as S (filter)
-import           Data.List           as L (filter, unfoldr)
-import           Data.Maybe          (fromJust, isNothing)
-import           Data.Text           (Text, index)
-import qualified Data.Text           as T (length, lines)
-import           Data.Vector.Unboxed (Vector, elemIndex, generate, (!))
+import           Data.Array.Unboxed         (UArray, assocs, (!?))
+import           Data.Bits                  (shiftL, shiftR, (.&.))
+import           Data.ByteString            (ByteString)
+import qualified Data.ByteString            as B (length)
+import           Data.ByteString.Char8      (index)
+import           Data.IntSet                (IntSet, empty, insert, member,
+                                             size)
+import qualified Data.IntSet                as S (filter)
+import           Data.List                  as L (filter, unfoldr)
+import           Data.Maybe                 (fromJust, isNothing)
+import           Data.Vector.Unboxed        (Vector, elemIndex, generate, (!))
+import qualified Helpers.Parsers.ByteString as P (lines)
 
 -- first 8 bits for x, next 8 bits for y, then two bits for direction,
 -- starting at 0 for north, rotating clockwise
@@ -80,12 +83,12 @@ findLoops map = size . S.filter (isLoop map guard empty) . track $ map
   where
     guard = getGuard map
 
-createMap :: Text -> Map
+createMap :: ByteString -> Map
 createMap input = generate (2 ^ 16) indexMap
   where
-    linedInput = T.lines input
+    linedInput = P.lines input
     yMax = length linedInput
-    xMax = T.length . head $ linedInput
+    xMax = B.length . head $ linedInput
     indexMap i
       | x >= xMax || y >= yMax = 3
       | otherwise = classify $ linedInput !! y `index` x
@@ -96,8 +99,8 @@ createMap input = generate (2 ^ 16) indexMap
     classify '#' = 0
     classify _   = 1
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ = show . size . track . createMap
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ = show . findLoops . createMap

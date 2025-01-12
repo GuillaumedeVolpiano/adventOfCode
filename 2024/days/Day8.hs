@@ -5,22 +5,23 @@ module Day8
   , part2
   ) where
 
-import           Data.Array.Unboxed   (UArray, assocs, bounds, range)
-import           Data.Char            (isAlphaNum)
-import           Data.Function        (on)
-import           Data.HashSet         (HashSet, empty, insert, size)
-import           Data.List            (groupBy, sortBy, tails)
-import           Data.Ord             (comparing)
-import           Data.Ratio           ((%))
-import           Data.Text            (Text)
-import           Data.Tuple           (swap)
-import           Helpers.Graph        (Pos)
-import           Helpers.Parsers.Text (arrayFromText)
-import           Linear.V2            (V2 (..))
+import           Data.Array.Unboxed         (UArray, assocs, bounds, range)
+import           Data.ByteString            (ByteString)
+import           Data.Function              (on)
+import           Data.HashSet               (HashSet, empty, insert, size)
+import           Data.List                  (groupBy, sortBy, tails)
+import           Data.Ord                   (comparing)
+import           Data.Ratio                 ((%))
+import           Data.Tuple                 (swap)
+import           Data.Word                  (Word8)
+import           Data.Word8                 (isAlphaNum)
+import           Helpers.Graph              (Pos)
+import           Helpers.Parsers.ByteString (arrayFromByteString)
+import           Linear.V2                  (V2 (..))
 
 type Frequency = [Pos]
 
-type Grid = UArray Pos Char
+type Grid = UArray Pos Word8
 
 type Rule = ([Pos] -> (Pos, Pos) -> [Pos])
 
@@ -63,8 +64,8 @@ findAllAntinodes rule grid =
     antennas = buildAntennas grid
     pos = range . bounds $ grid
 
-part1 :: Bool -> Text -> String
-part1 _ = show . findAllAntinodes findAntinodes . arrayFromText
+part1 :: Bool -> ByteString -> String
+part1 _ = show . findAllAntinodes findAntinodes . arrayFromByteString
 
-part2 :: Bool -> Text -> String
-part2 _ = show . findAllAntinodes findAligned . arrayFromText
+part2 :: Bool -> ByteString -> String
+part2 _ = show . findAllAntinodes findAligned . arrayFromByteString

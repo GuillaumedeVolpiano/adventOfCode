@@ -3,18 +3,19 @@ module Day5
   , part2
   ) where
 
+import           Data.ByteString            (ByteString)
 import           Data.Either                (fromRight)
 import           Data.Function              (on)
 import           Data.IntMap                (IntMap, empty, fromList, notMember,
                                              (!))
 import           Data.List                  (groupBy, sortBy)
 import           Data.Ord                   (comparing)
-import           Data.Text                  (Text)
-import           Helpers.Parsers.Text            (Parser)
+import           Data.Word8                 (_bar, _comma)
+import           Helpers.Parsers.ByteString (Parser)
 import           Text.Megaparsec            (eof, manyTill, optional, parse,
                                              sepBy)
-import           Text.Megaparsec.Char       (char, eol)
-import           Text.Megaparsec.Char.Lexer (decimal)
+import           Text.Megaparsec.Byte       (char, eol)
+import           Text.Megaparsec.Byte.Lexer (decimal)
 
 type Rules = IntMap [Int]
 
@@ -29,14 +30,14 @@ parseInput = do
 parseOrder :: Parser (Int, Int)
 parseOrder = do
   before <- decimal
-  char '|'
+  char _bar
   after <- decimal
   eol
   return (after, before)
 
 parseUpdate :: Parser [Int]
 parseUpdate = do
-  update <- decimal `sepBy` char ','
+  update <- decimal `sepBy` char _comma
   optional eol
   return update
 
@@ -73,7 +74,7 @@ sortUnsorted (rules, updates) =
 score :: Update -> Int
 score update = (update !!) . flip div 2 . length $ update
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . sum
@@ -82,7 +83,7 @@ part1 _ =
     . fromRight (empty, [])
     . parse parseInput ""
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . sum

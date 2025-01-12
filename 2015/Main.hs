@@ -3,6 +3,8 @@
 module Main where
 
 import           Data.ByteString                 (ByteString)
+import           Data.ByteString.Char8           (pack)
+import qualified Data.ByteString.Char8           as C (putStrLn)
 import           Data.Map                        (Map, empty, fromList, (!))
 import           Data.Time.Calendar              (toGregorian)
 import           Data.Time.Clock                 (getCurrentTime, utctDay)
@@ -109,6 +111,6 @@ main = do
       result
         | interactive args = interSolver ! theDay $ input
         | otherwise = do
-          timer "Part 1." 4 . putStrLn $ solve1 (test args) input
-          timer "Part 2." 4 . putStrLn $ solve2 (test args) input
+          timer "Part 1." 4 . C.putStrLn . pack $ solve1 (test args) input
+          timer "Part 2." 4 . C.putStrLn . pack $ solve2 (test args) input
   result

@@ -7,13 +7,15 @@ module Day10
 
 import           Data.Array.Unboxed             (UArray, amap, bounds, inRange,
                                                  range, (!))
-import           Data.Char                      (digitToInt, isDigit)
+import           Data.ByteString                (ByteString)
 import           Data.Graph.Inductive.Graph     (Node, lab, labNodes, suc)
 import           Data.Graph.Inductive.Query.BFS (bfs)
-import           Data.Text                      (Text)
+import           Data.Word                      (Word8)
+import           Data.Word8                     (isDigit)
 import           Helpers.Graph                  (Gr, Pos, assocsToGraph, east,
                                                  north, south, west)
-import           Helpers.Parsers.Text           (arrayFromText)
+import           Helpers.Parsers.ByteString     (arrayFromByteString,
+                                                 digitToInt)
 
 type TopoMap = Gr (Pos, Int) ()
 
@@ -52,12 +54,14 @@ findAllTrails topoMap = length . foldr (explore topoMap) trailHeads $ [1 .. 9]
 explore :: TopoMap -> Int -> [Node] -> [Node]
 explore topoMap _ = concatMap (suc topoMap)
 
-testDigit :: Char -> Int
-testDigit '.' = -1
-testDigit c   = digitToInt c
+testDigit :: Word8 -> Int
+testDigit 46 = -1 -- period
+testDigit c  = digitToInt c
 
-part1 :: Bool -> Text -> String
-part1 _ = show . findTrails . buildTopoMap . amap testDigit . arrayFromText
+part1 :: Bool -> ByteString -> String
+part1 _ =
+  show . findTrails . buildTopoMap . amap testDigit . arrayFromByteString
 
-part2 :: Bool -> Text -> String
-part2 _ = show . findAllTrails . buildTopoMap . amap testDigit . arrayFromText
+part2 :: Bool -> ByteString -> String
+part2 _ =
+  show . findAllTrails . buildTopoMap . amap testDigit . arrayFromByteString

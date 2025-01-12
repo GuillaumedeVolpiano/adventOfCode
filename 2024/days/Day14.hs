@@ -4,14 +4,14 @@ module Day14
   ) where
 
 import           Data.Bifunctor                   (bimap, first)
+import           Data.ByteString                  (ByteString)
 import           Data.List                        (minimumBy, partition)
 import           Data.List.Split                  (chunksOf)
 import           Data.Maybe                       (fromJust)
 import           Data.Ord                         (comparing)
-import           Data.Text                        (Text)
 import           Data.Tuple                       (swap)
 import           Data.Vector                      (Vector, generate)
-import           Helpers.Parsers.Text             (signedInts)
+import           Helpers.Parsers.ByteString       (signedInts)
 import           Math.NumberTheory.Moduli.Chinese (chinese)
 import           Statistics.Sample                (variance)
 
@@ -89,7 +89,7 @@ second :: Robot -> Robot
 second (Robot x y dx dy) =
   Robot ((x + dx) `mod` width False) ((y + dy) `mod` height False) dx dy
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 test =
   show
     . uncurry (*)
@@ -107,5 +107,5 @@ part1 test =
     . map buildBot
     . signedInts
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ = chineseFindTree . map buildBot . signedInts

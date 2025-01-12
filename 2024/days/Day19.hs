@@ -3,45 +3,48 @@ module Day19
   , part2
   ) where
 
-import           Data.Bifunctor       (second)
-import           Data.Either          (fromRight)
-import           Data.IntMap          as M (IntMap, fromList, keys, (!))
-import           Data.List            as L (groupBy, length, null, partition,
-                                            sortBy)
-import           Data.Maybe           (mapMaybe)
-import           Data.MultiSet        as MS (MultiSet, deleteMaxAll, findMax,
-                                             insertMany, null, occur, singleton)
-import           Data.Ord             (Down (..), comparing)
-import           Data.Set             as S (Set, deleteFindMax, fromList,
-                                            insert, map, member, null,
-                                            singleton)
-import           Data.Text            as T (Text, length, null, pack, splitAt)
-import           Helpers.Parsers.Text (Parser)
-import           Text.Megaparsec      (many, manyTill, parse, sepBy)
-import           Text.Megaparsec.Char (eol, lowerChar, string)
+import           Data.Bifunctor             (second)
+import           Data.ByteString            (ByteString, pack)
+import qualified Data.ByteString            as B (length, null, splitAt)
+import           Data.Either                (fromRight)
+import           Data.IntMap                as M (IntMap, fromList, keys, (!))
+import           Data.List                  as L (groupBy, length, null,
+                                                  partition, sortBy)
+import           Data.Maybe                 (mapMaybe)
+import           Data.MultiSet              as MS (MultiSet, deleteMaxAll,
+                                                   findMax, insertMany, null,
+                                                   occur, singleton)
+import           Data.Ord                   (Down (..), comparing)
+import           Data.Set                   as S (Set, deleteFindMax, fromList,
+                                                  insert, map, member, null,
+                                                  singleton)
+import           Data.Word8                 (_comma, _space)
+import           Helpers.Parsers.ByteString (Parser)
+import           Text.Megaparsec            (many, manyTill, parse, sepBy)
+import           Text.Megaparsec.Byte       (eol, lowerChar, string)
 
-type Towels = IntMap (Set Text)
+type Towels = IntMap (Set ByteString)
 
 newtype Pattern = Pattern
-  { getPattern :: Text
+  { getPattern :: ByteString
   } deriving (Show, Eq)
 
 instance Ord Pattern where
   compare (Pattern a) (Pattern b) =
-    compare (T.length a) (T.length b) `mappend` compare a b
+    compare (B.length a) (B.length b) `mappend` compare a b
 
-pSplitAt :: Int -> Pattern -> (Text, Pattern)
-pSplitAt x (Pattern p) = second Pattern . T.splitAt x $ p
+pSplitAt :: Int -> Pattern -> (ByteString, Pattern)
+pSplitAt x (Pattern p) = second Pattern . B.splitAt x $ p
 
 parseInput :: Parser (Towels, [Pattern])
 parseInput = do
   towels <-
     M.fromList
-      . fmap (\x -> (T.length . head $ x, S.fromList x))
-      . groupBy (\a b -> T.length a == T.length b)
-      . sortBy (comparing (Down . T.length))
+      . fmap (\x -> (B.length . head $ x, S.fromList x))
+      . groupBy (\a b -> B.length a == B.length b)
+      . sortBy (comparing (Down . B.length))
       . fmap pack
-      <$> many lowerChar `sepBy` string (pack ", ")
+      <$> many lowerChar `sepBy` string (pack [_comma, _space])
   eol
   eol
   patterns <- many (Pattern . pack <$> manyTill lowerChar eol)
@@ -54,7 +57,7 @@ findPattern towels = searchPat . S.singleton
     searchPat :: Set Pattern -> Bool
     searchPat ps
       | S.null ps = False
-      | any (T.null . getPattern) samples' = True
+      | any (B.null . getPattern) samples' = True
       | otherwise = searchPat ps''
       where
         ps'' = foldr S.insert ps' samples'
@@ -82,7 +85,7 @@ findAllPatterns towels = countPat . MS.singleton
         testCount = occur toTest ps
         ps' = deleteMaxAll ps
         (nullSamples, nonNullSamples) =
-          partition (T.null . getPattern) . samples towels $ toTest
+          partition (B.null . getPattern) . samples towels $ toTest
         countNulls = testCount * L.length nullSamples
 
 countPatterns :: Towels -> [Pattern] -> Int
@@ -91,14 +94,14 @@ countPatterns towels = L.length . filter (findPattern towels)
 countAllPatterns :: Towels -> [Pattern] -> Int
 countAllPatterns towels = sum . fmap (findAllPatterns towels)
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . uncurry countPatterns
     . fromRight (error "parser failed")
     . parse parseInput "day19"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . uncurry countAllPatterns

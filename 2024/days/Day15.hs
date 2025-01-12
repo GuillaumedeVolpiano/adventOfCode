@@ -9,21 +9,24 @@ module Day15
 import           Control.Monad            (void)
 import           Control.Monad.State.Lazy (State, get, put, runState)
 import           Data.Bifunctor           (bimap, first, second)
+import           Data.ByteString          (ByteString, foldl', pack)
+import qualified Data.ByteString          as B (concat)
 import           Data.Either              (fromRight)
-import           Data.List                (foldl')
 import           Data.List.Split          (chunksOf)
 import           Data.Maybe               (fromJust, isNothing)
 import           Data.Set                 as S (Set, delete, empty, findMax,
                                                 foldr, fromList, insert, map,
                                                 member, notMember)
-import           Data.Text                (Text)
 import           Data.Void                (Void)
+import           Data.Word                (Word8)
+import           Data.Word8               (_circum, _greater, _less,
+                                           _numbersign, _v)
 import           Helpers.Graph            (Pos, east, north, origin, south,
                                            west)
 import           Linear.V2                (V2 (..))
 import           Text.Megaparsec          (ParsecT, eof, manyTill, optional,
                                            runParserT, (<|>))
-import           Text.Megaparsec.Char     (char, eol, printChar)
+import           Text.Megaparsec.Byte     (char, eol, printChar)
 
 data ParserState = ParserState
   { botPos   :: Pos
@@ -72,16 +75,16 @@ instance Show SokobanLarge where
 
 type Boulders = Set Pos
 
-type Parser = ParsecT Void Text (State ParserState)
+type Parser = ParsecT Void ByteString (State ParserState)
 
 type Walls = Set Pos
 
 type Dir = Pos
 
-parseInput :: Parser String
+parseInput :: Parser ByteString
 parseInput = do
   parseSokoban
-  concat <$> manyTill (manyTill printChar eol) eof
+  B.concat <$> manyTill (pack <$> manyTill printChar eol) eof
 
 parseSokoban :: Parser ()
 parseSokoban = parseChar <|> void eol
@@ -98,23 +101,23 @@ parseChar = do
   c <- printChar
   state <- get
   let wallsSet'
-        | c == '#' = insert p . wallsSet $ state
+        | c == _numbersign = insert p . wallsSet $ state
         | otherwise = wallsSet state
       p = parsePos state
       state' = state {parsePos = p + east, wallsSet = wallsSet'}
   case c of
-    '.' -> put state'
-    '#' -> put state'
-    '@' -> put state' {botPos = p}
-    'O' -> put state' {bs = insert p . bs $ state}
-    _   -> error (c : " can't be parsed")
+    46 -> put state' -- period
+    35 -> put state' -- numbersign
+    64 -> put state' {botPos = p} -- @
+    79 -> put state' {bs = insert p . bs $ state} -- O
+    _  -> error (show c ++ " can't be parsed")
   optional finishLine
   parseSokoban
 
 calcGPSSum :: Boulders -> Int
 calcGPSSum = sum . S.map (\(V2 x y) -> x + 100 * y)
 
-moveBot :: Sokoban -> Char -> Sokoban
+moveBot :: Sokoban -> Word8 -> Sokoban
 moveBot state dir = state {pos = pos', boulders = boulders'}
   where
     pos'
@@ -124,17 +127,17 @@ moveBot state dir = state {pos = pos', boulders = boulders'}
       | isNothing boulders'' = boulders state
       | otherwise = fromJust boulders''
     dir'
-      | dir == '^' = north
-      | dir == 'v' = south
-      | dir == '<' = west
-      | dir == '>' = east
+      | dir == _circum = north
+      | dir == _v = south
+      | dir == _less = west
+      | dir == _greater = east
     pos'' = pos state + dir'
     boulders''
       | pos'' `member` boulders state =
         chainMove (boulders state) pos'' dir' . walls $ state
       | otherwise = Just . boulders $ state
 
-moveBotLarge :: SokobanLarge -> Char -> SokobanLarge
+moveBotLarge :: SokobanLarge -> Word8 -> SokobanLarge
 moveBotLarge state dir =
   state {posLarge = pos', bouldersLeft = lefties', bouldersRight = righties'}
   where
@@ -148,22 +151,22 @@ moveBotLarge state dir =
       | isNothing lr = bouldersRight state
       | otherwise = snd . fromJust $ lr
     dir'
-      | dir == '^' = north
-      | dir == 'v' = south
-      | dir == '<' = west
-      | dir == '>' = east
+      | dir == _circum = north
+      | dir == _v = south
+      | dir == _less = west
+      | dir == _greater = east
     pos'' = posLarge state + dir'
     lr
       | pos'' `notMember` bouldersLeft state
           && pos'' `notMember` bouldersRight state =
         Just (bouldersLeft state, bouldersRight state)
-      | dir `elem` "^v" && pos'' `elem` bouldersRight state =
+      | dir `elem` [_circum, _v] && pos'' `elem` bouldersRight state =
         vChainMove
           (pos'' + west, pos'')
           dir'
           (wallsLarge state)
           (bouldersLeft state, bouldersRight state)
-      | dir `elem` "^v" =
+      | dir `elem` [_circum, _v] =
         vChainMove
           (pos'', pos'' + east)
           dir'
@@ -224,19 +227,19 @@ vChainMove (left, right) dir ws (lefties, righties)
       | right' `member` lefties =
         vChainMove (right', right' + east) dir ws (lefties, righties)
 
-runParser :: Text -> (String, ParserState)
+runParser :: ByteString -> (ByteString, ParserState)
 runParser =
   first (fromRight (error "parser failed"))
     . flip runState (ParserState origin empty origin empty)
     . runParserT parseInput "day15"
 
-runBot :: Text -> Sokoban
+runBot :: ByteString -> Sokoban
 runBot input = foldl' moveBot originBot moves
   where
     (moves, ParserState p boulds _ ws) = runParser input
     originBot = Sokoban p boulds ws
 
-runBotLarge :: Text -> SokobanLarge
+runBotLarge :: ByteString -> SokobanLarge
 runBotLarge input = foldl' moveBotLarge originBot moves
   where
     (moves, ParserState p boulds _ ws) = runParser input
@@ -252,8 +255,8 @@ runBotLarge input = foldl' moveBotLarge originBot moves
     righties = S.map oddDoubleWidth boulds
     originBot = SokobanLarge (evenDoubleWidth p) lefties righties wsLarge
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ = show . calcGPSSum . boulders . runBot
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ = show . calcGPSSum . bouldersLeft . runBotLarge

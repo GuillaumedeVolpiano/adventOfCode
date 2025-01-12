@@ -52,7 +52,7 @@ library helpers
     , psqueues
     , regex-tdfa
     , split
-    , text
+    , text                  >=2.1
     , time
     , timeit
     , unordered-containers
@@ -681,38 +681,14 @@ executable aoc2024
   main-is:          Main.hs
   hs-source-dirs:   2024
   build-depends:
-    , arithmoi
-    , array
     , base
+    , bytestring
     , cmdargs
     , containers
-    , criterion
-    , curl
-    , data-clist
     , days2024
     , directory
-    , fgl
-    , graphviz
-    , hashable
     , helpers
-    , linear
-    , massiv
-    , megaparsec
-    , mono-traversable
-    , mtl
-    , multiset
-    , parallel
-    , parser-combinators
-    , psqueues
-    , semialign
-    , split
-    , statistics
-    , tasty-bench
-    , text                  >=2.1
     , time
-    , timeit
-    , unordered-containers
-    , vector
 
   -- ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
   ghc-options:
@@ -754,15 +730,9 @@ library days2024
     , arithmoi
     , array
     , base
-    , cmdargs
+    , bytestring
     , containers
-    , criterion
-    , curl
-    , data-clist
-    , directory
     , fgl
-    , graphviz
-    , hashable
     , helpers
     , linear
     , massiv
@@ -771,17 +741,13 @@ library days2024
     , mtl
     , multiset
     , parallel
-    , parser-combinators
     , psqueues
     , semialign
     , split
     , statistics
-    , tasty-bench
-    , text                  >=2.1
-    , time
-    , timeit
     , unordered-containers
     , vector
+    , word8
 
   default-language: Haskell2010
 
@@ -923,17 +889,17 @@ benchmark bench
   hs-source-dirs:   bench
   build-depends:
     , base
+    , bytestring
     , days2015
     , directory
     , helpers
     , megaparsec
     , mtl
     , tasty-bench
-    , text
 
   ghc-options:
     -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
-    -fllvm -threaded -O3 -rtsopts -with-rtsopts=-N8
+    -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
 
   default-language: Haskell2010
 
