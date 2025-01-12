@@ -929,3 +929,23 @@ benchmark bench
     -fllvm -threaded -O3 -rtsopts -with-rtsopts=-N8
 
   default-language: Haskell2010
+
+benchmark full-year
+  main-is:          FullYear.hs
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   fullyear 
+  build-depends:
+    , base
+    , days2024
+    , directory
+    , helpers
+    , megaparsec
+    , mtl
+    , tasty-bench
+    , text
+
+  ghc-options:
+    -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
+    -fllvm -threaded -O3 -rtsopts -with-rtsopts=-N8
+
+  default-language: Haskell2010
