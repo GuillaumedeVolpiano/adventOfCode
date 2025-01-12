@@ -34,55 +34,55 @@ import           Test.Tasty.Bench    (Benchmark, bcompare, bench, bgroup,
                                       defaultMain, nf)
 import           Text.Megaparsec     (runParserT)
 
-input1 = "input/2024/day1.txt"
+input1 = "/adventOfCode/input/2024/day1.txt"
 
-input2 = "input/2024/day2.txt"
+input2 = "/adventOfCode/input/2024/day2.txt"
 
-input3 = "input/2024/day3.txt"
+input3 = "/adventOfCode/input/2024/day3.txt"
 
-input4 = "input/2024/day4.txt"
+input4 = "/adventOfCode/input/2024/day4.txt"
 
-input5 = "input/2024/day5.txt"
+input5 = "/adventOfCode/input/2024/day5.txt"
 
-input6 = "input/2024/day6.txt"
+input6 = "/adventOfCode/input/2024/day6.txt"
 
-input7 = "input/2024/day7.txt"
+input7 = "/adventOfCode/input/2024/day7.txt"
 
-input8 = "input/2024/day8.txt"
+input8 = "/adventOfCode/input/2024/day8.txt"
 
-input9 = "input/2024/day9.txt"
+input9 = "/adventOfCode/input/2024/day9.txt"
 
-input10 = "input/2024/day10.txt"
+input10 = "/adventOfCode/input/2024/day10.txt"
 
-input11 = "input/2024/day11.txt"
+input11 = "/adventOfCode/input/2024/day11.txt"
 
-input12 = "input/2024/day12.txt"
+input12 = "/adventOfCode/input/2024/day12.txt"
 
-input13 = "input/2024/day13.txt"
+input13 = "/adventOfCode/input/2024/day13.txt"
 
-input14 = "input/2024/day14.txt"
+input14 = "/adventOfCode/input/2024/day14.txt"
 
-input15 = "input/2024/day15.txt"
+input15 = "/adventOfCode/input/2024/day15.txt"
 
-input16 = "input/2024/day16.txt"
+input16 = "/adventOfCode/input/2024/day16.txt"
 
-input17 = "input/2024/day17.txt"
+input17 = "/adventOfCode/input/2024/day17.txt"
 
-input18 = "input/2024/day18.txt"
+input18 = "/adventOfCode/input/2024/day18.txt"
 
-input19 = "input/2024/day19.txt"
+input19 = "/adventOfCode/input/2024/day19.txt"
 
-input20 = "input/2024/day20.txt"
+input20 = "/adventOfCode/input/2024/day20.txt"
 
-input21 = "input/2024/day21.txt"
+input21 = "/adventOfCode/input/2024/day21.txt"
 
-input22 = "input/2024/day22.txt"
+input22 = "/adventOfCode/input/2024/day22.txt"
 
-input23 = "input/2024/day23.txt"
+input23 = "/adventOfCode/input/2024/day23.txt"
 
-input24 = "input/2024/day24.txt"
+input24 = "/adventOfCode/input/2024/day24.txt"
 
-input25 = "input/2024/day24.txt"
+input25 = "/adventOfCode/input/2024/day24.txt"
 
 tests1 :: Text -> [Benchmark]
 tests1 input =
@@ -261,28 +261,31 @@ main = do
   file23 <- TIO.readFile $ home ++ input23
   file24 <- TIO.readFile $ home ++ input24
   file25 <- TIO.readFile $ home ++ input25
-  defaultMain $ tests1 file1
-  defaultMain $ tests2 file2
-  defaultMain $ tests3 file3
-  defaultMain $ tests4 file4
-  defaultMain $ tests5 file5
-  defaultMain $ tests6 file6
-  defaultMain $ tests7 file7
-  defaultMain $ tests8 file8
-  defaultMain $ tests9 file9
-  defaultMain $ tests10 file10
-  defaultMain $ tests11 file11
-  defaultMain $ tests12 file12
-  defaultMain $ tests13 file13
-  defaultMain $ tests14 file14
-  defaultMain $ tests15 file15
-  defaultMain $ tests16 file16
-  defaultMain $ tests17 file17
-  defaultMain $ tests18 file18
-  defaultMain $ tests19 file19
-  defaultMain $ tests20 file20
-  defaultMain $ tests21 file21
-  defaultMain $ tests22 file22
-  defaultMain $ tests23 file23
-  defaultMain $ tests24 file24
-  defaultMain $ tests25 file25
+  defaultMain
+    $ concat
+        [ tests1 file1
+        , tests2 file2
+        , tests3 file3
+        , tests4 file4
+        , tests5 file5
+        , tests6 file6
+        , tests7 file7
+        , tests8 file8
+        , tests9 file9
+        , tests10 file10
+        , tests11 file11
+        , tests12 file12
+        , tests13 file13
+        , tests14 file14
+        , tests15 file15
+        , tests16 file16
+        , tests17 file17
+        , tests18 file18
+        , tests19 file19
+        , tests20 file20
+        , tests21 file21
+        , tests22 file22
+        , tests23 file23
+        , tests24 file24
+        , tests25 file25
+        ]

@@ -18,3 +18,4 @@ test/*/*
 !.aoc_tiles/tiles/
 *.prof
 *.hp
+*.bench
