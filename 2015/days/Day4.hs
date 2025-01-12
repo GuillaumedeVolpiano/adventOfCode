@@ -8,7 +8,9 @@ import           Data.Bits              (shiftR, (.&.))
 import           Data.ByteString        (ByteString, append, concat)
 import qualified Data.ByteString        as BS (init, take, unpack)
 import qualified Data.ByteString.Base16 as BSB (encode)
-import qualified Data.Serialize         as S (encode)
+import           Data.ByteString.UTF8   (fromString)
+
+import           Debug.Trace
 
 md5Concat :: Int -> ByteString -> Int -> Bool
 md5Concat zeroSize salt value = all (== 0) . take zeroSize $ md5Hash
@@ -18,9 +20,8 @@ md5Concat zeroSize salt value = all (== 0) . take zeroSize $ md5Hash
         . BS.unpack
         . BS.take halfSize
         . hash
-        . BSB.encode
         . append salt
-        . S.encode
+        . fromString
         . show
         $ value
     halfSize = div zeroSize 2 + mod zeroSize 2
