@@ -4,20 +4,23 @@ module Day5
   ) where
 
 import           Control.Monad.State  (State, evalState, get, put)
+import           Data.ByteString      (ByteString, pack)
 import           Data.Either          (fromRight)
 import           Data.Set             (Set, empty, insert, member, singleton)
-import           Data.Text            (Text, pack)
 import           Data.Void            (Void)
+import           Data.Word            (Word8)
+import           Data.Word8           (_a, _b, _c, _d, _e, _i, _o, _p, _q,
+                                       _space, _u, _x, _y)
 import           Text.Megaparsec      (ParsecT, eof, runParserT, (<|>))
-import           Text.Megaparsec.Char (eol, lowerChar)
+import           Text.Megaparsec.Byte (eol, lowerChar)
 
-type ParserState = State (Char, [Char], Bool, Bool)
+type ParserState = State (Word8, [Word8], Bool, Bool)
 
-type Parser = ParsecT Void Text ParserState Int
+type Parser = ParsecT Void ByteString ParserState Int
 
-type BetterState = State (Char, Char, Char, Set String, Bool, Bool)
+type BetterState = State (Word8, Word8, Word8, Set [Word8], Bool, Bool)
 
-type BetterParser = ParsecT Void Text BetterState Int
+type BetterParser = ParsecT Void ByteString BetterState Int
 
 parseFirst :: Parser
 parseFirst = do
@@ -29,7 +32,7 @@ parseFirst = do
 betterParseFirst :: BetterParser
 betterParseFirst = do
   firstChar <- lowerChar
-  put (firstChar, ' ', ' ', empty, False, False)
+  put (firstChar, _space, _space, empty, False, False)
   betterParseSecond
 
 betterParseSecond :: BetterParser
@@ -39,7 +42,7 @@ betterParseSecond = do
   put
     ( firstChar
     , secondChar
-    , ' '
+    , _space
     , singleton [firstChar, secondChar]
     , False
     , False)
@@ -71,7 +74,8 @@ parseLetter = do
   (previous, vowels, hasPairs, hasNaughty) <- get
   let hasPairs' = hasPairs || letter == previous
       hasNaughty' =
-        hasNaughty || [previous, letter] `elem` ["ab", "cd", "pq", "xy"]
+        hasNaughty
+          || [previous, letter] `elem` [[_a, _b], [_c, _d], [_p, _q], [_x, _y]]
       vowels' = updateVowels letter vowels
   put (letter, vowels', hasPairs', hasNaughty')
   parseLine
@@ -116,21 +120,21 @@ parseNext = parseFirst <|> (eof >> return 0)
 betterParseNext :: BetterParser
 betterParseNext = betterParseFirst <|> (eof >> return 0)
 
-updateVowels :: Char -> [Char] -> [Char]
+updateVowels :: Word8 -> [Word8] -> [Word8]
 updateVowels letter vowels
-  | letter `elem` "aeiou" = letter : vowels
+  | letter `elem` [_a, _e, _i, _o, _u] = letter : vowels
   | otherwise = vowels
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . fromRight (error "parser failed")
-    . flip evalState (' ', [], False, False)
+    . flip evalState (_space, [], False, False)
     . runParserT parseFirst "Day 5"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . fromRight (error "parser failed")
-    . flip evalState (' ', ' ', ' ', empty, False, False)
+    . flip evalState (_space, _space, _space, empty, False, False)
     . runParserT betterParseFirst "Day 5"

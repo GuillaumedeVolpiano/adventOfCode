@@ -1,24 +1,25 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Helpers.Parsers.Text
+module Helpers.Parsers.ByteString
   ( Parser
   , alnum
   , alpha
   , alphaNum
-  , arrayFromText
-  , boolArrayFromText
+  , arrayFromByteString
+  , boolArrayFromByteString
   , characters
   , complexParser
   , custom
   , digits
-  , digitArrayFromText
+  , digitArrayFromByteString
+  , lines
   , signedInt
   , signedDouble
   , signedInts
   , signedDoubles
   , lexeme
   , make2DArray
-  , numsAsTexts
+  , numsAsByteStrings
   , parseByLine
   , parseInput
   , splitOnSpace
@@ -30,40 +31,47 @@ module Helpers.Parsers.Text
 import           Control.Applicative        as A (empty)
 import           Data.Array.IArray          (IArray)
 import           Data.Array.Unboxed         (UArray, array)
-import           Data.Char                  (digitToInt, isAlpha, isAlphaNum,
-                                             isDigit, isSpace)
+import           Data.ByteString            (ByteString, cons, pack, split)
+import qualified Data.ByteString            as BS (concat, empty, length)
+import           Data.ByteString.Char8      (index)
+import qualified Data.ByteString.Char8      as BSC (foldr)
+import           Data.ByteString.UTF8       (fromString)
+import           Data.Char                  (digitToInt)
 import           Data.Either                (fromRight)
 import           Data.List                  as L (length)
 import           Data.Maybe                 (Maybe (Just, Nothing), catMaybes)
-import           Data.Text                  as T (Text, concat, cons, empty,
-                                                  foldr, index, length, lines,
-                                                  pack)
 import           Data.Void                  (Void)
+import           Data.Word8                 (_hyphen, _period, _space, isAlpha,
+                                             isAlphaNum, isDigit, isSpace)
 import           Linear.V2                  (V2 (..))
+import           Prelude                    hiding (lines)
 import           Text.Megaparsec            (Parsec, eof, manyTill, optional,
                                              parse, someTill, takeWhile1P,
                                              takeWhileP, try, (<|>))
-import qualified Text.Megaparsec.Char       as MC (string)
-import           Text.Megaparsec.Char       (char, eol, printChar, space1)
-import qualified Text.Megaparsec.Char.Lexer as L (decimal, float, lexeme,
+import qualified Text.Megaparsec.Byte       as MB (string)
+import           Text.Megaparsec.Byte       (char, eol, printChar, space1)
+import qualified Text.Megaparsec.Byte.Lexer as L (decimal, float, lexeme,
                                                   signed, skipBlockComment,
                                                   skipLineComment, space,
                                                   symbol)
 
-type Parser = Parsec Void Text
+type Parser = Parsec Void ByteString
 
 type Pos = V2 Int
 
+lines :: ByteString -> [ByteString]
+lines = split 10
+
 -- the supplied parser must consume all the line, including the new line
 -- character
-parseByLine :: Parser a -> Text -> [a]
+parseByLine :: Parser a -> ByteString -> [a]
 parseByLine parser = fromRight [] . parse (manyTill parser eof) ""
 
-parseLineList :: Parser (Maybe Text) -> Text -> [Text]
+parseLineList :: Parser (Maybe ByteString) -> ByteString -> [ByteString]
 parseLineList parser =
   fromRight [] . parse (catMaybes <$> manyTill (try parser <|> consume) eof) ""
 
-parseList :: Parser (Maybe a) -> Text -> [[a]]
+parseList :: Parser (Maybe a) -> ByteString -> [[a]]
 parseList parser = fromRight [] . parse (manyTill (parseLine parser) eof) ""
 
 parseInput :: Parser (Maybe a) -> Parser [[a]]
@@ -77,7 +85,7 @@ consume = do
   _ <- printChar
   return Nothing
 
-digits :: Parser (Maybe Text)
+digits :: Parser (Maybe ByteString)
 digits = do
   Just <$> takeWhile1P Nothing isDigit
 
@@ -87,44 +95,44 @@ signedInt = Just <$> L.signed spaceConsumer decimal
 signedDouble :: Parser (Maybe Double)
 signedDouble = Just <$> L.signed spaceConsumer double
 
-signedInts :: Text -> [[Int]]
+signedInts :: ByteString -> [[Int]]
 signedInts = parseList signedInt
 
-signedDoubles :: Text -> [[Double]]
+signedDoubles :: ByteString -> [[Double]]
 signedDoubles = parseList signedDouble
 
-numsAsTexts :: Parser (Maybe Text)
-numsAsTexts = do
+numsAsByteStrings :: Parser (Maybe ByteString)
+numsAsByteStrings = do
   s <-
     optional . try $ do
-      char '-'
+      char _hyphen
   i <- takeWhile1P Nothing isDigit
   d <-
     optional . try $ do
-      sep <- char '.'
+      sep <- char _period
       dec <- takeWhile1P Nothing isDigit
       return (cons sep dec)
-  return (Just . T.concat . catMaybes $ [fmap (`cons` T.empty) s, Just i, d])
+  return (Just . BS.concat . catMaybes $ [fmap (`cons` BS.empty) s, Just i, d])
 
-alpha :: Parser (Maybe Text)
+alpha :: Parser (Maybe ByteString)
 alpha = do
   Just <$> takeWhile1P Nothing isAlpha
 
-alnum :: Parser (Maybe Text)
+alnum :: Parser (Maybe ByteString)
 alnum = do
   Just <$> takeWhile1P Nothing isAlphaNum
 
-notSpace :: Parser (Maybe Text)
+notSpace :: Parser (Maybe ByteString)
 notSpace = do
   Just <$> takeWhileP Nothing (not . isSpace)
 
-alphaNum :: Text -> [[Text]]
+alphaNum :: ByteString -> [[ByteString]]
 alphaNum = parseList alnum
 
-characters :: Text -> [[Text]]
+characters :: ByteString -> [[ByteString]]
 characters = parseList alpha
 
-custom :: Parser (Maybe Text) -> Text -> [[Text]]
+custom :: Parser (Maybe ByteString) -> ByteString -> [[ByteString]]
 custom = parseList
 
 -- | The 'complex parser' function parses a string with complex patterns. It
@@ -132,18 +140,19 @@ custom = parseList
 -- and a string, potentially unlined, and return a list of list of lists of
 -- strings, taken from the original string, split around the splitters and
 -- parsed with the patterns.
-complexParser :: [String] -> [Parser (Maybe Text)] -> Text -> [[[Text]]]
+complexParser ::
+     [String] -> [Parser (Maybe ByteString)] -> ByteString -> [[[ByteString]]]
 complexParser splitters pats =
-  map (zipWith parseLineList pats . splitOnSplitters splitters) . T.lines
+  map (zipWith parseLineList pats . splitOnSplitters splitters) . lines
 
-make2DTextArray :: [Text] -> UArray (V2 Int) Char
-make2DTextArray l =
+make2DByteStringArray :: [ByteString] -> UArray (V2 Int) Char
+make2DByteStringArray l =
   array
     (V2 0 0, V2 width height)
     [(V2 x y, l !! y `index` x) | x <- [0 .. width], y <- [0 .. height]]
   where
-    width = T.length (head l) - 1
-    height = L.length l - 1
+    width = BS.length (head l) - 1
+    height = length l - 1
 
 make2DArray :: IArray UArray a => [[a]] -> UArray (V2 Int) a
 make2DArray l =
@@ -154,38 +163,39 @@ make2DArray l =
     width = L.length (head l) - 1
     height = L.length l - 1
 
-arrayFromText :: Text -> UArray Pos Char
-arrayFromText = make2DTextArray . T.lines
+arrayFromByteString :: ByteString -> UArray Pos Char
+arrayFromByteString = make2DByteStringArray . lines
 
-boolArrayFromText :: Char -> Text -> UArray Pos Bool
-boolArrayFromText test =
-  make2DArray . map (T.foldr ((:) . (== test)) []) . T.lines
+boolArrayFromByteString :: Char -> ByteString -> UArray Pos Bool
+boolArrayFromByteString test =
+  make2DArray . map (BSC.foldr ((:) . (== test)) []) . lines
 
-digitArrayFromText :: Text -> UArray Pos Int
-digitArrayFromText = make2DArray . map (T.foldr ((:) . digitToInt) []) . T.lines
+digitArrayFromByteString :: ByteString -> UArray Pos Int
+digitArrayFromByteString =
+  make2DArray . map (BSC.foldr ((:) . digitToInt) []) . lines
 
-splitOnSpace :: Text -> [[Text]]
+splitOnSpace :: ByteString -> [[ByteString]]
 splitOnSpace = parseList notSpace
 
-splitter :: String -> Parser (Text, Text)
+splitter :: String -> Parser (ByteString, ByteString)
 splitter s = do
   b <- pack <$> manyTill printChar (string s)
   _ <- string s
   a <- pack <$> manyTill printChar eof
   return (b, a)
 
-splitOnSplitters :: [String] -> Text -> [Text]
-splitOnSplitters [] aText = [aText]
-splitOnSplitters (s:ss) aText = before : splitOnSplitters ss after
+splitOnSplitters :: [String] -> ByteString -> [ByteString]
+splitOnSplitters [] aByteString = [aByteString]
+splitOnSplitters (s:ss) aByteString = before : splitOnSplitters ss after
   where
     (before, after) =
-      fromRight (T.empty, T.empty) . parse (splitter s) "" $ aText
+      fromRight (BS.empty, BS.empty) . parse (splitter s) "" $ aByteString
 
 spaceConsumer :: Parser ()
 spaceConsumer =
   L.space
     (do
-       char ' '
+       char _space
        return ())
     A.empty
     A.empty
@@ -198,5 +208,5 @@ decimal = lexeme L.decimal
 double :: Parser Double
 double = lexeme L.float
 
-string :: String -> Parser Text
-string = MC.string . pack
+string :: String -> Parser ByteString
+string = MB.string . fromString

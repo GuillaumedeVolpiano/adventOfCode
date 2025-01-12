@@ -17,6 +17,8 @@ import           Control.Monad               (forM_)
 import           Control.Monad.ST            (ST, runST)
 import           Control.Monad.State         (State, evalState, gets, modify)
 import           Data.Bits                   (shiftL)
+import           Data.ByteString             (ByteString)
+import           Data.ByteString.UTF8        (fromString)
 import           Data.Either                 (fromRight)
 import           Data.IntMap.Strict          (IntMap)
 import qualified Data.IntMap.Strict          as IM (filter, fromList, map,
@@ -34,17 +36,17 @@ import           Data.Maybe                  (fromJust, isNothing)
 import           Data.Set                    (Set, delete, difference, insert,
                                               intersection, member, size, union)
 import qualified Data.Set                    as S (fromList, map)
-import           Data.Text                   (Text, pack)
 import           Data.Vector.Unboxed         (unsafeFreeze)
 import qualified Data.Vector.Unboxed         as V (filter, length)
 import           Data.Vector.Unboxed.Mutable (MVector, write)
 import qualified Data.Vector.Unboxed.Mutable as MV (foldr', modify, read,
                                                     replicate)
 import           Data.Void                   (Void)
+import           Data.Word8                  (_comma)
 import           Text.Megaparsec             (Parsec, ParsecT, eof, parse,
                                               runParserT, (<|>))
-import           Text.Megaparsec.Char        (char, eol, string)
-import           Text.Megaparsec.Char.Lexer  (decimal)
+import           Text.Megaparsec.Byte        (char, eol, string)
+import           Text.Megaparsec.Byte.Lexer  (decimal)
 
 data Modify
   = TurnOn [Int]
@@ -150,9 +152,9 @@ type LowerX = Int
 
 type LowerY = Int
 
-type Parser a = ParsecT Void Text (State a)
+type Parser a = ParsecT Void ByteString (State a)
 
-type ParserST a = Parsec Void Text a
+type ParserST a = Parsec Void ByteString a
 
 oolempty :: OnOffLights Pos
 oolempty = OnOffLights mempty
@@ -181,15 +183,15 @@ betterToggleLight k s
 
 tokenise :: (Ord a, LightSet f) => Parser (f a) (f a -> f a -> f a)
 tokenise =
-  ((string . pack $ "turn on ") >> return turnOn)
-    <|> ((string . pack $ "turn off ") >> return turnOff)
-    <|> ((string . pack $ "toggle ") >> return toggle)
+  ((string . fromString $ "turn on ") >> return turnOn)
+    <|> ((string . fromString $ "turn off ") >> return turnOff)
+    <|> ((string . fromString $ "toggle ") >> return toggle)
 
 tokenise' :: ParserST ([Int] -> Modify)
 tokenise' =
-  ((string . pack $ "turn on ") >> return TurnOn)
-    <|> ((string . pack $ "turn off ") >> return TurnOff)
-    <|> ((string . pack $ "toggle ") >> return Toggle)
+  ((string . fromString $ "turn on ") >> return TurnOn)
+    <|> ((string . fromString $ "turn off ") >> return TurnOff)
+    <|> ((string . fromString $ "toggle ") >> return Toggle)
 
 parseInput' :: ParserST [Modify]
 parseInput' = parseLine' <|> (eof >> return [])
@@ -201,11 +203,11 @@ parseLine :: (Ord a, Posifiable a, LightSet f) => Parser (f a) Int
 parseLine = do
   op <- tokenise
   lx <- decimal
-  char ','
+  char _comma
   ly <- decimal
-  string . pack $ " through "
+  string . fromString $ " through "
   ux <- decimal
-  char ','
+  char _comma
   uy <- decimal
   eol
   let set = buildSet lx ly ux uy
@@ -216,11 +218,11 @@ parseLine' :: ParserST [Modify]
 parseLine' = do
   op <- tokenise'
   lx <- decimal
-  char ','
+  char _comma
   ly <- decimal
-  string . pack $ " through "
+  string . fromString $ " through "
   ux <- decimal
-  char ','
+  char _comma
   uy <- decimal
   eol
   (op [posify x y | x <- [lx .. ux], y <- [ly .. uy]] :) <$> parseInput'
@@ -276,13 +278,13 @@ operate2 (Toggle poss) lights = do
   forM_ poss $ \pos -> do
     MV.modify lights (+ 2) pos
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ input = show solved
   where
     solved = runST $ solvePart1 mods
     mods = fromRight (error "parser failed") . parse parseInput' "Day 6" $ input
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ input = show solved
   where
     solved = runST $ solvePart2 mods

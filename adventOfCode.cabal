@@ -27,10 +27,12 @@ library helpers
   hs-source-dirs:   lib
   exposed-modules:
     Helpers.General
+    Helpers.General.ByteString
     Helpers.General.Text
     Helpers.Graph
     Helpers.Maths
     Helpers.Parsers
+    Helpers.Parsers.ByteString
     Helpers.Parsers.Text
     Helpers.Search
     Helpers.Search.Int
@@ -38,6 +40,7 @@ library helpers
   build-depends:
     , array
     , base
+    , bytestring
     , containers
     , curl
     , directory
@@ -53,6 +56,8 @@ library helpers
     , time
     , timeit
     , unordered-containers
+    , utf8-string
+    , word8
 
   default-language: Haskell2010
 
@@ -61,11 +66,11 @@ executable aoc2015
   hs-source-dirs:   2015
   build-depends:
     , base
+    , bytestring
     , cmdargs
     , containers
     , days2015
     , helpers
-    , text
     , time
 
   ghc-options:
@@ -105,7 +110,9 @@ library days2015
 
   build-depends:
     , base
+    , base16-bytestring
     , bytestring
+    , cereal
     , containers
     , cryptohash-md5
     , helpers
@@ -113,9 +120,9 @@ library days2015
     , megaparsec
     , mtl
     , multiset
-    , text
-    , text-show
+    , utf8-string
     , vector
+    , word8
 
   default-language: Haskell2010
 
@@ -933,7 +940,7 @@ benchmark bench
 benchmark full-year
   main-is:          FullYear.hs
   type:             exitcode-stdio-1.0
-  hs-source-dirs:   fullyear 
+  hs-source-dirs:   fullyear
   build-depends:
     , base
     , days2024

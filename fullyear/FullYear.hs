@@ -82,7 +82,7 @@ input23 = "/adventOfCode/input/2024/day23.txt"
 
 input24 = "/adventOfCode/input/2024/day24.txt"
 
-input25 = "/adventOfCode/input/2024/day24.txt"
+input25 = "/adventOfCode/input/2024/day25.txt"
 
 tests1 :: Text -> [Benchmark]
 tests1 input =

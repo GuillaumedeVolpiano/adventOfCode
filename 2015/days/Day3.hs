@@ -5,27 +5,29 @@ module Day3
 
 import           Control.Monad.State  (State, evalState, get, put)
 import           Data.Bifunctor       (first)
+import           Data.ByteString      (ByteString)
 import           Data.Either          (fromRight)
 import           Data.Set             (Set, empty, insert, size, union)
-import           Data.Text            (Text)
 import           Data.Tuple           (swap)
 import           Data.Void            (Void)
+import           Data.Word8           (_circum, _greater, _less, _v)
 import           Helpers.Graph        (Pos, east, north, origin, south, west)
 import           Text.Megaparsec      (ParsecT, Token, eof, runParserT, token,
                                        (<|>))
 import           Text.Megaparsec.Char (char, eol)
 
-type Parser = ParsecT Void Text (State Pos) Houses
+type Parser = ParsecT Void ByteString (State Pos) Houses
 
-type RobotParser = ParsecT Void Text (State (Pos, Pos)) (Houses, Houses)
+type RobotParser = ParsecT Void ByteString (State (Pos, Pos)) (Houses, Houses)
 
 type Houses = Set Pos
 
-directions :: Token Text -> Maybe Pos
-directions '^' = Just north
-directions 'v' = Just south
-directions '<' = Just west
-directions '>' = Just east
+directions :: Token ByteString -> Maybe Pos
+directions d
+  | d == _circum = Just north
+  | d == _v = Just south
+  | d == _less = Just west
+  | d == _greater = Just east
 
 parseDir :: Parser
 parseDir = do
@@ -47,7 +49,7 @@ parseInput = parseDir <|> (eof >> return empty)
 robotParseInput :: RobotParser
 robotParseInput = robotParseDir <|> (eof >> return (empty, empty))
 
-part1 :: Bool -> Text -> String
+part1 :: Bool -> ByteString -> String
 part1 _ =
   show
     . size
@@ -55,7 +57,7 @@ part1 _ =
     . flip evalState origin
     . runParserT parseInput "Day 3"
 
-part2 :: Bool -> Text -> String
+part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . size
