@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell -#}
+
 module DayX
   ( part1
   , part2
