@@ -1,13 +1,15 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators   #-}
 
 module Day16
   ( part1
   , part2
   ) where
 
+import           Control.Monad.Reader      (ReaderT, ask, runReaderT)
+import           Control.Monad.Trans.Class (lift)
 import           Data.ByteString           (ByteString)
 import           Data.Void                 (Void)
-import           Effectful.Dispatch.Static (Effect)
 import           FlatParse.Basic           (anyAsciiDecimalInt, char, eof,
                                             isLatinLetter, optional_, runParser,
                                             satisfy, skipSatisfy, some, string,
@@ -22,23 +24,24 @@ type PropParser = F.Parser Bool
 eol :: F.Parser ()
 eol = $(char '\n')
 
-propParser :: Bool -> PropParser
-propParser isPart2 = do
-  prop <- some $ satisfy isLatinLetter
-  $(string ": ")
-  val <- anyAsciiDecimalInt
-  optional_ $ satisfy (== ',') >> satisfy (== ' ')
+propParser :: ReaderT Bool F.Parser Bool
+propParser = do
+  prop <- lift (some $ satisfy isLatinLetter)
+  lift $(string ": ")
+  val <- lift anyAsciiDecimalInt
+  lift $ optional_ $ satisfy (== ',') >> satisfy (== ' ')
+  isPart2 <- ask
   return . test isPart2 prop $ val
 
-parseLine :: Bool -> Parser
-parseLine isPart2 = do
-  $(string "Sue ")
-  sue <- anyAsciiDecimalInt
-  $(string ": ")
-  props <- some . propParser $ isPart2
+parseLine :: ReaderT Bool F.Parser Int
+parseLine = do
+  lift $(string "Sue ")
+  sue <- lift anyAsciiDecimalInt
+  lift $(string ": ")
+  props <- some propParser
   if and props
     then return sue
-    else eol >> parseLine isPart2
+    else lift eol >> parseLine
 
 test :: Bool -> String -> Int -> Bool
 test _ "children"       = (== 3)
@@ -57,7 +60,7 @@ test _ "cars"           = (== 2)
 test _ "perfumes"       = (== 1)
 
 part1 :: Bool -> ByteString -> String
-part1 _ = show . extract . runParser (parseLine False)
+part1 _ = show . extract . runParser (runReaderT parseLine False)
 
 part2 :: Bool -> ByteString -> String
-part2 _ = show . extract . runParser (parseLine True)
+part2 _ = show . extract . runParser (runReaderT parseLine True)

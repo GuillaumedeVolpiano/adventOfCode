@@ -113,11 +113,11 @@ library days2015
   build-depends:
     , base
     , base16-bytestring
+    , bluefin
     , bytestring
     , cereal
     , containers
     , cryptohash-md5
-    , effectful-core
     , flatparse
     , helpers
     , linear
@@ -125,8 +125,9 @@ library days2015
     , mtl
     , multiset
     , text               >=2.1
+    , transformers
     , utf8-string
-    ,vector
+    , vector
     , word8
 
   default-language: Haskell2010
