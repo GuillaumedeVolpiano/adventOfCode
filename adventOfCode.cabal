@@ -117,6 +117,7 @@ library days2015
     , cereal
     , containers
     , cryptohash-md5
+    , effectful-core
     , flatparse
     , helpers
     , linear
