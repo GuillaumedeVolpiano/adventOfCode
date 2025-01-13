@@ -3,14 +3,15 @@ module Day14
   , part2
   ) where
 
+import           Control.Monad             (void)
 import           Data.ByteString           (ByteString)
 import           FlatParse.Basic           (anyAsciiDecimalInt, eof, isDigit,
                                             many, runParser, skipSatisfy, (<|>))
 import           Helpers.Parsers.FlatParse (extract)
 import qualified Helpers.Parsers.FlatParse as F (Parser)
 
-consumer :: F.Parser [()]
-consumer = many (skipSatisfy (not . isDigit))
+consumer :: F.Parser ()
+consumer = void . many $ skipSatisfy (not . isDigit)
 
 simpleParser :: F.Parser [(Int, Int, Int)]
 simpleParser =
