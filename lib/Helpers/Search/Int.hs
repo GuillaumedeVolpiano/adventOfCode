@@ -189,10 +189,11 @@ travelingSalesmanNoReturn numBits edges =
   filterWithKey (\k _ -> k > encodedSize) findSubsets
   where
     bitSize = shiftL 1 numBits
-    encodedSize = shiftL 1 (numBits * (bitSize - 1))
+    encodedSize = shiftL 1 (numBits * maxNode)
+    maxNode = maximum . map (.&. (bitSize - 1)) . keys $ edges
     pois =
       map fromList . sortBy (comparing (Down . length)) . tail . subsequences
-        $ [1 .. bitSize - 1]
+        $ [1 .. maxNode]
     findSubsets = foldr mapSubset empty pois
     mapSubset set subsets
       | size set == 1 =

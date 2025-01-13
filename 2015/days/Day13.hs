@@ -5,15 +5,14 @@ module Day13
   , part2
   ) where
 
-import           Data.Bifunctor            (bimap)
+import           Data.Bifunctor            (bimap, first)
+import           Data.Bits                 (shiftL, shiftR, (.&.))
 import           Data.ByteString           (ByteString)
 import           Data.Char                 (ord)
-import           Data.IntSet               (IntSet, size, toList)
-import qualified Data.IntSet               as S (insert)
+import           Data.IntMap.Strict        (IntMap, assocs, fromList,
+                                            insertWith, (!))
+import           Data.IntSet               (IntSet, insert, size, toList)
 import           Data.List                 (permutations)
-import           Data.Map                  (Map, assocs, filterWithKey, member,
-                                            (!))
-import qualified Data.Map                  as M (insert)
 import           Data.Sequence             (Seq ((:<|), (:|>)))
 import qualified Data.Sequence             as Sq (fromList, length)
 import           FlatParse.Basic           (anyAsciiDecimalInt, eof,
@@ -22,10 +21,9 @@ import           FlatParse.Basic           (anyAsciiDecimalInt, eof,
                                             switch, (<|>))
 import           Helpers.Parsers.FlatParse (extract)
 import qualified Helpers.Parsers.FlatParse as F (Parser)
+import           Helpers.Search.Int        (travelingSalesman)
 
-import           Debug.Trace
-
-type Edges = Map (Int, Int) Int
+type Edges = IntMap Int
 
 type Parser = F.Parser (IntSet, Edges)
 
@@ -34,7 +32,7 @@ parseInput = parseLine <|> (eof >> return (mempty, mempty))
 
 parseLine :: Parser
 parseLine = do
-  first <- encode <$> some (satisfy isLatinLetter)
+  firstNode <- ord . head <$> some (satisfy isLatinLetter)
   $(string " would ")
   op <-
     $(switch
@@ -45,42 +43,60 @@ parseLine = do
   $(string " happiness unit")
   optional_ . skipSatisfy $ (== 's')
   $(string " by sitting next to ")
-  second <- encode <$> some (satisfy isLatinLetter)
+  secondNode <- ord . head <$> some (satisfy isLatinLetter)
   $(string ".\n")
-  bimap (S.insert first . S.insert second) (M.insert (first, second) gainLoss)
+  bimap
+    (insert firstNode . insert secondNode)
+    (insertWith (+) (encodeRaw firstNode secondNode) (op gainLoss))
     <$> parseInput
 
-encode :: String -> Int
-encode = (+ negate 65) . ord . head
-
-sittingEm :: (IntSet, Edges) -> Int
-sittingEm (guests, edges) =
-  maximum
-    . map closeCircle
-    . assocs
-    . filterWithKey (\k _ -> length k == size guests - 1)
-    . foldr arrangementsVal mempty
-    $ arrangements
+encodeRaw :: Int -> Int -> Int
+encodeRaw a b = u + shiftL l 7
   where
-    (honor:rest) = toList guests
-    arrangements = map Sq.fromList . permutations $ rest
-    arrangementsVal arr arrs
-      | Sq.length arr == 1 = M.insert arr 0 arrs
-      | rs `member` arrs = M.insert arr dist arrs
-      | rs' `member` arrs = M.insert arr dist' arrs
-      | otherwise = M.insert arr dist'' arrs'
-      where
-        (a :<| rs@(r :<| _)) = arr
-        (rs'@(_ :|> r') :|> a') = arr
-        dist = edges ! (a, r) + arrs ! rs
-        dist' = edges ! (r', a') + arrs ! rs'
-        arrs' = arrangementsVal rs arrs
-        dist'' = edges ! (a, r) + arrs' ! rs
-    closeCircle ((guest :<| _) :|> guest', happiness) =
-      happiness + edges ! (guest', honor) + edges ! (honor, guest)
+    l = min a b
+    u = max a b
+
+encode :: Int -> (Int, Int) -> Int
+encode bitSize (a, b) = a + shiftL b bitSize
+
+decode :: Int -> (Int, Int)
+decode i = (i .&. 127, shiftR i 7)
+
+simplify :: (IntSet, IntMap Int) -> (Int, IntMap Int)
+simplify (nodes, rawEdges) = (numBits, edges)
+  where
+    numBits = ceiling . logBase 2 . fromIntegral . size $ nodes
+    assocMap = fromList . flip zip [0 ..] . toList $ nodes
+    edges =
+      fromList
+        . map
+            (bimap
+               (encode numBits . bimap (assocMap !) (assocMap !) . decode)
+               negate)
+        . assocs
+        $ rawEdges
+
+addMe :: (IntSet, IntMap Int) -> (IntSet, IntMap Int)
+addMe (nodes, rawEdges) = (nodes', rawEdges')
+  where
+    nodes' = insert 0 nodes
+    rawEdges' = foldr (flip (insertWith (+)) 0) rawEdges . toList $ nodes
 
 part1 :: Bool -> ByteString -> String
-part1 _ = show . sittingEm . extract . runParser parseInput
+part1 _ =
+  show
+    . negate
+    . uncurry travelingSalesman
+    . simplify
+    . extract
+    . runParser parseInput
 
 part2 :: Bool -> ByteString -> String
-part2 _ _ = "Part 2"
+part2 _ =
+  show
+    . negate
+    . uncurry travelingSalesman
+    . simplify
+    . addMe
+    . extract
+    . runParser parseInput
