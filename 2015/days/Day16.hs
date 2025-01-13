@@ -1,47 +1,44 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
 
 module Day16
   ( part1
   , part2
   ) where
 
-import           Control.Monad.Reader      (ReaderT, ask, runReaderT)
 import           Control.Monad.Trans.Class (lift)
 import           Data.ByteString           (ByteString)
 import           Data.Void                 (Void)
-import           FlatParse.Basic           (anyAsciiDecimalInt, char, eof,
-                                            isLatinLetter, optional_, runParser,
-                                            satisfy, skipSatisfy, some, string,
-                                            switch)
-import           Helpers.Parsers.FlatParse (extract)
-import qualified Helpers.Parsers.FlatParse as F (Parser)
+import           FlatParse.Stateful        (Result (OK), anyAsciiDecimalInt,
+                                            ask, char, eof, isLatinLetter,
+                                            optional_, runParser, satisfy,
+                                            skipSatisfy, some, string, switch)
+import qualified FlatParse.Stateful        as F (Parser)
 
-type Parser = F.Parser Int
+type Parser = F.Parser Bool Void Int
 
-type PropParser = F.Parser Bool
+type PropParser = F.Parser Bool Void Bool
 
-eol :: F.Parser ()
+eol :: F.Parser Bool Void ()
 eol = $(char '\n')
 
-propParser :: ReaderT Bool F.Parser Bool
+propParser :: PropParser
 propParser = do
-  prop <- lift (some $ satisfy isLatinLetter)
-  lift $(string ": ")
-  val <- lift anyAsciiDecimalInt
-  lift $ optional_ $ satisfy (== ',') >> satisfy (== ' ')
+  prop <- some $ satisfy isLatinLetter
+  $(string ": ")
+  val <- anyAsciiDecimalInt
+  optional_ $ satisfy (== ',') >> satisfy (== ' ')
   isPart2 <- ask
   return . test isPart2 prop $ val
 
-parseLine :: ReaderT Bool F.Parser Int
+parseLine :: Parser
 parseLine = do
-  lift $(string "Sue ")
-  sue <- lift anyAsciiDecimalInt
-  lift $(string ": ")
+  $(string "Sue ")
+  sue <- anyAsciiDecimalInt
+  $(string ": ")
   props <- some propParser
   if and props
     then return sue
-    else lift eol >> parseLine
+    else eol >> parseLine
 
 test :: Bool -> String -> Int -> Bool
 test _ "children"       = (== 3)
@@ -59,8 +56,11 @@ test _ "trees"          = (== 3)
 test _ "cars"           = (== 2)
 test _ "perfumes"       = (== 1)
 
+extract :: Result Void Int -> Int
+extract (OK result _ _) = result
+
 part1 :: Bool -> ByteString -> String
-part1 _ = show . extract . runParser (runReaderT parseLine False)
+part1 _ = show . extract . runParser parseLine False 0
 
 part2 :: Bool -> ByteString -> String
-part2 _ = show . extract . runParser (runReaderT parseLine True)
+part2 _ = show . extract . runParser parseLine True 0

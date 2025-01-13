@@ -113,7 +113,6 @@ library days2015
   build-depends:
     , base
     , base16-bytestring
-    , bluefin
     , bytestring
     , cereal
     , containers
