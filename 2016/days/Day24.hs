@@ -21,7 +21,8 @@ import           Data.Maybe           (catMaybes)
 import           Data.Ord             (Down (..), comparing)
 import           Data.Text            (Text)
 import           Data.Void            (Void)
-import           Helpers.Search.Int   (bfsSafeDist)
+import           Helpers.Search.Int   (bfsSafeDist, travelingSalesman,
+                                       travelingSalesmanNoReturn)
 import           Text.Megaparsec      (ParsecT, eof, runParserT, (<|>))
 import           Text.Megaparsec.Char (char, eol, numberChar)
 
@@ -86,46 +87,12 @@ findDist (edgePos, maze) e1 e2 = (e2 + shiftL e1 3, ) <$> dist
     dist = bfsSafeDist from neighbours (== to)
     neighbours pos = filter (`member` maze) . map (pos +) $ [1, -1, 256, -256]
 
--- given the form of the input, there are atmost 10 points of interest, and in
--- fact there are 8, numbered 1 to 7
--- We are going to encode the (set, k) as (s1*8^n ++ s2 * 8^(n-1) ++ sn * 8 + k)
-travelingSalesmanNoReturn :: Edges -> BestSubsets
-travelingSalesmanNoReturn edges =
-  filterWithKey (\k _ -> k > 8 ^ 7) $ findSubsets
-  where
-    pois =
-      map S.fromList . sortBy (comparing (Down . length)) . tail . subsequences
-        $ [1 .. 7]
-    findSubsets = foldr mapSubset M.empty pois
-    mapSubset :: Subset -> BestSubsets -> BestSubsets
-    mapSubset set subsets
-      | size set == 1 =
-        M.insert (encode set + findMin set) (edges ! findMin set) subsets
-      | otherwise = S.foldr (subsetise set) subsets set
-    subsetise :: Subset -> Int -> BestSubsets -> BestSubsets
-    subsetise set k bests =
-      M.insert (encode set + k) (bestSub bests k . delete k $ set) bests
-    bestSub bests k set =
-      minimum
-        [bests ! (encode set + m) + edges ! edgeCode m k | m <- toList set]
-    edgeCode m k = mMK + shiftL mmk 3
-      where
-        mmk = min m k
-        mMK = max m k
-    encode = flip shiftL 3 . S.foldr (\a b -> a + shiftL b 3) 0
-
-travelingSalesman :: Edges -> Int
-travelingSalesman edges =
-  minimum . map finish . assocs . travelingSalesmanNoReturn $ edges
-  where
-    finish (k, d) = d + edges ! (k .&. 7)
-
 part1 :: Bool -> Text -> String
 part1 _ =
   show
     . minimum
     . elems
-    . travelingSalesmanNoReturn
+    . travelingSalesmanNoReturn 3
     . findPaths
     . fromRight (error "parser failed")
     . flip evalState 0
@@ -134,7 +101,7 @@ part1 _ =
 part2 :: Bool -> Text -> String
 part2 _ =
   show
-    . travelingSalesman
+    . travelingSalesman 3
     . findPaths
     . fromRight (error "parser failed")
     . flip evalState 0

@@ -9,21 +9,28 @@ module Helpers.Search.Int
   , dijkstraMech
   , dijkstraUncertainGoalVal
   , dijkstraAllShortestPaths
+  , travelingSalesman
+  , travelingSalesmanNoReturn
   ) where
 
-import           Data.IntMap.Strict as IM (IntMap, alter, delete, empty, insert,
-                                           keys, member, notMember, singleton,
-                                           (!))
-import           Data.IntPSQ        as Q (IntPSQ, insert, minView, null,
-                                          singleton)
-import           Data.IntSet        as S (IntSet, insert, member, notMember,
-                                          singleton)
-import           Data.List          as L (length)
+import           Data.Bits          (shiftL, (.&.))
+import           Data.IntMap.Strict (IntMap, alter, assocs, empty,
+                                     filterWithKey, keys, (!))
+import qualified Data.IntMap.Strict as IM (delete, insert, member, notMember,
+                                           singleton)
+import           Data.IntPSQ        (IntPSQ, minView)
+import qualified Data.IntPSQ        as Q (insert, null, singleton)
+import           Data.IntSet        (IntSet, findMin, fromList, size, toList)
+import qualified Data.IntSet        as S (delete, foldr, insert, member,
+                                          notMember, singleton)
+import           Data.List          (sortBy, subsequences)
 import           Data.Map           (Map)
 import qualified Data.Map           as M (fromList, insert, (!?))
 import           Data.Maybe         (catMaybes, fromJust, isJust, isNothing,
                                      mapMaybe)
-import           Data.Sequence      as Sq (Seq ((:<|), (:|>)), null, singleton)
+import           Data.Ord           (Down (..), comparing)
+import           Data.Sequence      as Sq (Seq ((:<|), (:|>)))
+import qualified Data.Sequence      as Sq (null, singleton)
 
 bfsSafe ::
      Seq Int
@@ -47,13 +54,8 @@ bfsSafeDist :: Int -> (Int -> [Int]) -> (Int -> Bool) -> Maybe Int
 -- we need to reduce the distance by one because the path includes both the
 -- starting point and the goal
 bfsSafeDist start neighbours isGoal =
-  (+ (-1)) . L.length
-    <$> bfsSafe
-          (Sq.singleton start)
-          (S.singleton start)
-          IM.empty
-          neighbours
-          isGoal
+  (+ (-1)) . length
+    <$> bfsSafe (Sq.singleton start) (S.singleton start) empty neighbours isGoal
 
 bfsAll :: Seq Int -> IntMap Int -> (Int -> [Int]) -> IntMap Int
 bfsAll toSee seen neighbours
@@ -69,7 +71,7 @@ bfsAll toSee seen neighbours
 reconstructPath :: Int -> IntMap Int -> [Int]
 reconstructPath curPos paths
   | IM.notMember curPos paths = [curPos]
-  | otherwise = curPos : reconstructPath (paths IM.! curPos) paths
+  | otherwise = curPos : reconstructPath (paths ! curPos) paths
 
 dfs :: [Int] -> (Int -> [Int]) -> IntSet -> IntSet
 dfs [] _ seen = seen
@@ -106,19 +108,19 @@ dijkstraMech queue dists paths neighbours isGoal
     dists' = foldr (uncurry IM.insert) dists toConsider
     paths' = foldr (flip IM.insert node . fst) paths toConsider
     consider (aNode, anEdge)
-      | aNode `IM.notMember` dists || estDist + anEdge < dists IM.! aNode =
+      | aNode `IM.notMember` dists || estDist + anEdge < dists ! aNode =
         Just (aNode, estDist + anEdge)
       | otherwise = Nothing
 
 dijkstraUncertainGoalVal ::
      (Num p, Ord p) => Int -> p -> (Int -> [(Int, p)]) -> (Int -> Bool) -> p
-dijkstraUncertainGoalVal node dist neighbours isGoal = dists IM.! goal
+dijkstraUncertainGoalVal node dist neighbours isGoal = dists ! goal
   where
     (Just goal, (dists, _)) =
       dijkstraMech
         (Q.singleton node dist ())
         (IM.singleton node dist)
-        IM.empty
+        empty
         neighbours
         isGoal
 
@@ -138,19 +140,19 @@ dijkstraAllShortestPaths queue dists paths neighbours isGoal
     toConsider = mapMaybe consider . neighbours $ node
     queue' = foldr (\(b, c) -> Q.insert b c ()) rest toConsider
     dists' = foldr (uncurry IM.insert) dists toConsider
-    paths' = foldr (IM.alter (update node) . fst) paths toConsider
+    paths' = foldr (alter (update node) . fst) paths toConsider
     update p Nothing   = Just . S.singleton $ p
     update p (Just ps) = Just . S.insert p $ ps
     consider (aNode, anEdge)
-      | aNode `IM.notMember` dists || estDist' <= dists IM.! aNode =
+      | aNode `IM.notMember` dists || estDist' <= dists ! aNode =
         Just (aNode, estDist')
       | otherwise = Nothing
       where
         estDist' = estDist + anEdge
     prunedPaths =
-      foldr IM.delete paths . filter ((> bestDist) . (IM.!) dists) $ goalNodes
+      foldr IM.delete paths . filter ((> bestDist) . (!) dists) $ goalNodes
     goalNodes = filter isGoal . keys $ dists
-    bestDist = minimum . map (dists IM.!) $ goalNodes
+    bestDist = minimum . map (dists !) $ goalNodes
 
 floydWarshall ::
      (Num a, Ord a) => [Int] -> (Int -> [(Int, a)]) -> Map (Int, Int) a
@@ -181,3 +183,38 @@ floydWarshall vertices neighbours = dists
       | otherwise = distSum (i, j, k) distMap
     distSum (i, j, k) distMap =
       (+) <$> distMap M.!? (i, k) <*> distMap M.!? (k, j)
+
+travelingSalesmanNoReturn :: Int -> IntMap Int -> IntMap Int
+travelingSalesmanNoReturn numBits edges =
+  filterWithKey (\k _ -> k > encodedSize) findSubsets
+  where
+    bitSize = shiftL 1 numBits
+    encodedSize = shiftL 1 (numBits * (bitSize - 1))
+    pois =
+      map fromList . sortBy (comparing (Down . length)) . tail . subsequences
+        $ [1 .. bitSize - 1]
+    findSubsets = foldr mapSubset empty pois
+    mapSubset set subsets
+      | size set == 1 =
+        IM.insert (encode set + findMin set) (edges ! findMin set) subsets
+      | otherwise = S.foldr (subsetise set) subsets set
+    subsetise set k subsests =
+      IM.insert
+        (encode set + k)
+        (bestSub subsests k . S.delete k $ set)
+        subsests
+    bestSub bests k set =
+      minimum
+        [bests ! (encode set + m) + edges ! edgeCode m k | m <- toList set]
+    edgeCode m k = mMK + shiftL mmk numBits
+      where
+        mmk = min m k
+        mMK = max m k
+    encode = flip shiftL numBits . S.foldr (\a b -> a + shiftL b numBits) 0
+
+travelingSalesman :: Int -> IntMap Int -> Int
+travelingSalesman numBits edges =
+  minimum . map finish . assocs . travelingSalesmanNoReturn numBits $ edges
+  where
+    bitSize = shiftL 1 numBits
+    finish (k, d) = d + edges ! (k .&. (bitSize - 1))
