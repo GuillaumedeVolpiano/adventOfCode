@@ -5,23 +5,26 @@ module Day9
   , part2
   ) where
 
-import           Data.ByteString (ByteString)
-import           Data.Char       (isAlpha)
-import           Data.List       (sortBy, subsequences)
-import           Data.Map        (Map, elems, filterWithKey, insert, keys, (!))
-import           Data.Ord        (Down (..), comparing)
-import           Data.Set        (Set, delete, findMin, fromList, size, toList)
-import qualified Data.Set        as S (foldr)
-import           Data.Void       (Void)
-import           FlatParse.Basic (Result (OK), anyAsciiDecimalInt, char, eof,
-                                  many, runParser, satisfy, string, (<|>))
-import qualified FlatParse.Basic as F (Parser)
+import           Data.ByteString           (ByteString)
+import           Data.Char                 (isAlpha)
+import           Data.List                 (sortBy, subsequences)
+import           Data.Map                  (Map, elems, filterWithKey, insert,
+                                            keys, (!))
+import           Data.Ord                  (Down (..), comparing)
+import           Data.Set                  (Set, delete, findMin, fromList,
+                                            size, toList)
+import qualified Data.Set                  as S (foldr)
+import           Data.Void                 (Void)
+import           FlatParse.Basic           (anyAsciiDecimalInt, char, eof, many,
+                                            runParser, satisfy, string, (<|>))
+import           Helpers.Parsers.FlatParse (extract)
+import qualified Helpers.Parsers.FlatParse as F (Parser)
 
 type Routes = Map (String, String) Int
 
 type BestRoutes = Map (Set String, String) Int
 
-type Parser = F.Parser String Routes
+type Parser = F.Parser Routes
 
 parseInput :: Parser
 parseInput = parseLine <|> (eof >> return mempty)
@@ -58,9 +61,6 @@ travelingSalesman selection edges =
       insert (set, k) (bestSub subsets k . delete k $ set) subsets
     bestSub subsets k set =
       selection [subsets ! (set, m) + edges ! (m, k) | m <- toList set]
-
-extract :: Result String Routes -> Routes
-extract (OK edges _) = edges
 
 part1 :: Bool -> ByteString -> String
 part1 _ = show . travelingSalesman minimum . extract . runParser parseInput

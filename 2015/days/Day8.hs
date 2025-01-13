@@ -5,13 +5,14 @@ module Day8
   , part2
   ) where
 
-import           Data.ByteString (ByteString)
+import           Data.ByteString           (ByteString)
 import           Data.Void
-import           FlatParse.Basic (Result (OK), anyAsciiChar, char, eof,
-                                  runParser, switch, (<|>))
-import qualified FlatParse.Basic as F (Parser)
+import           FlatParse.Basic           (anyAsciiChar, char, eof, runParser,
+                                            switch, (<|>))
+import           Helpers.Parsers.FlatParse (extract)
+import qualified Helpers.Parsers.FlatParse as F (Parser)
 
-type Parser = F.Parser Void Int
+type Parser = F.Parser Int
 
 parseInput :: Parser -> Parser
 parseInput parser = parseLine parser <|> (eof >> return 0)
@@ -37,9 +38,6 @@ parseChar' =
             anyAsciiChar >> anyAsciiChar >> (+ 1) <$> parseLine parseChar'
           "\\" -> anyAsciiChar >> (+ 2) <$> parseLine parseChar'
           _ -> anyAsciiChar >> parseLine parseChar'|])
-
-extract :: Result Void Int -> Int
-extract (OK result _) = result
 
 part1 :: Bool -> ByteString -> String
 part1 _ = show . extract . runParser (parseInput parseChar)

@@ -1,39 +1,22 @@
 module Main where
 
-import           Control.Monad.State   (evalState)
-import           Data.ByteString       (ByteString)
-import qualified Data.ByteString       as B (putStr, readFile)
-import           Data.ByteString.Char8 (pack)
-import qualified Data.ByteString.Char8 as C (putStrLn)
-import           Data.Either           (fromRight)
-import qualified Day6
-import           System.Directory      (getHomeDirectory)
-import           Test.Tasty.Bench      (Benchmark, bcompare, bench, bgroup,
-                                        defaultMain, nf, nfIO)
-import           Text.Megaparsec       (runParserT)
+import           Data.ByteString  (ByteString)
+import qualified Data.ByteString  as B (putStr, readFile)
+import           Day12
+import           System.Directory (getHomeDirectory)
+import           Test.Tasty.Bench (Benchmark, bcompare, bench, bgroup,
+                                   defaultMain, nf, nfIO)
 
-inputPath = "/adventOfCode/input/2015/day6.txt"
-
-test = replicate 30000 'a' :: String
-
-op x = flip evalState x . runParserT Day6.parseInput "Benching"
+inputPath = "/adventOfCode/input/2015/day12.txt"
 
 tests :: ByteString -> [Benchmark]
 tests input =
-  [ bench "simple map" $ nf (op Day6.dlempty) input
-  , bench "intmap" $ nf (op Day6.bdlempty) input
-  , bench "intmultiset" $ nf (op Day6.obdlempty) input
-  ]
-
-testIO =
-  [ bench "String" $ nfIO (putStrLn test)
-  , bench "ByteString"
-      $ nfIO ((B.putStr . pack $ test) >> (B.putStr . pack $ "\n"))
-  , bench "Char8" $ nfIO (C.putStrLn . pack $ test)
+  [ bench "Part 1" $ nf (part1 True) input
+  , bench "Part 2" $ nf (part2 True) input
   ]
 
 main :: IO ()
 main = do
   home <- getHomeDirectory
   file <- B.readFile $ home ++ inputPath
-  defaultMain testIO --s file
+  defaultMain . tests $ file

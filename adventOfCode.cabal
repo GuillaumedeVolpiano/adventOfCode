@@ -33,6 +33,7 @@ library helpers
     Helpers.Maths
     Helpers.Parsers
     Helpers.Parsers.ByteString
+    Helpers.Parsers.FlatParse
     Helpers.Parsers.Text
     Helpers.Search
     Helpers.Search.Int
@@ -45,6 +46,7 @@ library helpers
     , curl
     , directory
     , fgl
+    , flatparse
     , graphviz
     , hashable
     , linear
@@ -75,7 +77,7 @@ executable aoc2015
 
   ghc-options:
     -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
-    /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
+    /usr/lib/llvm/18/bin/llc "-with-rtsopts=-N8 -p"
 
   default-language: Haskell2010
 
@@ -121,8 +123,9 @@ library days2015
     , megaparsec
     , mtl
     , multiset
+    , text               >=2.1
     , utf8-string
-    , vector
+    ,vector
     , word8
 
   default-language: Haskell2010
