@@ -120,9 +120,12 @@ library days2015
     , flatparse
     , helpers
     , linear
+    , massiv
     , megaparsec
     , mtl
     , multiset
+    , streamly-core
+    , streamly
     , text               >=2.1
     , transformers
     , utf8-string
@@ -899,9 +902,12 @@ benchmark bench
     , days2015
     , directory
     , helpers
+    , massiv
     , megaparsec
     , mtl
     , tasty-bench
+    , text         >=2.1
+    , utf8-string
 
   ghc-options:
     -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
