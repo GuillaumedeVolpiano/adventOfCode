@@ -129,6 +129,7 @@ library days2015
     , text               >=2.1
     , transformers
     , utf8-string
+    , unordered-containers
     , vector
     , word8
 

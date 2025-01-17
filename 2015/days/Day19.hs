@@ -13,14 +13,15 @@ import           Data.Bits                 (countLeadingZeros, finiteBitSize,
 import           Data.ByteString           (ByteString)
 import           Data.ByteString.UTF8      (fromString)
 import           Data.Char                 (isAlpha, isLowerCase)
+import           Data.HashMap.Strict       (HashMap, insertWith, member, (!))
+import qualified Data.HashMap.Strict       as M (insert)
+import           Data.HashSet              (HashSet)
+import qualified Data.HashSet              as S (insert, size)
 import           Data.List                 (partition)
-import           Data.Map                  (Map, insertWith, member, (!))
-import qualified Data.Map                  as M (insert)
 import           Data.Maybe                (fromJust, isNothing)
 import           Data.Sequence             (Seq ((:<|), (:|>)), fromList, (><))
 import qualified Data.Sequence             as Sq (null)
-import           Data.Set                  (Set)
-import qualified Data.Set                  as S (insert, size)
+import           Data.Text                 (Text, pack)
 import           FlatParse.Basic           (char, failed, isLatinLetter, many,
                                             optional, optional_, runParser,
                                             satisfy, skip, some, string, switch,
@@ -28,23 +29,17 @@ import           FlatParse.Basic           (char, failed, isLatinLetter, many,
 import           Helpers.Parsers.FlatParse (extract, extractS)
 import qualified Helpers.Parsers.FlatParse as F (Parser, ParserS)
 
-import           Debug.Trace
-
-type ParserMol = F.ParserS Formulas Int
-
 type Parser = F.Parser (Formulas, Molecule)
 
 type Parser' = F.Parser [WordAtom]
 
-type Formulas = Map Atom [Molecule]
-
-type Formulas' = Map Molecule Atom
+type Formulas = HashMap Atom [Molecule]
 
 type Molecule = Seq Atom
 
-type Atom = String
+type Atom = Text
 
-type Back = Map (Int, Atom, Atom)
+type Back = HashMap (Int, Atom, Atom)
 
 -- Atoms that do not transform once they are reached are C (which has to be at
 -- the beginning of a word), Rn, Ar and Y. If Rn is present, then Ar is always
@@ -63,6 +58,8 @@ data WordAtom
   deriving (Show)
 
 type AtomParser = F.Parser WordAtom
+
+separators = [pack "Rn", pack "Ar", pack "Y"]
 
 isContinuous :: WordAtom -> Bool
 isContinuous (Continuous _) = True
@@ -95,10 +92,10 @@ parseAtom =
   satisfy isAlpha >>= \x ->
     optional (satisfy isLowerCase) >>= \y ->
       if isNothing y
-        then pure [x]
-        else pure [x, fromJust y]
+        then pure $ pack [x]
+        else pure $ pack [x, fromJust y]
 
-multifold :: Formulas -> Molecule -> Molecule -> Set Molecule
+multifold :: Formulas -> Molecule -> Molecule -> HashSet Molecule
 multifold formulas seen toSee
   | Sq.null toSee = mempty
   | m `member` formulas =
@@ -120,7 +117,7 @@ atomParser =
 parseNonSepAtom :: F.Parser Atom
 parseNonSepAtom = do
   atom <- parseAtom
-  if atom `elem` ["Rn", "Y", "Ar"]
+  if atom `elem` separators
     then failed
     else pure atom
 
@@ -130,10 +127,10 @@ rnArParser =
     parseAr >> pure x
 
 parseY :: F.Parser ()
-parseY = parseAtom >>= \a -> unless (a == "Y") failed
+parseY = parseAtom >>= \a -> unless (a == pack "Y") failed
 
 parseAr :: F.Parser ()
-parseAr = parseAtom >>= \a -> unless (a == "Ar") failed
+parseAr = parseAtom >>= \a -> unless (a == pack "Ar") failed
 
 reduceAll :: [WordAtom] -> Int
 reduceAll molecules =
@@ -145,13 +142,13 @@ reduce =
     . bimap reduceContinuous (sum . map reduceRnAr)
     . partition isContinuous
 
+reduceRnAr :: WordAtom -> Int
+reduceRnAr (RnAr molecules) = (+ 1) . sum . map reduce $ molecules
+
 -- it takes 0 steps to reduce a 1 atom molecule to 1 atom. Let's assume it takes (n-1)
 -- steps to reduce an n atoms molecule to 1 atom. Then it takes (n + n - 1) = 2n
 -- -1 steps to reduce a 2n atoms molecule to 1 atom, and (1 + reduce (2m)) =  (1 + 2n - 1) = 2n steps to
 -- reduce a (2n + 1) atoms molecule to 1 atom. QED
-reduceRnAr :: WordAtom -> Int
-reduceRnAr (RnAr molecules) = (+ 1) . sum . map reduce $ molecules
-
 reduceContinuous :: [WordAtom] -> Int
 reduceContinuous = (+ negate 1) . sum . map fromContinuous
   where
