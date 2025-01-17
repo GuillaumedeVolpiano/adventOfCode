@@ -119,12 +119,14 @@ library days2015
     , containers
     , cryptohash-md5
     , flatparse
+    , hashable
     , helpers
     , linear
     , massiv
     , megaparsec
     , mtl
     , multiset
+    , psqueues
     , streamly-core
     , streamly
     , text               >=2.1
