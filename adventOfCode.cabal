@@ -111,6 +111,7 @@ library days2015
     Day9
 
   build-depends:
+    , arithmoi
     , base
     , base16-bytestring
     , bytestring
