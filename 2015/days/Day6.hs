@@ -38,9 +38,9 @@ import           Data.Set                    (Set, delete, difference, insert,
 import qualified Data.Set                    as S (fromList, map)
 import           Data.Vector.Unboxed         (unsafeFreeze)
 import qualified Data.Vector.Unboxed         as V (filter, length)
-import           Data.Vector.Unboxed.Mutable (MVector, write)
-import qualified Data.Vector.Unboxed.Mutable as MV (foldr', modify, read,
-                                                    replicate)
+import           Data.Vector.Unboxed.Mutable (MVector, unsafeModify, unsafeRead,
+                                              unsafeWrite)
+import qualified Data.Vector.Unboxed.Mutable as MV (foldr', replicate)
 import           Data.Void                   (Void)
 import           Data.Word8                  (_comma)
 import           Text.Megaparsec             (Parsec, ParsecT, eof, parse,
@@ -252,22 +252,22 @@ solvePart2 mods = do
 operate1 :: Modify -> MVector s Bool -> ST s ()
 operate1 (TurnOn poss) lights = do
   forM_ poss $ \pos -> do
-    write lights pos True
+    unsafeWrite lights pos True
 operate1 (TurnOff poss) lights = do
   forM_ poss $ \pos -> do
-    write lights pos False
+    unsafeWrite lights pos False
 operate1 (Toggle poss) lights = do
   forM_ poss $ \pos -> do
-    onOff <- MV.read lights pos
-    write lights pos $ not onOff
+    onOff <- unsafeRead lights pos
+    unsafeWrite lights pos $ not onOff
 
 operate2 :: Modify -> MVector s Int -> ST s ()
 operate2 (TurnOn poss) lights = do
   forM_ poss $ \pos -> do
-    MV.modify lights (+ 1) pos
+    unsafeModify lights (+ 1) pos
 operate2 (TurnOff poss) lights = do
   forM_ poss $ \pos -> do
-    MV.modify
+    unsafeModify
       lights
       (\x ->
          if x > 1
@@ -276,7 +276,7 @@ operate2 (TurnOff poss) lights = do
       pos
 operate2 (Toggle poss) lights = do
   forM_ poss $ \pos -> do
-    MV.modify lights (+ 2) pos
+    unsafeModify lights (+ 2) pos
 
 part1 :: Bool -> ByteString -> String
 part1 _ input = show solved

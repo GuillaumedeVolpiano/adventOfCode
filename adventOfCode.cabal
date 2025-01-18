@@ -61,6 +61,9 @@ library helpers
     , utf8-string
     , word8
 
+  ghc-options:
+    -threaded -O3 
+
   default-language: Haskell2010
 
 executable aoc2015
@@ -76,8 +79,8 @@ executable aoc2015
     , time
 
   ghc-options:
-    -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
-    /usr/lib/llvm/18/bin/llc "-with-rtsopts=-N8 -p"
+    -threaded -O3 
+    "-with-rtsopts=-N8 -p"
 
   default-language: Haskell2010
 
@@ -136,6 +139,9 @@ library days2015
     , vector
     , word8
 
+  ghc-options:
+    -threaded -O3 
+
   default-language: Haskell2010
 
 executable aoc2016
@@ -180,8 +186,8 @@ executable aoc2016
     , wide-word
 
   ghc-options:
-    -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
-    /usr/lib/llvm/18/bin/llc "-with-rtsopts=-N8 -p"
+    -threaded -O3 
+    "-with-rtsopts=-N8 -p"
 
   default-language: Haskell2010
 
@@ -252,6 +258,9 @@ library days2016
     , unordered-containers
     , vector
     , wide-word
+
+  ghc-options:
+    -threaded -O3 
 
   default-language: Haskell2010
 
@@ -702,9 +711,8 @@ executable aoc2024
     , helpers
     , time
 
-  -- ghc-options: -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
+  -- ghc-options: -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
   ghc-options:
-    -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
     -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
 
   default-language: Haskell2010
@@ -760,6 +768,9 @@ library days2024
     , unordered-containers
     , vector
     , word8
+
+  ghc-options:
+    -fllvm -threaded -O3
 
   default-language: Haskell2010
 
@@ -914,7 +925,6 @@ benchmark bench
     , utf8-string
 
   ghc-options:
-    -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
     -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
 
   default-language: Haskell2010
@@ -933,8 +943,8 @@ benchmark full-year
     , mtl
     , tasty-bench
 
+
   ghc-options:
-    -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc /usr/lib/llvm/18/bin/llc
-    -fllvm -threaded -O3 -rtsopts -with-rtsopts=-N8
+    -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
 
   default-language: Haskell2010
