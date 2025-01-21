@@ -670,6 +670,7 @@ library days2023
     , regex-tdfa
     , split
     , text        >=2.1
+    , unordered-containers
     , utf8-string
     , word8
 

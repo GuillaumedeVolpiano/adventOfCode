@@ -1,59 +1,87 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Day8
   ( part1
   , part2
   ) where
 
-import           Data.Map    as M (Map, fromList, keys, (!))
-import           Data.Maybe  (fromJust)
-import           Data.Text   as T (Text, last, pack)
-import           Helpers.Parsers     (alphaNum)
-import           Helpers.Search      (bfsDist)
+import           Data.ByteString            (ByteString, pack)
+import qualified Data.ByteString            as B (intercalate, length, null,
+                                                  split, tail)
+import qualified Data.ByteString.Char8      as B (head, last)
+import           Data.ByteString.UTF8       (fromString)
+import           Data.HashMap.Strict        (HashMap, fromList, insert, keys,
+                                             (!))
+import           Data.List                  (foldl', unfoldr)
+import           Data.Word                  (Word8)
+import           FlatParse.Basic            (char, eof, isLatinLetter,
+                                             runParser, satisfy, some, string,
+                                             takeLine, (<|>))
+import           Helpers.Parsers.ByteString (alphaNum)
+import           Helpers.Parsers.FlatParse  (Parser, extract)
+import           Helpers.Search             (bfsDist)
 
-type Tree = Map Pos (Pos, Pos)
+type Tree = HashMap Pos (Pos, Pos)
 
-type Prune = Map Pos [Pos]
+type Prune = HashMap Pos Pos
 
-type Instructions = [Char]
+type Instructions = String
 
-type Pos = Text
+type Pos = String
 
 type Step = Int
 
-test2 =
-  "LR\n\n11A = (11B, XXX)\n11B = (XXX, 11Z)\n11Z = (11B, XXX)\n22A = (22B, XXX)\n22B = (22C, 22C)\n22C = (22Z, 22Z)\n22Z = (22B, 22B)\nXXX = (XXX, XXX)"
+parseInput :: Parser (Instructions, Tree)
+parseInput = do
+  instructions <- takeLine
+  $(char '\n')
+  tree <- parseTree
+  pure (instructions, tree)
+
+parseTree :: Parser Tree
+parseTree = (eof >> pure mempty) <|> parseNode
+
+parseNode :: Parser Tree
+parseNode = do
+  key <- some (satisfy isLatinLetter)
+  $(string " = (")
+  left <- some (satisfy isLatinLetter)
+  $(string ", ")
+  right <- some (satisfy isLatinLetter)
+  $(string ")\n")
+  insert key (left, right) <$> parseTree
+
+follow' :: Tree -> Pos -> Char -> Pos
+follow' tree pos 'L' = fst $ tree ! pos
+follow' tree pos 'R' = snd $ tree ! pos
 
 pruneTree :: (Instructions, Tree) -> (Step, Prune)
 pruneTree (instructions, tree) = (length instructions, prunedTree)
   where
-    prunedTree = fromList . map (\a -> (a, follow instructions a)) $ keys tree
-    follow [] p     = [p]
-    follow (x:xs) p = follow xs (translateInst x . (!) tree $ p)
+    prunedTree =
+      fromList . map (\a -> (a, foldl' (follow' tree) a instructions)) . keys
+        $ tree
 
-parseLine :: [String] -> (Step, Prune)
-parseLine input = pruneTree (head input, tree)
+findZZZ :: Prune -> Pos -> Maybe (Pos, Pos)
+findZZZ tree pos
+  | pos == "ZZZ" = Nothing
+  | otherwise = Just (tree ! pos, tree ! pos)
+
+findZ :: Prune -> Pos -> Maybe (Pos, Pos)
+findZ tree pos
+  | last pos == 'Z' = Nothing
+  | otherwise = Just (tree ! pos, tree ! pos)
+
+part1 :: Bool -> ByteString -> String
+part1 _ input = show $ dist * step
   where
-    rawTree = alphaNum . unlines . drop 2 $ input
-    tree = M.fromList . map (\(a:b:c:_) -> (pack a, (pack b, pack c))) $ rawTree
+    (step, pruned) = pruneTree . extract . runParser parseInput $ input
+    dist = length . unfoldr (findZZZ pruned) $ "AAA"
 
-translateInst :: Char -> ((a, a) -> a)
-translateInst 'L' = fst
-translateInst 'R' = snd
-translateInst i   = error ("can't understand instruction " ++ show i)
-
-part1 :: Bool -> String -> String
-part1 _ input = show . (*) step $ dist
+part2 :: Bool -> ByteString -> String
+part2 _ input = show . (*) step . foldr1 lcm $ dists
   where
-    (step, prune) = parseLine . lines $ input
-    dist = bfsDist (pack "AAA") (prune !) (== pack "ZZZ")
-
-part2 :: Bool -> String -> String
-part2 test input = show . (*) step . foldl1 lcm $ dists
-  where
-    toParse
-      | test = test2
-      | otherwise = input
-    (step, prune) = parseLine . lines $ toParse
+    (step, pruned) = pruneTree . extract . runParser parseInput $ input
     dists =
-      map (\a -> bfsDist a (prune !) (\t -> T.last t == 'Z')) .
-      filter (\t -> T.last t == 'A') . keys $
-      prune
+      map (length . unfoldr (findZ pruned)) . filter ((== 'A') . last) . keys
+        $ pruned
