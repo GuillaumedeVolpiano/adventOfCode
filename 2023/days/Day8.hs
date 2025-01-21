@@ -33,6 +33,14 @@ type Pos = Int
 
 type Step = Int
 
+zzz = posify "ZZZ"
+
+aaa = posify "AAA"
+
+z = ord 'Z'
+
+a = ord 'A'
+
 posify :: String -> Int
 posify = foldl' (\acc c -> ord c + shiftL acc 7) 0
 
@@ -69,26 +77,24 @@ pruneTree (instructions, tree) = (length instructions, prunedTree)
 
 findZZZ :: Prune -> Pos -> Maybe (Pos, Pos)
 findZZZ tree pos
-  | pos == posify "ZZZ" = Nothing
+  | pos == zzz = Nothing
   | otherwise = Just (tree ! pos, tree ! pos)
 
 findZ :: Prune -> Pos -> Maybe (Pos, Pos)
 findZ tree pos
-  | pos .&. 127 == ord 'Z' = Nothing
+  | pos .&. 127 == z = Nothing
   | otherwise = Just (tree ! pos, tree ! pos)
 
 part1 :: Bool -> ByteString -> String
 part1 _ input = show $ dist * step
   where
     (step, pruned) = pruneTree . extract . runParser parseInput $ input
-    dist = length . unfoldr (findZZZ pruned) . posify $ "AAA"
+    dist = length . unfoldr (findZZZ pruned) $ aaa
 
 part2 :: Bool -> ByteString -> String
 part2 _ input = show . (*) step . foldr1 lcm $ dists
   where
     (step, pruned) = pruneTree . extract . runParser parseInput $ input
     dists =
-      map (length . unfoldr (findZ pruned))
-        . filter ((== ord 'A') . (.&. 127))
-        . keys
+      map (length . unfoldr (findZ pruned)) . filter ((== a) . (.&. 127)) . keys
         $ pruned
