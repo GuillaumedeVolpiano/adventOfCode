@@ -5,12 +5,14 @@ module Day8
   , part2
   ) where
 
+import           Data.Bits                  (shiftL, (.&.))
 import           Data.ByteString            (ByteString, pack)
 import qualified Data.ByteString            as B (intercalate, length, null,
                                                   split, tail)
 import qualified Data.ByteString.Char8      as B (head, last)
 import           Data.ByteString.UTF8       (fromString)
-import           Data.HashMap.Strict        (HashMap, fromList, insert, keys,
+import           Data.Char                  (ord)
+import           Data.IntMap.Strict         (IntMap, fromList, insert, keys,
                                              (!))
 import           Data.List                  (foldl', unfoldr)
 import           Data.Word                  (Word8)
@@ -21,15 +23,18 @@ import           Helpers.Parsers.ByteString (alphaNum)
 import           Helpers.Parsers.FlatParse  (Parser, extract)
 import           Helpers.Search             (bfsDist)
 
-type Tree = HashMap Pos (Pos, Pos)
+type Tree = IntMap (Pos, Pos)
 
-type Prune = HashMap Pos Pos
+type Prune = IntMap Pos
 
 type Instructions = String
 
-type Pos = String
+type Pos = Int
 
 type Step = Int
+
+posify :: String -> Int
+posify = foldl' (\acc c -> ord c + shiftL acc 7) 0
 
 parseInput :: Parser (Instructions, Tree)
 parseInput = do
@@ -43,11 +48,11 @@ parseTree = (eof >> pure mempty) <|> parseNode
 
 parseNode :: Parser Tree
 parseNode = do
-  key <- some (satisfy isLatinLetter)
+  key <- posify <$> some (satisfy isLatinLetter)
   $(string " = (")
-  left <- some (satisfy isLatinLetter)
+  left <- posify <$> some (satisfy isLatinLetter)
   $(string ", ")
-  right <- some (satisfy isLatinLetter)
+  right <- posify <$> some (satisfy isLatinLetter)
   $(string ")\n")
   insert key (left, right) <$> parseTree
 
@@ -64,24 +69,26 @@ pruneTree (instructions, tree) = (length instructions, prunedTree)
 
 findZZZ :: Prune -> Pos -> Maybe (Pos, Pos)
 findZZZ tree pos
-  | pos == "ZZZ" = Nothing
+  | pos == posify "ZZZ" = Nothing
   | otherwise = Just (tree ! pos, tree ! pos)
 
 findZ :: Prune -> Pos -> Maybe (Pos, Pos)
 findZ tree pos
-  | last pos == 'Z' = Nothing
+  | pos .&. 127 == ord 'Z' = Nothing
   | otherwise = Just (tree ! pos, tree ! pos)
 
 part1 :: Bool -> ByteString -> String
 part1 _ input = show $ dist * step
   where
     (step, pruned) = pruneTree . extract . runParser parseInput $ input
-    dist = length . unfoldr (findZZZ pruned) $ "AAA"
+    dist = length . unfoldr (findZZZ pruned) . posify $ "AAA"
 
 part2 :: Bool -> ByteString -> String
 part2 _ input = show . (*) step . foldr1 lcm $ dists
   where
     (step, pruned) = pruneTree . extract . runParser parseInput $ input
     dists =
-      map (length . unfoldr (findZ pruned)) . filter ((== 'A') . last) . keys
+      map (length . unfoldr (findZ pruned))
+        . filter ((== ord 'A') . (.&. 127))
+        . keys
         $ pruned
