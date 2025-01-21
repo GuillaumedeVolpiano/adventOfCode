@@ -123,6 +123,7 @@ library days2015
     , cryptohash-md5
     , flatparse
     , hashable
+    , hashtables
     , helpers
     , linear
     , massiv
