@@ -3,7 +3,8 @@ module Day9
   , part2
   ) where
 
-import Helpers.Parsers (integers)
+import           Data.ByteString            (ByteString)
+import           Helpers.Parsers.ByteString (signedInts)
 
 toZero :: [Int] -> [[Int]]
 toZero s
@@ -16,13 +17,13 @@ diffs (a:xs@(b:r))
   | otherwise = (b - a) : diffs xs
 
 extrapolate :: [[Int]] -> Int
-extrapolate = sum . map head
+extrapolate = sum . map last
 
 extrapolateBackwards :: [[Int]] -> Int
 extrapolateBackwards = foldr ((-) . head) 0
 
-part1 :: Bool -> String -> String
-part1 _ = show . sum . map (extrapolate . toZero) . integers
+part1 :: Bool -> ByteString -> String
+part1 _ = show . sum . map (extrapolate . toZero) . signedInts
 
-part2 :: Bool -> String -> String
-part2 _ = show . sum . map (extrapolateBackwards . toZero) . integers
+part2 :: Bool -> ByteString -> String
+part2 _ = show . sum . map (extrapolateBackwards . toZero) . signedInts
