@@ -61,9 +61,7 @@ library helpers
     , utf8-string
     , word8
 
-  ghc-options:
-    -threaded -O3 
-
+  ghc-options:      -threaded -O3
   default-language: Haskell2010
 
 executable aoc2015
@@ -78,10 +76,7 @@ executable aoc2015
     , helpers
     , time
 
-  ghc-options:
-    -threaded -O3 
-    "-with-rtsopts=-N8 -p"
-
+  ghc-options:      -threaded -O3 "-with-rtsopts=-N8 -p"
   default-language: Haskell2010
 
 library days2015
@@ -131,18 +126,16 @@ library days2015
     , mtl
     , multiset
     , psqueues
-    , streamly-core
     , streamly
-    , text               >=2.1
+    , streamly-core
+    , text                  >=2.1
     , transformers
-    , utf8-string
     , unordered-containers
+    , utf8-string
     , vector
     , word8
 
-  ghc-options:
-    -threaded -O3 
-
+  ghc-options:      -threaded -O3
   default-language: Haskell2010
 
 executable aoc2016
@@ -186,10 +179,7 @@ executable aoc2016
     , vector
     , wide-word
 
-  ghc-options:
-    -threaded -O3 
-    "-with-rtsopts=-N8 -p"
-
+  ghc-options:      -threaded -O3 "-with-rtsopts=-N8 -p"
   default-language: Haskell2010
 
 library days2016
@@ -260,9 +250,7 @@ library days2016
     , vector
     , wide-word
 
-  ghc-options:
-    -threaded -O3 
-
+  ghc-options:      -threaded -O3
   default-language: Haskell2010
 
 executable aoc2017
@@ -635,11 +623,9 @@ executable aoc2022
 
   default-language: Haskell2010
 
---
-executable aoc2023
-  main-is:          Main.hs
-  hs-source-dirs:   2023 2023/days
-  other-modules:
+library days2023
+  hs-source-dirs:   2023/days
+  exposed-modules:
     Day1
     Day10
     Day11
@@ -667,36 +653,42 @@ executable aoc2023
     Day9
     Part
 
-  -- LANGUAGE extensions used by modules in this package.
-  -- other-extensions:
   build-depends:
     , arithmoi
     , array
     , base
-    , cmdargs
+    , bytestring
     , containers
-    , criterion
-    , curl
-    , data-clist
-    , directory
     , fgl
-    , graphviz
+    , flatparse
     , hashable
     , helpers
     , linear
     , megaparsec
     , parallel
-    , parser-combinators
     , psqueues
-    , regex-pcre
     , regex-tdfa
     , split
-    , text
-    , time
-    , timeit
-    , unordered-containers
+    , text        >=2.1
+    , utf8-string
+    , word8
 
-  ghc-options:      -threaded
+  ghc-options:      -threaded -O3
+  default-language: Haskell2010
+
+executable aoc2023
+  main-is:          Main.hs
+  hs-source-dirs:   2023
+  build-depends:
+    , base
+    , bytestring
+    , cmdargs
+    , containers
+    , days2023
+    , helpers
+    , time
+
+  ghc-options:      -fllvm -threaded -O3
   default-language: Haskell2010
 
 executable aoc2024
@@ -713,9 +705,7 @@ executable aoc2024
     , time
 
   -- ghc-options: -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8"
-  ghc-options:
-    -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
-
+  ghc-options:      -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
   default-language: Haskell2010
 
 library days2024
@@ -770,9 +760,7 @@ library days2024
     , vector
     , word8
 
-  ghc-options:
-    -fllvm -threaded -O3
-
+  ghc-options:      -fllvm -threaded -O3
   default-language: Haskell2010
 
 -- executable aoc2025
@@ -925,9 +913,7 @@ benchmark bench
     , text         >=2.1
     , utf8-string
 
-  ghc-options:
-    -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
-
+  ghc-options:      -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
   default-language: Haskell2010
 
 benchmark full-year
@@ -937,15 +923,11 @@ benchmark full-year
   build-depends:
     , base
     , bytestring
-    , days2024
+    , days2023
     , directory
     , helpers
-    , megaparsec
-    , mtl
     , tasty-bench
+    , utf8-string
 
-
-  ghc-options:
-    -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
-
+  ghc-options:      -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
   default-language: Haskell2010
