@@ -61,7 +61,7 @@ library helpers
     , utf8-string
     , word8
 
-  ghc-options:      -threaded -O3
+  ghc-options:      -fllvm -threaded -O3
   default-language: Haskell2010
 
 executable aoc2015
@@ -76,7 +76,7 @@ executable aoc2015
     , helpers
     , time
 
-  ghc-options:      -threaded -O3 "-with-rtsopts=-N8 -p"
+  ghc-options:      -fllvm -threaded -O3 "-with-rtsopts=-N8 -p"
   default-language: Haskell2010
 
 library days2015
@@ -135,7 +135,7 @@ library days2015
     , vector
     , word8
 
-  ghc-options:      -threaded -O3
+  ghc-options:      -fllvm -threaded -O3
   default-language: Haskell2010
 
 executable aoc2016
@@ -179,7 +179,7 @@ executable aoc2016
     , vector
     , wide-word
 
-  ghc-options:      -threaded -O3 "-with-rtsopts=-N8 -p"
+  ghc-options:      -fllvm -threaded -O3 "-with-rtsopts=-N8 -p"
   default-language: Haskell2010
 
 library days2016
@@ -250,7 +250,7 @@ library days2016
     , vector
     , wide-word
 
-  ghc-options:      -threaded -O3
+  ghc-options:      -fllvm -threaded -O3
   default-language: Haskell2010
 
 executable aoc2017
@@ -674,7 +674,7 @@ library days2023
     , utf8-string
     , word8
 
-  ghc-options:      -threaded -O3
+  ghc-options:      -fllvm -threaded -O3
   default-language: Haskell2010
 
 executable aoc2023
@@ -689,7 +689,7 @@ executable aoc2023
     , helpers
     , time
 
-  ghc-options:      -fllvm -threaded -O3
+  ghc-options:      -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -p"
   default-language: Haskell2010
 
 executable aoc2024
