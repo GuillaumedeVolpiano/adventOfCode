@@ -1,12 +1,19 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Day7
   ( part1
   , part2
   ) where
 
-import           Helpers.Parsers   (splitOnSpace)
-
-import           Data.Char (isDigit)
-import           Data.List (group, sort, sortBy)
+import           Data.ByteString            (ByteString)
+import           Data.ByteString.Char8      (unpack)
+import           Data.Char                  (digitToInt)
+import           Data.List                  (group, sort, sortBy)
+import           FlatParse.Basic            (anyAsciiDecimalInt, char, failed,
+                                             isDigit, runParser, satisfy, some,
+                                             switch)
+import           Helpers.Parsers.ByteString (splitOnSpace)
+import           Helpers.Parsers.FlatParse  (Parser, debug, extract)
 
 class GenHand a where
   handToList :: a -> [Card]
@@ -33,129 +40,132 @@ data Type
   deriving (Ord, Eq, Show)
 
 data Hand =
-  Hand Card Card Card Card Card
-  deriving (Eq, Show)
+  Hand Card Card Card Card Card Type
+  deriving (Eq)
 
 data NewHand =
-  NewHand Card Card Card Card Card
-  deriving (Eq, Show)
+  NewHand Card Card Card Card Card Type
+  deriving (Eq)
 
 type Bid = Int
 
-instance Show Card where
-  show c
-    | isLow c = show . fromLow $ c
-    | c == T = "T"
-    | c == J = "J"
-    | c == Q = "Q"
-    | c == K = "K"
-    | c == A = "A"
-
 instance Ord Hand where
-  compare a b
-    | handType a > handType b = GT
-    | handType a < handType b = LT
-    | otherwise = pieceCompare a b
+  compare (Hand a b c d e strength) (Hand a' b' c' d' e' strength') =
+    compare strength strength'
+      `mappend` compare a a'
+      `mappend` compare b b'
+      `mappend` compare c c'
+      `mappend` compare d d'
+      `mappend` compare e e'
 
 instance Ord NewHand where
-  compare a b
-    | handType a > handType b = GT
-    | handType a < handType b = LT
-    | otherwise = pieceCompare a b
+  compare (NewHand a b c d e strength) (NewHand a' b' c' d' e' strength') =
+    compare strength strength'
+      `mappend` newCompare a a'
+      `mappend` newCompare b b'
+      `mappend` newCompare c c'
+      `mappend` newCompare d d'
+      `mappend` newCompare e e'
 
-instance GenHand Hand where
-  handToList (Hand a b c d e) = [a, b, c, d, e]
-  handType h
-    | maxGroup == 5 = Five
-    | maxGroup == 4 = Four
-    | maxGroup == 1 = High
-    | maxGroup == 3 && elem 2 handGroup = Full
-    | maxGroup == 3 = Three
-    | sort handGroup == [1, 2, 2] = Two
-    | otherwise = One
-    where
-      handGroup = grouped . handToList $ h
-      maxGroup = maximum handGroup
-  pieceCompare a b = subCompare (handToList a) (handToList b)
-    where
-      subCompare [] [] = EQ
-      subCompare (f:fs) (s:ss)
-        | f == s = subCompare fs ss
-        | otherwise = compare f s
+newCompare :: Card -> Card -> Ordering
+newCompare J b
+  | b == J = EQ
+  | otherwise = LT
+newCompare _ J = GT
+newCompare a b = compare a b
 
-instance GenHand NewHand where
-  handToList (NewHand a b c d e) = [a, b, c, d, e]
-  handType h
-    | maxGroup + jsize == 5 = Five
-    | maxGroup + jsize == 4 = Four
-    | maxGroup + jsize == 3 = testFull
-    | maxGroup + jsize == 2 = testTwo
-    | maxGroup == 1 = High
+newHandType :: Card -> Card -> Card -> Card -> Card -> Type
+newHandType a b c d e
+  | maxGroup + jsize == 5 = Five
+  | maxGroup + jsize == 4 = Four
+  | maxGroup + jsize == 3 = testFull
+  | maxGroup + jsize == 2 = testTwo
+  | otherwise = High
     -- there is always a better hand than two pairs if the hands contains a pair
     -- and a joker or no pair and two jokers
-    where
-      handList = handToList h
-      noJoker = filter (/= J) handList
-      groupedNoJoker = grouped noJoker
-      maxGroup
-        | null noJoker = 0
-        | otherwise = maximum groupedNoJoker
-      jsize = length . filter (== J) $ handList
+  where
+    handList = [a, b, c, d, e]
+    noJoker = filter (/= J) handList
+    groupedNoJoker = grouped noJoker
+    maxGroup
+      | null noJoker = 0
+      | otherwise = maximum groupedNoJoker
+    jsize = length . filter (== J) $ handList
       -- a Full is either an actual full or two pairs and a joker. With one pair and
       -- two jokers, we get a four.
-      testFull
-        | jsize == 1 && notElem 1 groupedNoJoker = Full
-        | jsize == 0 && elem 2 groupedNoJoker = Full
-        | otherwise = Three
-      testTwo
-        | sort groupedNoJoker == [1, 2, 2] = Two
-        | otherwise = One
-  pieceCompare a b = subCompare (handToList a) (handToList b)
-    where
-      subCompare [] [] = EQ
-      subCompare (f:fs) (s:ss)
-        | f == s = subCompare fs ss
-        | f == J = LT
-        | s == J = GT
-        | otherwise = compare f s
+    testFull
+      | jsize == 1 && notElem 1 groupedNoJoker = Full
+      | jsize == 0 && elem 2 groupedNoJoker = Full
+      | otherwise = Three
+    testTwo
+      | sort groupedNoJoker == [1, 2, 2] = Two
+      | otherwise = One
+    subCompare [] [] = EQ
+    subCompare (f:fs) (s:ss)
+      | f == s = subCompare fs ss
+      | f == J = LT
+      | s == J = GT
+      | otherwise = compare f s
 
-parseInput :: String -> [(Hand, Bid)]
-parseInput = map (\(a:b:_) -> (readHand a, read b)) . splitOnSpace
-  where
-    readHand [a, b, c, d, e] =
-      Hand (readCard a) (readCard b) (readCard c) (readCard d) (readCard e)
-    readCard c
-      | isDigit c = Low $ read [c]
-      | c == 'T' = T
-      | c == 'J' = J
-      | c == 'Q' = Q
-      | c == 'K' = K
-      | c == 'A' = A
+parseCard :: Parser Card
+parseCard =
+  $(switch
+      [|case _ of
+          "T" -> pure T
+          "J" -> pure J
+          "Q" -> pure Q
+          "K" -> pure K
+          "A" -> pure A
+          _   -> parseLow|])
 
-fromLow :: Card -> Int
-fromLow (Low c) = c
-fromLow c       = error ("Low should only be used on low cards. " ++ show c)
+parseLow :: Parser Card
+parseLow = Low . digitToInt <$> satisfy isDigit
 
-isLow :: Card -> Bool
-isLow (Low _) = True
-isLow _       = False
+parseHand :: Parser Hand
+parseHand = do
+  a <- parseCard
+  b <- parseCard
+  c <- parseCard
+  d <- parseCard
+  e <- parseCard
+  $(char ' ')
+  let g = grouped [a, b, c, d, e]
+      mg = maximum g
+      strength
+        | mg == 5 = Five
+        | mg == 4 = Four
+        | mg == 3 && 2 `elem` g = Full
+        | mg == 3 = Three
+        | sort g == [1, 2, 2] = Two
+        | mg == 2 = One
+        | otherwise = High
+  pure $ Hand a b c d e strength
+
+parseInput :: Parser [(Hand, Bid)]
+parseInput =
+  some $ do
+    hand <- parseHand
+    bid <- anyAsciiDecimalInt
+    $(char '\n')
+    pure (hand, bid)
 
 grouped :: [Card] -> [Int]
 grouped = map length . group . sort
 
 handToNew :: Hand -> NewHand
-handToNew (Hand a b c d e) = NewHand a b c d e
+handToNew (Hand a b c d e _) = NewHand a b c d e $ newHandType a b c d e
 
-score :: (Ord a, GenHand a) => [(a, Bid)] -> Int
+score :: Ord a => [(a, Bid)] -> Int
 score =
-  sum .
-  zipWith (\b c -> b * snd c) [1 ..] . sortBy (\a b -> compare (fst a) (fst b))
+  sum
+    . zipWith (\b c -> b * snd c) [1 ..]
+    . sortBy (\a b -> compare (fst a) (fst b))
 
 pairToNew :: (Hand, Bid) -> (NewHand, Bid)
 pairToNew (a, b) = (handToNew a, b)
 
-part1 :: Bool -> String -> String
-part1 _ = show . score . parseInput
+part1 :: Bool -> ByteString -> String
+part1 _ = show . score . extract . runParser parseInput
 
-part2 :: Bool -> String -> String
-part2 _ = show . score . map pairToNew . parseInput
+part2 :: Bool -> ByteString -> String
+part2 _ = show . score . map pairToNew . extract . runParser parseInput

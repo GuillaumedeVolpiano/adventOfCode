@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE TupleSections    #-}
 
 module Helpers.Parsers.ByteString
   ( Parser
@@ -18,7 +20,6 @@ module Helpers.Parsers.ByteString
   , signedDouble
   , signedInts
   , signedDoubles
-  , lexeme
   , make2DArray
   , numsAsByteStrings
   , parseByLine
@@ -29,37 +30,33 @@ module Helpers.Parsers.ByteString
   , string
   ) where
 
-import           Control.Applicative        as A (empty)
-import           Data.Array.IArray          (IArray)
-import           Data.Array.Unboxed         (UArray, array, (!))
-import           Data.ByteString            (ByteString, cons, pack, split,
-                                             unpack)
-import qualified Data.ByteString            as BS (concat, empty, length)
-import qualified Data.ByteString.Char8      as BSC (foldr)
-import           Data.ByteString.UTF8       (fromString)
-import qualified Data.Char                  as C (digitToInt)
-import           Data.Either                (fromRight)
-import           Data.List                  as L (length)
-import           Data.Maybe                 (Maybe (Just, Nothing), catMaybes)
-import           Data.Void                  (Void)
-import           Data.Word                  (Word8)
-import           Data.Word8                 (_0, _1, _2, _3, _4, _5, _6, _7, _8,
-                                             _9, _hyphen, _period, _space,
-                                             isAlpha, isAlphaNum, isDigit,
-                                             isSpace)
-import           Linear.V2                  (V2 (..))
-import           Prelude                    hiding (lines)
-import           Text.Megaparsec            (Parsec, eof, manyTill, optional,
-                                             parse, someTill, takeWhile1P,
-                                             takeWhileP, try, (<|>))
-import qualified Text.Megaparsec.Byte       as MB (string)
-import           Text.Megaparsec.Byte       (char, eol, printChar, space1)
-import qualified Text.Megaparsec.Byte.Lexer as L (decimal, float, lexeme,
-                                                  signed, skipBlockComment,
-                                                  skipLineComment, space,
-                                                  symbol)
-
-type Parser = Parsec Void ByteString
+import           Control.Applicative       as A (empty)
+import           Control.Monad             (void)
+import           Data.Array.IArray         (IArray)
+import           Data.Array.Unboxed        (UArray, array, (!))
+import           Data.ByteString           (ByteString, cons, pack, split,
+                                            unpack)
+import qualified Data.ByteString           as BS (concat, empty, length)
+import qualified Data.ByteString.Char8     as BSC (foldr, pack)
+import           Data.ByteString.UTF8      (fromString)
+import           Data.Char                 (isPrint)
+import qualified Data.Char                 as C (digitToInt)
+import           Data.Either               (fromRight)
+import           Data.List                 as L (length)
+import           Data.Maybe                (Maybe (Just, Nothing), catMaybes)
+import           Data.Void                 (Void)
+import           Data.Word                 (Word8)
+import           Data.Word8                (_0, _1, _2, _3, _4, _5, _6, _7, _8,
+                                            _9, _hyphen, _period, _space,
+                                            isAlpha, isAlphaNum, isSpace)
+import           FlatParse.Basic           (anyAsciiDecimalInt, byteString,
+                                            char, eof, failed, isDigit,
+                                            isLatinLetter, many, optional_,
+                                            runParser, satisfy, skipSatisfy,
+                                            switch, (<|>))
+import           Helpers.Parsers.FlatParse (Parser, extract)
+import           Linear.V2                 (V2 (..))
+import           Prelude                   hiding (lines)
 
 type Pos = V2 Int
 
@@ -78,44 +75,69 @@ digitArray =
     , (_9, 9)
     ] :: UArray Word8 Int
 
+eol :: Parser ()
+eol = $(char '\n')
+
 lines :: ByteString -> [ByteString]
 lines = init . split 10
 
 -- the supplied parser must consume all the line, including the new line
 -- character
 parseByLine :: Parser a -> ByteString -> [a]
-parseByLine parser = fromRight [] . parse (manyTill parser eof) ""
+parseByLine parser = extract . runParser (many parser <* eof)
 
-parseLineList :: Parser (Maybe ByteString) -> ByteString -> [ByteString]
+parseLineList :: Parser ByteString -> ByteString -> [ByteString]
 parseLineList parser =
-  fromRight [] . parse (catMaybes <$> manyTill (try parser <|> consume) eof) ""
+  extract
+    . runParser
+        (optional_ consume
+           >> many (parser >>= \x -> optional_ consume >> pure x) <* eof)
 
-parseList :: Parser (Maybe a) -> ByteString -> [[a]]
-parseList parser = fromRight [] . parse (manyTill (parseLine parser) eof) ""
+parseList :: Parser a -> ByteString -> [[a]]
+parseList parser = extract . runParser (many (parseLine parser) <* eof)
 
-parseInput :: Parser (Maybe a) -> Parser [[a]]
-parseInput parser = manyTill (parseLine parser) eof
+parseInput :: Parser a -> Parser [[a]]
+parseInput parser = many (parseLine parser) <* eof
 
-parseLine :: Parser (Maybe a) -> Parser [a]
-parseLine parser = catMaybes <$> manyTill (try parser <|> consume) eol
+parseLine :: Parser a -> Parser [a]
+parseLine parser =
+  many (consumingParser parser) <* (optional_ (many consume) >> eol)
 
-consume :: Parser (Maybe a)
-consume = do
-  _ <- printChar
-  return Nothing
+consumingParser :: Parser a -> Parser a
+consumingParser parser = parser <|> (consume >> consumingParser parser)
 
-digits :: Parser (Maybe ByteString)
+consume :: Parser ()
+consume = skipSatisfy isPrint
+
+digits :: Parser ByteString
 digits = do
-  Just <$> takeWhile1P Nothing isDigit
+  BSC.pack <$> many (satisfy isDigit)
 
 digitToInt :: Word8 -> Int
 digitToInt = (!) digitArray
 
-signedInt :: Parser (Maybe Int)
-signedInt = Just <$> L.signed spaceConsumer decimal
+signedInt :: Parser Int
+signedInt =
+  $(switch
+      [|case _ of
+          "-" -> spaceConsumer >> anyAsciiDecimalInt >>= \x -> pure . negate $ x
+          _   -> spaceConsumer >> anyAsciiDecimalInt|])
 
-signedDouble :: Parser (Maybe Double)
-signedDouble = Just <$> L.signed spaceConsumer double
+signedDouble :: Parser Double
+signedDouble =
+  signedInt >>= \x -> postDecimal >>= \y -> pure $ fromIntegral x + decimaled y
+
+decimaled :: Int -> Double
+decimaled x
+  | x == 0 = 0
+  | otherwise = doubleX / decimator
+  where
+    doubleX = fromIntegral x :: Double
+    logged = ceiling . logBase 10 $ doubleX
+    decimator = 10 ^ logged
+
+postDecimal :: Parser Int
+postDecimal = ($(char '.') >> anyAsciiDecimalInt) <|> pure 0
 
 signedInts :: ByteString -> [[Int]]
 signedInts = parseList signedInt
@@ -123,30 +145,29 @@ signedInts = parseList signedInt
 signedDoubles :: ByteString -> [[Double]]
 signedDoubles = parseList signedDouble
 
-numsAsByteStrings :: Parser (Maybe ByteString)
+numsAsByteStrings :: Parser ByteString
 numsAsByteStrings = do
   s <-
-    optional . try $ do
-      char _hyphen
-  i <- takeWhile1P Nothing isDigit
-  d <-
-    optional . try $ do
-      sep <- char _period
-      dec <- takeWhile1P Nothing isDigit
-      return (cons sep dec)
-  return (Just . BS.concat . catMaybes $ [fmap (`cons` BS.empty) s, Just i, d])
+    $(switch
+        [|case _ of
+            "-" -> pure ('-' :)
+            _   -> pure id|])
+  i <- ((++) <$> many (satisfy isDigit)) <|> pure id
+  d <- ($(char '.') >> many (satisfy isDigit)) <|> pure []
+  let result = s . i $ d
+  if null result
+    then failed
+    else pure (fromString result)
 
-alpha :: Parser (Maybe ByteString)
+alpha :: Parser ByteString
 alpha = do
-  Just <$> takeWhile1P Nothing isAlpha
+  fromString <$> many (satisfy isLatinLetter)
 
-alnum :: Parser (Maybe ByteString)
-alnum = do
-  Just <$> takeWhile1P Nothing isAlphaNum
+alnum :: Parser ByteString
+alnum = fromString <$> many (satisfy (\x -> isLatinLetter x || isDigit x))
 
-notSpace :: Parser (Maybe ByteString)
-notSpace = do
-  Just <$> takeWhileP Nothing (not . isSpace)
+notSpace :: Parser ByteString
+notSpace = fromString <$> many (satisfy (/= ' '))
 
 alphaNum :: ByteString -> [[ByteString]]
 alphaNum = parseList alnum
@@ -154,7 +175,7 @@ alphaNum = parseList alnum
 characters :: ByteString -> [[ByteString]]
 characters = parseList alpha
 
-custom :: Parser (Maybe ByteString) -> ByteString -> [[ByteString]]
+custom :: Parser ByteString -> ByteString -> [[ByteString]]
 custom = parseList
 
 -- | The 'complex parser' function parses a string with complex patterns. It
@@ -163,7 +184,7 @@ custom = parseList
 -- strings, taken from the original string, split around the splitters and
 -- parsed with the patterns.
 complexParser ::
-     [String] -> [Parser (Maybe ByteString)] -> ByteString -> [[[ByteString]]]
+     [String] -> [Parser ByteString] -> ByteString -> [[[ByteString]]]
 complexParser splitters pats =
   map (zipWith parseLineList pats . splitOnSplitters splitters) . lines
 
@@ -192,34 +213,26 @@ splitOnSpace = parseList notSpace
 
 splitter :: String -> Parser (ByteString, ByteString)
 splitter s = do
-  b <- pack <$> manyTill printChar (string s)
-  _ <- string s
-  a <- pack <$> manyTill printChar eof
-  return (b, a)
+  b <- fromString <$> (many (satisfy isPrint) <* (byteString . fromString $ s))
+  (b, ) . fromString <$> (many (satisfy isPrint) <* eof)
 
 splitOnSplitters :: [String] -> ByteString -> [ByteString]
 splitOnSplitters [] aByteString = [aByteString]
 splitOnSplitters (s:ss) aByteString = before : splitOnSplitters ss after
   where
-    (before, after) =
-      fromRight (BS.empty, BS.empty) . parse (splitter s) "" $ aByteString
+    (before, after) = extract . runParser (splitter s) $ aByteString
 
 spaceConsumer :: Parser ()
-spaceConsumer =
-  L.space
-    (do
-       char _space
-       return ())
-    A.empty
-    A.empty
-
-lexeme = L.lexeme spaceConsumer
+spaceConsumer = void . many $ $(char ' ')
 
 decimal :: Parser Int
-decimal = lexeme L.decimal
+decimal = anyAsciiDecimalInt >>= \x -> many spaceConsumer >> pure x
 
 double :: Parser Double
-double = lexeme L.float
+double =
+  anyAsciiDecimalInt >>= \x ->
+    (($(char '.') >> anyAsciiDecimalInt) <|> pure 0) >>= \y ->
+      pure (fromIntegral x + decimaled y)
 
 string :: String -> Parser ByteString
-string = MB.string . fromString
+string = pure . fromString
