@@ -5,8 +5,8 @@ module Day20
 
 import           Data.Bifunctor            (first)
 import           Data.ByteString           (ByteString)
-import           Data.HashMap.Strict       (HashMap, fromList)
-import qualified Data.HashMap.Strict       as H (lookup)
+import           Data.IntMap.Strict        (IntMap, fromList)
+import qualified Data.IntMap.Strict        as H (lookup)
 import           Data.List                 (unfoldr)
 import           Data.Maybe                (fromJust, isNothing)
 import           FlatParse.Basic           (anyAsciiDecimalInt, runParser)
@@ -26,7 +26,7 @@ fromPrimes maxVal k
     geoSum (fact, occ) =
       div (unPrime fact ^ (fromIntegral occ + 1) - 1) (unPrime fact - 1)
 
-fromLimitedPrimes :: Int -> Int -> HashMap Int Word -> Int
+fromLimitedPrimes :: Int -> Int -> IntMap Word -> Int
 fromLimitedPrimes maxVal k divvedFacts
   | sumFactPrimes > maxVal = k
   | otherwise = fromLimitedPrimes maxVal (k + 1) divvedFacts
