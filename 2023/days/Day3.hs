@@ -1,9 +1,16 @@
-module Day3 (part1, part2) where
-import           Data.Array.Unboxed (UArray, array, bounds, inRange, indices,
-                                     (!))
-import           Data.List          (nub, sortBy)
-import           Data.Maybe         (fromJust, isNothing, mapMaybe)
-import           Linear.V2          (V2 (..))
+module Day3
+  ( part1
+  , part2
+  ) where
+
+import           Data.Array.Unboxed    (UArray, array, bounds, inRange, indices,
+                                        (!))
+import           Data.ByteString       (ByteString)
+import           Data.ByteString.Char8 (index)
+import qualified Data.ByteString.Char8 as B (length, lines)
+import           Data.List             (nub, sortBy)
+import           Data.Maybe            (fromJust, isNothing, mapMaybe)
+import           Linear.V2             (V2 (..))
 
 type Pos = V2 Int
 
@@ -28,8 +35,8 @@ digitNextToSymbol schematics pos =
   where
     schemBounds = bounds schematics
     isSymbol neighbour =
-      inRange schemBounds neighbour &&
-      (schematics ! neighbour) `notElem` ('.' : digits)
+      inRange schemBounds neighbour
+        && (schematics ! neighbour) `notElem` ('.' : digits)
 
 isGear :: Schematics -> Pos -> Maybe [Int]
 isGear schematics pos@(V2 a b)
@@ -37,8 +44,9 @@ isGear schematics pos@(V2 a b)
   | otherwise = Nothing
   where
     potParts =
-      map (read . map (schematics !)) . nub . map (catPartDigits schematics) $
-      filter (\x -> (schematics ! x) `elem` digits) . map (pos +) $ surrounds
+      map (read . map (schematics !)) . nub . map (catPartDigits schematics)
+        $ filter (\x -> (schematics ! x) `elem` digits) . map (pos +)
+        $ surrounds
 
 catPartDigits :: Schematics -> Pos -> [Pos]
 catPartDigits schematics pos = catBefore (pos + V2 (-1) 0) $ catAfter pos
@@ -56,27 +64,31 @@ catPartDigits schematics pos = catBefore (pos + V2 (-1) 0) $ catAfter pos
 
 schemToParts :: Schematics -> [Int]
 schemToParts schematics =
-  map (read . map (schematics !)) .
-  nub .
-  map (catPartDigits schematics) .
-  filter (digitNextToSymbol schematics) . indices $
-  schematics
+  map (read . map (schematics !))
+    . nub
+    . map (catPartDigits schematics)
+    . filter (digitNextToSymbol schematics)
+    . indices
+    $ schematics
 
-schem :: String -> Schematics
-schem input = 
-        array
-          (V2 0 0, V2 width height)
-          [(V2 x y, preSchem !! y !! x) | x <- [0 .. width], y <- [0 .. height]]
-    where
-      preSchem = lines input
-      width = length (head preSchem) - 1
-      height = length preSchem - 1
+schem :: ByteString -> Schematics
+schem input =
+  array
+    (V2 0 0, V2 width height)
+    [ (V2 x y, (preSchem !! y) `index` x)
+    | x <- [0 .. width]
+    , y <- [0 .. height]
+    ]
+  where
+    preSchem = B.lines input
+    width = B.length (head preSchem) - 1
+    height = length preSchem - 1
 
-
-part1 :: Bool -> String -> String
+part1 :: Bool -> ByteString -> String
 part1 _ = show . sum . schemToParts . schem
 
-part2 :: Bool -> String -> String
-part2 _ input = show . sum . map product . mapMaybe (isGear schematics) . indices $ schematics 
+part2 :: Bool -> ByteString -> String
+part2 _ input =
+  show . sum . map product . mapMaybe (isGear schematics) . indices $ schematics
   where
     schematics = schem input

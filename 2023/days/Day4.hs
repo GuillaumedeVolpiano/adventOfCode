@@ -1,13 +1,22 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Day4
   ( part1
   , part2
   ) where
 
-import           Data.Maybe    (fromJust)
-import           Data.Sequence as Sq (Seq ((:<|), (:|>)), adjust, replicate,
-                                      splitAt, (!?), (><))
-import           Data.Set      as St (Set, fromList, intersection, size)
-import           Helpers.Parsers       (complexParser, numsAsStrings)
+import           Data.ByteString           (ByteString)
+import           Data.Maybe                (fromJust)
+import           Data.Sequence             as Sq (Seq ((:<|), (:|>)), adjust,
+                                                  replicate, splitAt, (!?),
+                                                  (><))
+import           Data.Set                  as St (Set, fromList, intersection,
+                                                  size)
+import           FlatParse.Basic           (anyAsciiDecimalInt, char, eof,
+                                            isDigit, optional_, runParser,
+                                            skipSatisfy, some, string)
+import           Helpers.Parsers           (complexParser, numsAsStrings)
+import           Helpers.Parsers.FlatParse (Parser, extract)
 
 data Card =
   Card Index Winning Have
@@ -19,15 +28,24 @@ type Winning = Set Int
 
 type Have = Set Int
 
-parseLines :: String -> [Card]
-parseLines =
-    map
-    (\((index:_):winning:have:_) ->
-       Card
-         (read index)
-         (fromList . map read $ winning)
-         (fromList . map read $ have)) .
-  complexParser [":", "\\|"] [numsAsStrings, numsAsStrings, numsAsStrings]
+parseInput :: Parser [Card]
+parseInput = some parseLine <* eof
+
+parseLine :: Parser Card
+parseLine = do
+  some $ skipSatisfy (not . isDigit)
+  index <- anyAsciiDecimalInt
+  some $ skipSatisfy (not . isDigit)
+  winning <-
+    fromList <$> some (anyAsciiDecimalInt >>= \x -> some $(char ' ') >> pure x)
+  $(char '|')
+  some $(char ' ')
+  have <-
+    fromList
+      <$> some
+            (anyAsciiDecimalInt >>= \x -> optional_ (some $(char ' ')) >> pure x)
+  $(char '\n')
+  pure $ Card index winning have
 
 scoreCard :: Card -> Int
 scoreCard (Card _ winning have)
@@ -47,11 +65,10 @@ totCards numCards (card@(Card index winning have):cs) = totCards newNumCards cs
       | otherwise =
         foldr (adjust (+ totCard)) numCards [index .. (index + score - 1)]
 
-part1 :: Bool -> String -> String
-part1 _ = show . sum . map scoreCard . parseLines
+part1 :: Bool -> ByteString -> String
+part1 _ = show . sum . map scoreCard . extract . runParser parseInput
 
-part2 :: Bool -> String -> String
-part2 _ input =
-  show . totCards (Sq.replicate (length cards) 1) $ cards
+part2 :: Bool -> ByteString -> String
+part2 _ input = show . totCards (Sq.replicate (length cards) 1) $ cards
   where
-    cards = parseLines input
+    cards = extract . runParser parseInput $ input

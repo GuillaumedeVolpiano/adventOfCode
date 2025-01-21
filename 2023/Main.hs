@@ -26,13 +26,14 @@ import           Day2
 -- import           Day23
 -- import           Day24
 -- import           Day25
--- import           Day3
--- import           Day4
--- import           Day5
--- import           Day6
--- import           Day7
--- import           Day8
--- import           Day9
+import           Day3
+
+import           Day4
+import           Day5
+import           Day6
+import           Day7
+import           Day8
+import           Day9
 import           Helpers.General.ByteString      (customPreciseTimeIt,
                                                   retrieveInput, wallTimeIt)
 import           System.Console.CmdArgs.Implicit (Data, Typeable, args, cmdArgs,
@@ -54,8 +55,8 @@ solver =
   fromList
     [ (1, (Day1.part1, Day1.part2))
     , (2, (Day2.part1, Day2.part2))
-    -- , (3, (Day3.part1, Day3.part2))
-    -- , (4, (Day4.part1, Day4.part2))
+    , (3, (Day3.part1, Day3.part2))
+    , (4, (Day4.part1, Day4.part2))
     -- , (5, (Day5.part1, Day5.part2))
     -- , (6, (Day6.part1, Day6.part2))
     -- , (7, (Day7.part1, Day7.part2))
