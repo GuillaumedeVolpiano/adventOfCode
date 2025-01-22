@@ -1,93 +1,105 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Day14
   ( part1
   , part2
   ) where
 
-import           Data.Array.Unboxed         (UArray, bounds, inRange, (!))
-import           Data.ByteString            (ByteString)
-import           Data.List                  as L (foldl', map)
-import           Data.Maybe                 (fromJust)
-import           Data.Sequence              as Sq (Seq ((:<|)), drop, iterateN,
-                                                   length, take, takeWhileL,
-                                                   (!?))
-import           Data.Set                   as St (Set, difference, empty,
-                                                   filter, foldl, fromList,
-                                                   intersection, map, notMember,
-                                                   null, union)
-import           Data.Word                  (Word8)
-import           Data.Word8                 (_O, _numbersign)
-import           Helpers.Parsers.ByteString (arrayFromByteString)
-import           Helpers.Search             (findPattern)
-import           Linear.V2                  (V2 (..))
+import           Data.Bifunctor            (first, second)
+import           Data.Bits                 (shiftL, shiftR, (.&.))
+import           Data.ByteString           (ByteString)
+import           Data.IntSet               (IntSet, insert, notMember, union)
+import qualified Data.IntSet               as S (filter, foldr, map)
+import           Data.List                 (foldl')
+import           Data.Maybe                (fromJust)
+import           Data.Sequence             as Sq (Seq ((:<|)), drop, iterateN,
+                                                  length, take, takeWhileL,
+                                                  (!?))
+import           Data.Vector.Unboxed       (Vector, generate)
+import qualified Data.Vector.Unboxed       as V (fromList, (!))
+import           FlatParse.Stateful        (eof, get, modify, put, runParser,
+                                            switch, (<|>))
+import           Helpers.Parsers.FlatParse (ParserS, extractS)
+import           Helpers.Search            (findPattern)
 
-type Platform = UArray Pos Word8
+type Rocks = IntSet
 
-type Pos = V2 Int
+type Fixed = Vector Bool
 
-type Rocks = Set Pos
+north = -128
 
-north = V2 0 (-1)
+south = 128
 
-south = V2 0 1
+east = 1
 
-east = V2 1 0
-
-west = V2 (-1) 0
+west = -1
 
 numCycles = 1000000000
 
-move :: Platform -> Rocks -> Pos -> Rocks
-move platform toMove dir = allMoved
+parseInput :: ParserS () (Rocks, IntSet)
+parseInput =
+  $(switch
+      [|case _ of
+          "."  -> modify (+ 1) >> parseInput
+          "O"  -> get >>= \x -> put (x + 1) >> first (insert x) <$> parseInput
+          "#"  -> get >>= \x -> put (x + 1) >> second (insert x) <$> parseInput
+          "\n" -> modify ((+ 128) . (.&. 16256)) >> parseInput|])
+    <|> (eof >> pure (mempty, mempty))
+
+makeVector :: IntSet -> Fixed
+makeVector set = generate (2 ^ 14) (`notMember` set)
+
+move :: Fixed -> Int -> Rocks -> Rocks
+move fixed dir rocks = allMoved
   where
-    b@(_, V2 mx my) = bounds platform
+    my = shiftL 99 7
+    mx = 99
     order
-      | dir == north = [0 .. my]
-      | dir == south = [my,my - 1 .. 0]
-      | dir == west = [0 .. mx]
-      | dir == east = [mx,mx - 1 .. 0]
-    coord (V2 x y)
-      | dir `elem` [north, south] = y
+      | dir == north = [my,my - 128 .. my .&. 127]
+      | dir == south = [0,128 .. my]
+      | dir == west = [mx,mx - 1 .. 0]
+      | dir == east = [0 .. mx]
+    coord
+      | dir `elem` [north, south] = flip shiftR 7
+      | otherwise = (.&. 127)
+    allMoved = foldr displaceByRow mempty order
+    displaceByRow x moved = (S.map (fullMove moved) . atX $ x) `union` moved
+    atX x = S.filter (\p -> coord p == coord x) rocks
+    canMove moved p =
+      py <= 99
+        && py >= 0
+        && px <= 99
+        && px >= 0
+        && mp `notMember` moved
+        && fixed V.! mp
+      where
+        mp = p + dir
+        py = shiftR mp 7
+        px = mp .&. 127
+    fullMove moved x
+      | canMove moved x = fullMove moved (x + dir)
       | otherwise = x
-    allMoved = foldl' displaceByRow empty order
-    displaceByRow moved x = moved `union` (St.map (fullMove moved) . atX $ x)
-    atX x = St.filter (\p -> coord p == x) toMove
-    canMove seen p =
-      inRange b (p + dir)
-        && (p + dir) `notMember` seen
-        && platform ! (p + dir) /= _numbersign
-    fullMove moved p
-      | canMove moved p = fullMove moved (p + dir)
-      | otherwise = p
 
-score :: Platform -> Rocks -> Int
-score platform = St.foldl (\a (V2 _ y) -> a + offset - y) 0
+score :: Rocks -> Int
+score = S.foldr (\p -> (offset - shiftR p 7 +)) 0
   where
-    (_, V2 _ y) = bounds platform
-    offset = y + 1
+    offset = 100
 
-cycleRocks :: Platform -> Rocks -> Rocks
-cycleRocks platform rocks =
-  L.foldl (move platform) rocks [north, west, south, east]
+cycleRocks :: Fixed -> Rocks -> Rocks
+cycleRocks fixed rocks = foldr (move fixed) rocks [east, south, west, north]
 
 part1 :: Bool -> ByteString -> String
-part1 _ input = show . score platform . move platform rocks $ north
+part1 _ input = show . score . move fixed north $ rocks
   where
-    platform = arrayFromByteString input
-    (_, V2 mx my) = bounds platform
-    rocks =
-      St.fromList
-        [V2 x y | x <- [0 .. mx], y <- [0 .. my], platform ! V2 x y == _O]
+    (rocks, fixed) =
+      second makeVector . extractS . runParser parseInput () 0 $ input
 
 part2 :: Bool -> ByteString -> String
 part2 _ input = show pos
   where
-    platform = arrayFromByteString input
-    (_, V2 mx my) = bounds platform
-    rocks =
-      St.fromList
-        [V2 x y | x <- [0 .. mx], y <- [0 .. my], platform ! V2 x y == _O]
-    firstCycles =
-      fmap (score platform) . iterateN 250 (cycleRocks platform) $ rocks
+    (rocks, fixed) =
+      second makeVector . extractS . runParser parseInput () 0 $ input
+    firstCycles = fmap score . iterateN 250 (cycleRocks fixed) $ rocks
     pat = findPattern 100 1 (==) firstCycles
     remainder = mod (numCycles - 100) pat
     pos = fromJust $ firstCycles !? (100 + remainder)
