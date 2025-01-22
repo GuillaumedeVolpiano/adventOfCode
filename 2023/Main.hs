@@ -64,7 +64,7 @@ solver =
     , (10, (Day10.part1, Day10.part2))
     , (11, (Day11.part1, Day11.part2))
     , (12, (Day12.part1, Day12.part2))
-    -- , (13, (Day13.part1, Day13.part2))
+    , (13, (Day13.part1, Day13.part2))
     -- , (14, (Day14.part1, Day14.part2))
     -- , (15, (Day15.part1, Day15.part2))
     -- , (16, (Day16.part1, Day16.part2))
