@@ -669,9 +669,11 @@ library days2023
     , psqueues
     , regex-tdfa
     , split
+    , streamly-core
     , text                  >=2.1
     , unordered-containers
     , utf8-string
+    , vector
     , word8
 
   ghc-options:      -fllvm -threaded -O3
@@ -867,9 +869,9 @@ test-suite tests2016
   default-language: Haskell2010
 
 test-suite tests2023
-  type:           exitcode-stdio-1.0
-  main-is:        Tests.hs
-  hs-source-dirs: test/2023
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test/2023
   build-depends:
     , array
     , base
