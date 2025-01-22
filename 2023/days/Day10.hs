@@ -3,22 +3,28 @@ module Day10
   , part2
   ) where
 
-import           Data.Array.Unboxed as A (UArray, array, assocs, bounds,
-                                          inRange, indices, (!))
-import           Data.List          as L (filter, null)
-import           Data.Maybe         (fromJust)
-import           Data.Sequence      as Sq (Seq ((:<|), (:|>)), fromList, null,
-                                           (><))
-import           Data.Set           as St (Set, empty, filter, fromList, insert,
-                                           notMember, singleton, size, union)
-import           Helpers.Parsers    (arrayFromString)
-import           Linear.V2          (V2 (..))
+import           Data.Array.Unboxed         as A (UArray, array, assocs, bounds,
+                                                  inRange, indices, (!))
+import           Data.ByteString            (ByteString)
+import           Data.ByteString.UTF8       (fromString)
+import           Data.List                  as L (filter, null)
+import           Data.Maybe                 (fromJust)
+import           Data.Sequence              as Sq (Seq ((:<|), (:|>)), fromList,
+                                                   null, (><))
+import           Data.Set                   as St (Set, empty, filter, fromList,
+                                                   insert, notMember, singleton,
+                                                   size, union)
+import           Data.Word                  (Word8)
+import           Data.Word8                 (_7, _F, _J, _L, _S, _bar, _hyphen,
+                                             _period)
+import           Helpers.Parsers.ByteString (arrayFromByteString)
+import           Linear.V2                  (V2 (..))
 
 type Pos = V2 Int
 
 type Diagram = UArray Pos Pipe
 
-type Pipe = Char
+type Pipe = Word8
 
 north = V2 0 (-1)
 
@@ -29,29 +35,32 @@ east = V2 1 0
 west = V2 (-1) 0
 
 testSamplePart2 =
-  "..........\n.S------7.\n.|F----7|.\n.||....||.\n.||....||.\n.|L-7F-J|.\n.|..||..|.\n.L--JL--J.\n.........."
+  fromString
+    "..........\n.S------7.\n.|F----7|.\n.||....||.\n.||....||.\n.|L-7F-J|.\n.|..||..|.\n.L--JL--J.\n.........."
 
 pipes =
-  [ ('|', [north, south])
-  , ('-', [east, west])
-  , ('L', [north, east])
-  , ('J', [north, west])
-  , ('7', [south, west])
-  , ('F', [south, east])
-  , ('.', [])
-  , ('S', [north, south, east, west])
+  [ (_bar, [north, south])
+  , (_hyphen, [east, west])
+  , (_L, [north, east])
+  , (_J, [north, west])
+  , (_7, [south, west])
+  , (_F, [south, east])
+  , (_period, [])
+  , (_S, [north, south, east, west])
   ]
 
 findStart :: Diagram -> Pos
-findStart = fst . head . L.filter (\(a, b) -> b == 'S') . assocs
+findStart = fst . head . L.filter (\(a, b) -> b == _S) . assocs
 
 -- Which positions are accessible from a given position, based on the shape of
 -- the loop at that position.
 neighbours :: Diagram -> Pos -> [Pos]
 neighbours diagram pos =
-  L.filter (inRange $ bounds diagram) .
-  map (pos +) . fromJust . lookup (diagram A.! pos) $
-  pipes
+  L.filter (inRange $ bounds diagram)
+    . map (pos +)
+    . fromJust
+    . lookup (diagram A.! pos)
+    $ pipes
 
 -- Follow the loop. From each point, you can access exactly two points, so go to
 -- the one you haven't seen.
@@ -80,8 +89,8 @@ fill diagram toSee loop seen
     toConsider =
       L.filter
         (\t ->
-           inRange (bounds diagram) t && notMember t seen && notMember t loop) $
-      map (pos +) [north, south, east, west]
+           inRange (bounds diagram) t && notMember t seen && notMember t loop)
+        $ map (pos +) [north, south, east, west]
     newToSee = rest >< Sq.fromList toConsider
     newSeen = union seen $ St.fromList toConsider
 
@@ -95,40 +104,45 @@ expandDiagram diagram =
     b@(_, V2 width height) = bounds diagram
     expandVal x y
       | even x && even y = diagram ! V2 (div x 2) (div y 2)
-      | even y &&
-          inRange b (V2 (div (x - 1) 2) (div y 2)) &&
-          inRange b (V2 (div (x + 1) 2) (div y 2)) &&
-          elem (diagram ! V2 (div (x - 1) 2) (div y 2)) "F-LS" &&
-          elem (diagram ! V2 (div (x + 1) 2) (div y 2)) "J-7S" = '-'
-      | even x &&
-          inRange b (V2 (div x 2) (div (y - 1) 2)) &&
-          inRange b (V2 (div x 2) (div (y + 1) 2)) &&
-          elem (diagram ! V2 (div x 2) (div (y - 1) 2)) "7F|S" &&
-          elem (diagram ! V2 (div x 2) (div (y + 1) 2)) "JL|S" = '|'
-      | otherwise = '.'
+      | even y
+          && inRange b (V2 (div (x - 1) 2) (div y 2))
+          && inRange b (V2 (div (x + 1) 2) (div y 2))
+          && elem (diagram ! V2 (div (x - 1) 2) (div y 2)) [_F, _hyphen, _L, _S]
+          && elem (diagram ! V2 (div (x + 1) 2) (div y 2)) [_J, _hyphen, _7, _S] =
+        _hyphen
+      | even x
+          && inRange b (V2 (div x 2) (div (y - 1) 2))
+          && inRange b (V2 (div x 2) (div (y + 1) 2))
+          && elem (diagram ! V2 (div x 2) (div (y - 1) 2)) [_7, _F, _bar, _S]
+          && elem (diagram ! V2 (div x 2) (div (y + 1) 2)) [_J, _L, _bar, _S] =
+        _bar
+      | otherwise = _period
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> ByteString -> String
 part1 _ input =
-  show .
-  div
-    (size . explore diagram (singleton start) . head . startNeighbours diagram $
-     start) $
-  2
+  show
+    . div
+        (size
+           . explore diagram (singleton start)
+           . head
+           . startNeighbours diagram
+           $ start)
+    $ 2
   where
-    diagram = arrayFromString input
+    diagram = arrayFromByteString input
     start = findStart diagram
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> ByteString -> String
 part2 test input = show $ totalSize - sizeLoop - sizeFilled
   where
     diagram
-      | test = arrayFromString testSamplePart2
-      | otherwise = arrayFromString input
+      | test = arrayFromByteString testSamplePart2
+      | otherwise = arrayFromByteString input
     expanded = expandDiagram diagram
     (_, V2 mx my) = bounds expanded
     loop =
-      explore expanded (singleton start) . head . startNeighbours expanded $
-      start
+      explore expanded (singleton start) . head . startNeighbours expanded
+        $ start
     start = findStart expanded
     edgesSeq = Sq.fromList edges
     edgesSet = St.fromList edges
@@ -145,6 +159,7 @@ part2 test input = show $ totalSize - sizeLoop - sizeFilled
     totalSize = length . indices $ diagram
     sizeLoop = St.size . St.filter (\(V2 x y) -> even x && even y) $ loop
     sizeFilled =
-      St.size .
-      St.filter (\(V2 x y) -> even x && even y) . fill expanded edgesSeq loop $
-      edgesSet
+      St.size
+        . St.filter (\(V2 x y) -> even x && even y)
+        . fill expanded edgesSeq loop
+        $ edgesSet

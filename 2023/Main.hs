@@ -8,24 +8,23 @@ import           Data.Time.Calendar              (toGregorian)
 import           Data.Time.Clock                 (getCurrentTime, utctDay)
 import           Day1
 
--- import           Day10
--- import           Day11
--- import           Day12
--- import           Day13
--- import           Day14
--- import           Day15
--- import           Day16
--- import           Day17
--- import           Day18
--- import           Day19
+import           Day10
+import           Day11
+import           Day12
+import           Day13
+import           Day14
+import           Day15
+import           Day16
+import           Day17
+import           Day18
+import           Day19
 import           Day2
-
--- import           Day20
--- import           Day21
--- import           Day22
--- import           Day23
--- import           Day24
--- import           Day25
+import           Day20
+import           Day21
+import           Day22
+import           Day23
+import           Day24
+import           Day25
 import           Day3
 
 import           Day4
@@ -62,8 +61,8 @@ solver =
     , (7, (Day7.part1, Day7.part2))
     , (8, (Day8.part1, Day8.part2))
     , (9, (Day9.part1, Day9.part2))
-    -- , (10, (Day10.part1, Day10.part2))
-    -- , (11, (Day11.part1, Day11.part2))
+    , (10, (Day10.part1, Day10.part2))
+    , (11, (Day11.part1, Day11.part2))
     -- , (12, (Day12.part1, Day12.part2))
     -- , (13, (Day13.part1, Day13.part2))
     -- , (14, (Day14.part1, Day14.part2))

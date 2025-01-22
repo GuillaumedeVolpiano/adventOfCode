@@ -669,7 +669,7 @@ library days2023
     , psqueues
     , regex-tdfa
     , split
-    , text        >=2.1
+    , text                  >=2.1
     , unordered-containers
     , utf8-string
     , word8
@@ -863,6 +863,23 @@ test-suite tests2016
     , text-show
     , unordered-containers
     , vector
+
+  default-language: Haskell2010
+
+test-suite tests2023
+  type:           exitcode-stdio-1.0
+  main-is:        Tests.hs
+  hs-source-dirs: test/2023
+  build-depends:
+    , array
+    , base
+    , bytestring
+    , days2023
+    , helpers
+    , linear
+    , tasty
+    , tasty-hunit
+    , utf8-string
 
   default-language: Haskell2010
 
