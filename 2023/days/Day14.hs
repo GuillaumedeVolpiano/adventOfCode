@@ -3,19 +3,24 @@ module Day14
   , part2
   ) where
 
-import           Data.Array.Unboxed (UArray, bounds, inRange, (!))
-import           Data.List          as L (foldl, map)
-import           Data.Maybe         (fromJust)
-import           Data.Sequence      as Sq (Seq ((:<|)), drop, iterateN, length,
-                                           take, takeWhileL, (!?))
-import           Data.Set           as St (Set, difference, empty, filter,
-                                           foldl, fromList, intersection, map,
-                                           notMember, null, union)
-import           Helpers.Parsers    (arrayFromString)
-import           Helpers.Search     (findPattern)
-import           Linear.V2          (V2 (..))
+import           Data.Array.Unboxed         (UArray, bounds, inRange, (!))
+import           Data.ByteString            (ByteString)
+import           Data.List                  as L (foldl', map)
+import           Data.Maybe                 (fromJust)
+import           Data.Sequence              as Sq (Seq ((:<|)), drop, iterateN,
+                                                   length, take, takeWhileL,
+                                                   (!?))
+import           Data.Set                   as St (Set, difference, empty,
+                                                   filter, foldl, fromList,
+                                                   intersection, map, notMember,
+                                                   null, union)
+import           Data.Word                  (Word8)
+import           Data.Word8                 (_O, _numbersign)
+import           Helpers.Parsers.ByteString (arrayFromByteString)
+import           Helpers.Search             (findPattern)
+import           Linear.V2                  (V2 (..))
 
-type Platform = UArray Pos Char
+type Platform = UArray Pos Word8
 
 type Pos = V2 Int
 
@@ -43,14 +48,13 @@ move platform toMove dir = allMoved
     coord (V2 x y)
       | dir `elem` [north, south] = y
       | otherwise = x
-    allMoved = displaceByRow order empty
-    displaceByRow [] moved = moved
-    displaceByRow (x:xs) moved =
-      displaceByRow xs (moved `union` (St.map (fullMove moved) . atX $ x))
+    allMoved = foldl' displaceByRow empty order
+    displaceByRow moved x = moved `union` (St.map (fullMove moved) . atX $ x)
     atX x = St.filter (\p -> coord p == x) toMove
     canMove seen p =
-      inRange b (p + dir) &&
-      (p + dir) `notMember` seen && platform ! (p + dir) /= '#'
+      inRange b (p + dir)
+        && (p + dir) `notMember` seen
+        && platform ! (p + dir) /= _numbersign
     fullMove moved p
       | canMove moved p = fullMove moved (p + dir)
       | otherwise = p
@@ -65,23 +69,23 @@ cycleRocks :: Platform -> Rocks -> Rocks
 cycleRocks platform rocks =
   L.foldl (move platform) rocks [north, west, south, east]
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> ByteString -> String
 part1 _ input = show . score platform . move platform rocks $ north
   where
-    platform = arrayFromString input
+    platform = arrayFromByteString input
     (_, V2 mx my) = bounds platform
     rocks =
       St.fromList
-        [V2 x y | x <- [0 .. mx], y <- [0 .. my], platform ! V2 x y == 'O']
+        [V2 x y | x <- [0 .. mx], y <- [0 .. my], platform ! V2 x y == _O]
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> ByteString -> String
 part2 _ input = show pos
   where
-    platform = arrayFromString input
+    platform = arrayFromByteString input
     (_, V2 mx my) = bounds platform
     rocks =
       St.fromList
-        [V2 x y | x <- [0 .. mx], y <- [0 .. my], platform ! V2 x y == 'O']
+        [V2 x y | x <- [0 .. mx], y <- [0 .. my], platform ! V2 x y == _O]
     firstCycles =
       fmap (score platform) . iterateN 250 (cycleRocks platform) $ rocks
     pat = findPattern 100 1 (==) firstCycles
