@@ -664,6 +664,7 @@ library days2023
     , hashable
     , helpers
     , linear
+    , massiv
     , megaparsec
     , parallel
     , psqueues
