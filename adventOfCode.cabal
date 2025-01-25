@@ -659,6 +659,7 @@ library days2023
     , base
     , bytestring
     , containers
+    , effectful
     , fgl
     , flatparse
     , hashable
