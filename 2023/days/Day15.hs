@@ -1,69 +1,93 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Day15
   ( part1
   , part2
   ) where
 
-import           Helpers.Parsers
+import           Control.Applicative       (some, (<|>))
+import           Data.Bits                 ((.&.))
+import           Data.ByteString           (ByteString)
+import           Data.ByteString.Char8     (pack)
+import           Data.Char                 (ord)
+import           Data.IntMap               (IntMap, empty, foldrWithKey, insert,
+                                            notMember, (!))
+import           Data.List                 (foldl')
+import           Data.Sequence             (Seq ((:<|), (:|>)), breakl,
+                                            foldrWithIndex, singleton, tails,
+                                            (><))
+import qualified Data.Sequence             as Sq (filter, null)
+import           FlatParse.Basic           (anyAsciiDecimalInt, isLatinLetter,
+                                            optional_, satisfy, switch)
+import qualified FlatParse.Basic           as FB (anyAsciiChar, char, runParser)
+import           FlatParse.Stateful        (get, modify, put)
+import qualified FlatParse.Stateful        as FS (anyAsciiChar, char, runParser)
+import           Helpers.Parsers.FlatParse (Parser, ParserS, extract, extractS)
 
-import           Data.Char       (ord)
-import           Data.IntMap     as M (IntMap, assocs, empty, insert, lookup)
-import           Data.List.Split (splitOn)
-import           Data.Maybe      (Maybe (Just), isNothing)
-import           Data.Sequence   as Sq (Seq ((:<|), (:|>)), filter, null,
-                                        singleton, spanl, tails, (><))
-import           Text.Regex.TDFA ((=~))
+type Label = ByteString
 
-type Label = String
+type Hash = Int
 
 type Focal = Int
-
-type Procedure = String
 
 type Boxes = IntMap Box
 
 type Box = Seq (Label, Focal)
 
-hash :: String -> Int
-hash = foldl (\a b -> mod ((a + ord b) * 17) 256) 0
+parseValue :: ParserS () Int
+parseValue =
+  ($(FS.char ',') >> get >>= \v -> put 0 >> (v +) <$> parseValue)
+    <|> ($(FS.char '\n') >> get)
+    <|> (FS.anyAsciiChar >>= \v ->
+           modify (\x -> ((ord v + x) * 17) .&. 255) >> parseValue)
 
-step :: Boxes -> Procedure -> Boxes
-step boxes procedure
-  | isNothing potBox && op == "=" = insert box (singleton (label, focal)) boxes
-  | isNothing potBox && op == "-" = boxes
-  | op == "=" = insert box (insertInBox label focal content) boxes
-  | op == "-" = insert box (removeFromBox label content) boxes
-  where
-    label = procedure =~ "[[:alpha:]]+"
-    op = procedure =~ "[=-]"
-    focal = read (procedure =~ "[[:digit:]]+")
-    box = hash label
-    potBox = M.lookup box boxes
-    (Just content) = potBox
+parseBoxes :: Boxes -> Parser Int
+parseBoxes boxes =
+  (parseLabel >>= \l ->
+     parseOp l boxes >>= \b -> optional_ $(FB.char ',') >> parseBoxes b)
+    <|> ($(FB.char '\n') >> (pure . scoreBoxes $ boxes))
 
-insertInBox :: Label -> Focal -> Box -> Box
-insertInBox label focal box
-  | Sq.null box = singleton (label, focal)
-  | Sq.null . Sq.filter (\(a, b) -> a == label) $ box = box :|> (label, focal)
-  | otherwise = (before :|> (label, focal)) >< after
-  where
-    (before, _ :<| after) = spanl (\(a, b) -> a /= label) box
+parseOp :: (Label, Hash) -> Boxes -> Parser Boxes
+parseOp label boxes =
+  $(switch
+      [|case _ of
+          "-" -> pure $ removeFromBox label boxes
+          "=" ->
+            anyAsciiDecimalInt >>= \focal ->
+              pure . insertInBox label focal $ boxes|])
 
-removeFromBox :: Label -> Box -> Box
-removeFromBox label box
-  | Sq.null box = box
-  | Sq.null . Sq.filter (\(a, b) -> a == label) $ box = box
-  | otherwise = before >< after
+parseLabel :: Parser (Label, Hash)
+parseLabel =
+  some (satisfy isLatinLetter) >>= \l ->
+    pure (pack l, foldl' (\acc c -> ((ord c + acc) * 17) .&. 255) 0 l)
+
+insertInBox :: (Label, Hash) -> Focal -> Boxes -> Boxes
+insertInBox (label, hash) focal boxes
+  | hash `notMember` boxes = insert hash (singleton (label, focal)) boxes
+  | Sq.null . Sq.filter ((== label) . fst) $ box =
+    insert hash (box :|> (label, focal)) boxes
+  | otherwise = insert hash ((before :|> (label, focal)) >< after) boxes
   where
-    (before, _ :<| after) = spanl (\(a, b) -> a /= label) box
+    box = boxes ! hash
+    (before, _ :<| after) = breakl ((== label) . fst) box
+
+removeFromBox :: (Label, Hash) -> Boxes -> Boxes
+removeFromBox (label, hash) boxes
+  | hash `notMember` boxes = boxes
+  | Sq.null . Sq.filter ((== label) . fst) $ box = boxes
+  | otherwise = insert hash (before >< after) boxes
+  where
+    box = boxes ! hash
+    (before, _ :<| after) = breakl ((== label) . fst) box
 
 scoreBox :: Box -> Int
-scoreBox = foldl (flip $ (+) . sum) 0 . tails . fmap snd
+scoreBox = foldrWithIndex (\index (_, v) acc -> (index + 1) * v + acc) 0 -- foldr ((+) . sum) 0 . tails . fmap snd
 
 scoreBoxes :: Boxes -> Int
-scoreBoxes = sum . map (\(a, b) -> (a + 1) * scoreBox b) . assocs
+scoreBoxes = foldrWithKey (\k v acc -> (k + 1) * scoreBox v + acc) 0
 
-part1 :: Bool -> String -> String
-part1 _ = show . sum . map hash . splitOn "," . init
+part1 :: Bool -> ByteString -> String
+part1 _ = show . extractS . FS.runParser parseValue () 0
 
-part2 :: Bool -> String -> String
-part2 _ = show . scoreBoxes . foldl step empty . splitOn "," . init
+part2 :: Bool -> ByteString -> String
+part2 _ = show . extract . FB.runParser (parseBoxes empty)
