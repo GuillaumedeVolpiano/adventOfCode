@@ -3,44 +3,79 @@ module Day16
   , part2
   ) where
 
-import           Control.Parallel.Strategies (parMap, rpar)
-import           Data.Array.IArray           as I (Array, array, (!))
-import           Data.Array.Unboxed          as U (Ix, UArray, bounds, inRange,
-                                                   range, (!))
-import           Data.ByteString             (ByteString)
-import           Data.List                   as L (map)
-import           Data.Map                    as M (fromList, (!))
-import           Data.Set                    as St (Set, empty, map, singleton,
-                                                    size)
-import           Data.Word                   (Word8)
-import           Data.Word8                  (_backslash, _bar, _hyphen,
-                                              _period, _slash)
-import           Helpers.Parsers.ByteString  (arrayFromByteString)
-import           Helpers.Search              (dfs)
-import           Linear.V2                   (V2 (..))
+import           Control.Monad.Identity (Identity, runIdentity)
+import           Control.Monad.Reader   (Reader, ask, runReader)
+import           Data.Bits              (shiftL)
+import           Data.ByteString        (ByteString, split, unpack)
+import           Data.Char              (chr)
+import           Data.Foldable          (foldrM)
+import           Data.Hashable          (Hashable, hashWithSalt)
+import qualified Data.IntMap.Strict     as M (IntMap, fromList, insert, member,
+                                              (!))
+import           Data.IntSet            (union)
+import qualified Data.IntSet            as St (IntSet, fromList, insert, member,
+                                               singleton, size)
+import qualified Data.Map.Strict        as MS (Map, fromList, (!))
+import           Data.Massiv.Array      (Array, Comp (Seq), Ix2 (..), P,
+                                         Sz (..), fromLists', ifoldrS, index')
+import qualified Data.Massiv.Array      as A (size, (!))
+import           Data.Maybe             (fromJust, isNothing)
+import           Data.Word              (Word8)
+import           Data.Word8             (_backslash, _bar, _hyphen, _period,
+                                         _slash)
+import qualified Streamly.Data.Fold     as S (maximum)
+import qualified Streamly.Data.Stream   as S (fold, mapM)
+import           Streamly.Data.Stream   (Stream, enumerateFromTo, unfold,
+                                         unfoldMany)
+import           Streamly.Data.Unfold   (Unfold, many, unfoldr)
 
-type Pos = (V2 Int)
+type Map = M.IntMap
 
-type Cave = UArray Pos Word8
+type Graph = Map (Pos, Word8, Set) -- Map Beam (Pos, Word8, Set Pos)
+
+type Dir = Ix2
+
+type Pos = Ix2
+
+type Cave = Array P Pos Word8
+
+type BoundedCave = (Cave, Sz Pos)
+
+type Set = St.IntSet
 
 data Beam =
   Beam Pos Pos
-  deriving (Show, Eq, Ord, Ix)
+  deriving (Show, Eq, Ord)
 
-type Energized = Set Pos
+instance Hashable Beam where
+  hashWithSalt salt (Beam a b) = hashWithSalt salt (a, b)
 
-north = V2 0 (-1)
+instance Hashable Ix2 where
+  hashWithSalt salt (y :. x) = hashWithSalt salt (y, x)
 
-south = V2 0 1
+class Intifiable a where
+  intify :: a -> Int
 
-east = V2 1 0
+instance Intifiable Ix2 where
+  intify (y :. x) = shiftL y 7 + x
 
-west = V2 (-1) 0
+instance Intifiable Beam where
+  intify (Beam pos dir) = shiftL (intify dir) 14 + intify pos
 
-startPos = Beam (V2 0 0) east
+north = (-1) :. 0
+
+south = 1 :. 0
+
+east = 0 :. 1
+
+west = 0 :. (-1)
+
+origin = 0 :. 0
+
+startPos = Beam origin east
 
 reflections =
-  fromList
+  MS.fromList
     [ ((north, _slash), east)
     , ((north, _backslash), west)
     , ((south, _slash), west)
@@ -51,57 +86,158 @@ reflections =
     , ((east, _backslash), south)
     ]
 
-edges :: Cave -> [Beam]
-edges cave =
-  [Beam (V2 x 0) south | x <- [0 .. mx]]
-    ++ [Beam (V2 x my) north | x <- [0 .. mx]]
-    ++ [Beam (V2 0 y) east | y <- [0 .. my]]
-    ++ [Beam (V2 mx y) west | y <- [0 .. my]]
-  where
-    (_, V2 mx my) = bounds cave
+nodes :: Reader BoundedCave [Pos]
+nodes =
+  ask >>= \(cave, Sz2 my mx) ->
+    pure
+      . ifoldrS
+          (\i@(iy :. ix) e acc ->
+             if iy == 0 || iy == my || ix == 0 || ix == mx || e /= _period
+               then i : acc
+               else acc)
+          []
+      $ cave
 
-neighbours :: Cave -> Beam -> [Beam]
-neighbours cave beam@(Beam pos dir) =
-  filter (\(Beam t _) -> inRange (bounds cave) t) newPos
-  where
-    newPos
-      | cave U.! pos == _period
-          || cave U.! pos == _hyphen && elem dir [east, west]
-          || cave U.! pos == _bar && elem dir [north, south] =
-        [Beam (pos + dir) dir]
-      | cave U.! pos == _hyphen = split [east, west]
-      | cave U.! pos == _bar = split [north, south]
-      | otherwise =
-        [ Beam
-            (pos + reflections M.! (dir, cave U.! pos))
-            (reflections M.! (dir, cave U.! pos))
-        ]
-    split = L.map (\a -> Beam (pos + a) a)
+findNexts :: Pos -> Graph -> Reader BoundedCave Graph
+findNexts pos graph = foldrM (findNext pos) graph [north, south, east, west]
 
-toPos :: Beam -> Pos
-toPos (Beam p _) = p
+findNext :: Pos -> Dir -> Graph -> Reader BoundedCave Graph
+findNext pos@(y :. x) dir graph = do
+  let beam = Beam pos dir
+  ended <- atEnd beam
+  let result
+        | ended = pure graph
+        | otherwise =
+          crawl (St.singleton (intify pos)) (Beam (pos + dir) dir) >>= \next ->
+            pure . M.insert (intify beam) next $ graph
+  result
+
+crawl :: Set -> Beam -> Reader BoundedCave (Pos, Word8, Set)
+crawl crossed beam@(Beam pos dir) = do
+  c <- ask
+  ended <- atEnd beam
+  let crossed' = St.insert (intify pos) crossed
+      (cave, Sz2 my mx) = c
+      beam' = Beam (pos + dir) dir
+      modifier = cave A.! pos
+  if ended || modifier `elem` [_hyphen, _bar, _slash, _backslash]
+    then pure (pos, modifier, crossed')
+    else crawl crossed' beam'
+
+atEnd :: Beam -> Reader BoundedCave Bool
+atEnd (Beam pos@(y :. x) dir) =
+  ask >>= \(cave, Sz2 my mx) ->
+    let c = cave A.! pos
+     in pure
+          $ y == 0 && dir == north
+              || x == 0 && dir == west
+              || y == my && dir == south
+              || x == mx && dir == east
+
+buildGraph :: Reader BoundedCave Graph
+buildGraph = do
+  nodeSet <- nodes
+  foldrM findNexts mempty nodeSet
+
+unfoldX :: (Monad m) => Int -> Unfold m Int (Int, [Dir])
+unfoldX mx =
+  unfoldr $ \x ->
+    if x > mx
+      then Nothing
+      else Just ((x, [north, south, east, west]), x + 1)
+
+unfoldDir :: (Monad m) => Int -> Graph -> Unfold m (Int, [Dir]) Beam
+unfoldDir mx graph =
+  unfoldr $ \(x, ds) ->
+    let (d:ds') = ds
+     in if null ds
+          then Nothing
+          else Just (beamify mx x d, (x, ds'))
+
+beamify :: Int -> Int -> Dir -> Beam
+beamify mx x d
+  | d == south = Beam (0 :. x) d
+  | d == north = Beam (mx :. x) d
+  | d == east = Beam (x :. 0) d
+  | d == west = Beam (x :. mx) d
+
+dfs :: Graph -> [Beam] -> Set -> Set -> Int
+dfs nexts toSee seen seenPos
+  | null toSee = St.size seenPos
+  | otherwise = dfs nexts toSee' seen' seenPos'
+  where
+    (beam@(Beam _ nextDir):rest) = toSee
+    (nextPos, modifier, newCrossed) = nexts M.! intify beam
+    toConsider = pivot (Beam nextPos nextDir) modifier
+    nextBeams =
+      filter
+        (\x -> not (St.member (intify x) seen) && M.member (intify x) nexts)
+        toConsider
+    toSee' = nextBeams ++ rest
+    seen' = foldr (St.insert . intify) seen toConsider
+    seenPos' = newCrossed `union` seenPos
+
+pivot :: Beam -> Word8 -> [Beam]
+pivot beam@(Beam pos dir) modifier
+  | modifier `elem` [_slash, _backslash] =
+    pure . Beam pos $ reflections MS.! (dir, modifier)
+  | modifier == _bar && dir `elem` [east, west] = map (Beam pos) [north, south]
+  | modifier == _hyphen && dir `elem` [north, south] =
+    map (Beam pos) [east, west]
+  | otherwise = pure beam
+
+boundCave :: Cave -> BoundedCave
+boundCave cave = (cave, (\(Sz ix) -> Sz (ix - 1)) . A.size $ cave)
+
+inRange :: Beam -> Reader BoundedCave Bool
+inRange (Beam (y :. x) _) =
+  ask >>= \(_, Sz2 my mx) -> pure $ y >= 0 && y <= my && x >= 0 && x <= mx
+
+bounceRay :: Beam -> Reader BoundedCave Int
+bounceRay beam = do
+  graph <- buildGraph
+  dfsify graph beam
+
+bounceRays :: Reader BoundedCave Int
+bounceRays = do
+  c <- ask
+  graph <- buildGraph
+  let (_, Sz2 my mx) = c
+      beams =
+        S.fold S.maximum
+          . S.mapM (dfsify graph)
+          . unfold (many (unfoldDir mx graph) (unfoldX mx))
+          $ 0
+  fromJust <$> beams
+
+dfsify :: Graph -> Beam -> Reader BoundedCave Int
+dfsify graph beam@(Beam pos dir) = do
+  (cave, _) <- ask
+  let modifier = cave A.! pos
+      beams = pivot beam modifier
+  pure
+    $ dfs
+        graph
+        beams
+        (St.fromList . map intify $ beams)
+        (St.singleton (intify pos))
 
 part1 :: Bool -> ByteString -> String
-part1 _ input =
-  show . size . St.map toPos . dfs [startPos] (neighbours cave) $ empty
-  where
-    cave = arrayFromByteString input
+part1 _ =
+  show
+    . runReader (bounceRay startPos)
+    . boundCave
+    . fromLists' Seq
+    . map unpack
+    . init
+    . split 10
 
 part2 :: Bool -> ByteString -> String
-part2 _ input =
+part2 _ =
   show
-    . maximum
-    . parMap rpar (\x -> size . St.map toPos . dfs [x] (allBeams I.!) $ empty)
-    . edges
-    $ cave
-  where
-    cave = arrayFromByteString input
-    (start, end@(V2 mx my)) = bounds cave
-    allBeams =
-      array
-        (Beam start (V2 (-1) (-1)), Beam end (V2 1 1))
-        [ (Beam (V2 x y) dir, neighbours cave (Beam (V2 x y) dir))
-        | x <- [0 .. mx]
-        , y <- [0 .. my]
-        , dir <- [north, south, east, west]
-        ] :: Array Beam [Beam]
+    . runReader bounceRays
+    . boundCave
+    . fromLists' Seq
+    . map unpack
+    . init
+    . split 10

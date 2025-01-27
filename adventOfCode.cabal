@@ -667,12 +667,14 @@ library days2023
     , linear
     , massiv
     , megaparsec
+    , mtl
     , parallel
     , psqueues
     , regex-tdfa
     , split
     , streamly-core
     , text                  >=2.1
+    , transformers
     , unordered-containers
     , utf8-string
     , vector
