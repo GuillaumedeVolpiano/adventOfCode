@@ -11,6 +11,9 @@ module Helpers.Search.Int
   , dijkstraAllShortestPaths
   , travelingSalesman
   , travelingSalesmanNoReturn
+  , IntLike
+  , toInt
+  , fromInt
   ) where
 
 import           Data.Bits          (shiftL, (.&.))
@@ -32,62 +35,78 @@ import           Data.Ord           (Down (..), comparing)
 import           Data.Sequence      as Sq (Seq ((:<|), (:|>)))
 import qualified Data.Sequence      as Sq (null, singleton)
 
+-- | A class for types that are homomorphic with Ints or a subset of Ints.
+class IntLike a where
+  toInt :: a -> Int
+  fromInt :: Int -> a
+
+instance IntLike Int where
+  toInt = id
+  fromInt = id
+
 bfsSafe ::
-     Seq Int
+     IntLike a
+  => Seq a
   -> IntSet
   -> IntMap Int
-  -> (Int -> [Int])
-  -> (Int -> Bool)
-  -> Maybe [Int]
+  -> (a -> [a])
+  -> (a -> Bool)
+  -> Maybe [a]
 bfsSafe toSee seen paths neighbours isGoal
   | Sq.null toSee = Nothing
   | isGoal curPos = Just $ reconstructPath curPos paths
   | otherwise = bfsSafe toSee' seen' paths' neighbours isGoal
   where
     (curPos :<| rest) = toSee
-    toConsider = filter (`S.notMember` seen) . neighbours $ curPos
+    toConsider = filter (flip S.notMember seen . toInt) . neighbours $ curPos
     toSee' = foldr (flip (:|>)) rest toConsider
-    seen' = foldr S.insert seen toConsider
-    paths' = foldr (`IM.insert` curPos) paths toConsider
+    seen' = foldr (S.insert . toInt) seen toConsider
+    paths' = foldr (flip IM.insert (toInt curPos) . toInt) paths toConsider
 
-bfsSafeDist :: Int -> (Int -> [Int]) -> (Int -> Bool) -> Maybe Int
+bfsSafeDist :: IntLike a => a -> (a -> [a]) -> (a -> Bool) -> Maybe Int
 -- we need to reduce the distance by one because the path includes both the
 -- starting point and the goal
 bfsSafeDist start neighbours isGoal =
   (+ (-1)) . length
-    <$> bfsSafe (Sq.singleton start) (S.singleton start) empty neighbours isGoal
+    <$> bfsSafe
+          (Sq.singleton start)
+          (S.singleton . toInt $ start)
+          empty
+          neighbours
+          isGoal
 
-bfsAll :: Seq Int -> IntMap Int -> (Int -> [Int]) -> IntMap Int
+bfsAll :: IntLike a => Seq a -> IntMap Int -> (a -> [a]) -> IntMap Int
 bfsAll toSee seen neighbours
   | Sq.null toSee = seen
   | otherwise = bfsAll toSee' seen' neighbours
   where
     (curPos :<| rest) = toSee
-    toConsider = filter (`IM.notMember` seen) . neighbours $ curPos
+    toConsider = filter (flip IM.notMember seen . toInt) . neighbours $ curPos
     toSee' = foldl (:|>) rest toConsider
-    dist = 1 + seen ! curPos
-    seen' = foldr (`IM.insert` dist) seen toConsider
+    dist = 1 + seen ! toInt curPos
+    seen' = foldr (flip IM.insert dist . toInt) seen toConsider
 
-reconstructPath :: Int -> IntMap Int -> [Int]
+reconstructPath :: IntLike a => a -> IntMap Int -> [a]
 reconstructPath curPos paths
-  | IM.notMember curPos paths = [curPos]
-  | otherwise = curPos : reconstructPath (paths ! curPos) paths
+  | IM.notMember (toInt curPos) paths = [curPos]
+  | otherwise = curPos : reconstructPath (fromInt $ paths ! toInt curPos) paths
 
-dfs :: [Int] -> (Int -> [Int]) -> IntSet -> IntSet
+dfs :: IntLike a => [a] -> (a -> [a]) -> IntSet -> IntSet
 dfs [] _ seen = seen
 dfs (node:ns) neighbours seen
-  | S.member node seen = dfs ns neighbours seen
-  | otherwise = dfs (neighbours node ++ ns) neighbours $ S.insert node seen
+  | S.member (toInt node) seen = dfs ns neighbours seen
+  | otherwise =
+    dfs (neighbours node ++ ns) neighbours $ S.insert (toInt node) seen
 
-dfsDists :: [(Int, Int)] -> (Int -> [Int]) -> IntMap Int -> IntMap Int
+dfsDists :: IntLike a => [(a, Int)] -> (a -> [a]) -> IntMap Int -> IntMap Int
 dfsDists [] _ seen = seen
 dfsDists ((node, dist):ns) neighbours seen
-  | IM.member node seen = dfsDists ns neighbours seen
+  | IM.member (toInt node) seen = dfsDists ns neighbours seen
   | otherwise = dfsDists ns' neighbours seen'
   where
     toConsider = map (, dist + 1) . neighbours $ node
     ns' = toConsider ++ ns
-    seen' = IM.insert node dist seen
+    seen' = IM.insert (toInt node) dist seen
 
 dijkstraMech ::
      (Num p, Ord p)

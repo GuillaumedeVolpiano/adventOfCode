@@ -3,31 +3,32 @@ module Day17
   , part2
   ) where
 
-import           Data.Array.Unboxed (UArray, bounds, inRange, (!))
-import           Data.Hashable      (Hashable, hashWithSalt)
-import           Data.HashPSQ       as Q (insert, singleton)
-import           Data.Map           as M (Map, elems, empty, insert, lookup,
-                                          singleton)
-import           Data.Maybe         (fromJust)
-import           Helpers.Parsers    (digitArrayFromString)
-import           Helpers.Search     (dijkstraMech)
-import           Linear.V2          (V2 (..))
+import           Data.Array.Unboxed         (UArray, bounds, inRange, (!))
+import           Data.ByteString            (ByteString)
+import           Data.Hashable              (Hashable, hashWithSalt)
+import           Data.HashMap.Strict        as M (HashMap, elems, empty, insert,
+                                                  lookup, singleton)
+import           Data.HashPSQ               as Q (insert, singleton)
+import           Data.Maybe                 (fromJust)
+import           Helpers.Parsers.ByteString (digitArrayFromByteString)
+import           Helpers.Search             (dijkstraMech)
+import           Linear.V2                  (V2 (..))
 
-data Crucible =
-  Crucible
-    { pos :: Pos
-    , dir :: Pos
-    , acc :: Int
-    }
-  deriving (Show, Eq, Ord)
+import           Debug.Trace
+
+data Crucible = Crucible
+  { pos :: Pos
+  , dir :: Pos
+  , acc :: Int
+  } deriving (Show, Eq, Ord)
 
 type Blocks = UArray Pos Int
 
 type Pos = V2 Int
 
 instance Hashable Crucible where
-  hashWithSalt salt (Crucible (V2 a b) (V2 c d) e) =
-    salt + a * 10 ^ 16 + b * 10 ^ 12 + c * 10 ^ 8 + d * 10 ^ 4 + e
+  hashWithSalt salt (Crucible a b c) =
+    salt `hashWithSalt` a `hashWithSalt` b `hashWithSalt` c
 
 north = V2 0 (-1)
 
@@ -53,26 +54,27 @@ right (V2 x y) = V2 (-y) x
 
 nextMoves :: Crucible -> [Crucible]
 nextMoves (Crucible p d a) =
-  Crucible (p + d) d (a + 1) :
-  map (\x -> Crucible (p + x d) (x d) 1) [left, right]
+  Crucible (p + d) d (a + 1)
+    : map (\x -> Crucible (p + x d) (x d) 1) [left, right]
 
 heatLoss :: Blocks -> Pos -> Pos -> Int
 heatLoss blocks _ p = blocks ! p
 
 moves :: Int -> Int -> Blocks -> Crucible -> [(Crucible, Int)]
 moves minMoves maxMoves blocks c@(Crucible p d nm) =
-  map (\x -> (x, blocks ! pos x)) .
-  filter (\(Crucible np _ na) -> inRange (bounds blocks) np && na <= maxMoves) $
-  next
+  map (\x -> (x, blocks ! pos x))
+    . filter
+        (\(Crucible np _ na) -> inRange (bounds blocks) np && na <= maxMoves)
+    $ next
   where
     next
       | nm < minMoves = [Crucible (p + d) d (nm + 1)]
       | otherwise = nextMoves c
 
-part1 :: Bool -> String -> String
+part1 :: Bool -> ByteString -> String
 part1 _ input = show dijkVal
   where
-    blocks = digitArrayFromString input
+    blocks = digitArrayFromByteString input
     startPos = Crucible start east 0
     (start, endGoal) = bounds blocks
     (Just actualGoal, (dijVals, _)) =
@@ -84,17 +86,17 @@ part1 _ input = show dijkVal
         ((==) endGoal . pos)
     dijkVal = fromJust . M.lookup actualGoal $ dijVals
 
-part2 :: Bool -> String -> String
+part2 :: Bool -> ByteString -> String
 part2 _ input = show dijkVal
   where
-    blocks = digitArrayFromString input
+    blocks = digitArrayFromByteString input
     startPosEast = Crucible start east 0
     startPosSouth = Crucible start south 0
     (start, endGoal) = bounds blocks
     (Just actualGoal, (dijVals, _)) =
       dijkstraMech
-        (Q.insert startPosEast 0 startPosEast $
-         Q.singleton startPosSouth 0 startPosSouth)
+        (Q.insert startPosEast 0 startPosEast
+           $ Q.singleton startPosSouth 0 startPosSouth)
         (M.insert startPosEast 0 $ M.singleton startPosSouth 0)
         M.empty
         (moves minMove2 maxMove2 blocks)

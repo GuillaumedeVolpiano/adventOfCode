@@ -22,19 +22,23 @@ module Helpers.Search
   , treeSize
   ) where
 
-import qualified Data.Graph    as G (Edge, Graph, Tree (Node), Vertex, dfs,
-                                     edges, graphFromEdges, vertices)
-import           Data.Hashable (Hashable)
-import           Data.HashPSQ  as Q (HashPSQ, insert, lookup, minView, null,
-                                     singleton)
-import           Data.List     as L (length, null)
-import           Data.Map      as M (Map, alter, delete, empty, insert, keys,
-                                     lookup, member, notMember, singleton, (!))
-import           Data.Maybe    (fromJust, isNothing, mapMaybe)
-import           Data.Sequence as Sq (Seq ((:<|), (:|>)), drop, length, null,
-                                      singleton, takeWhileL, (!?))
-import           Data.Set      as St (Set, empty, insert, member,
-                                      notMember, singleton)
+import qualified Data.Graph          as G (Edge, Graph, Tree (Node), Vertex,
+                                           dfs, edges, graphFromEdges, vertices)
+import           Data.Hashable       (Hashable)
+import           Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HM (alter, delete, insert, keys, lookup,
+                                            member, singleton, (!))
+import           Data.HashPSQ        as Q (HashPSQ, insert, lookup, minView,
+                                           null, singleton)
+import           Data.List           as L (length, null)
+import           Data.Map.Strict     as M (Map, alter, delete, empty, insert,
+                                           keys, lookup, member, notMember,
+                                           singleton, (!))
+import           Data.Maybe          (fromJust, isNothing, mapMaybe)
+import           Data.Sequence       as Sq (Seq ((:<|), (:|>)), drop, length,
+                                            null, singleton, takeWhileL, (!?))
+import           Data.Set            as St (Set, empty, insert, member,
+                                            notMember, singleton)
 
 type NodeFromVertex node key = G.Vertex -> (node, key, [key])
 
@@ -144,7 +148,7 @@ dijkstraGoalVal ::
   -> k
   -> p
 dijkstraGoalVal startKey startDist neighbours goal =
-  fromJust . M.lookup goal . fst
+  fromJust . HM.lookup goal . fst
     $ dijkstraGoal startKey startDist neighbours (== goal)
 
 dijkstraGoalValSafe ::
@@ -155,7 +159,7 @@ dijkstraGoalValSafe ::
   -> k
   -> Maybe p
 dijkstraGoalValSafe startKey startDist neighbours goal =
-  M.lookup goal . fst $ dijkstraGoal startKey startDist neighbours (== goal)
+  HM.lookup goal . fst $ dijkstraGoal startKey startDist neighbours (== goal)
 
 dijkstraGoal ::
      (Hashable k, Ord k, Num p, Ord p)
@@ -163,13 +167,13 @@ dijkstraGoal ::
   -> p
   -> (k -> [(k, p)])
   -> (k -> Bool)
-  -> (Map k p, Map k k)
+  -> (HashMap k p, HashMap k k)
 dijkstraGoal startKey startDist neighbours =
   snd
     . dijkstraMech
         (Q.singleton startKey startDist startKey)
-        (M.singleton startKey startDist)
-        M.empty
+        (HM.singleton startKey startDist)
+        mempty
         neighbours
 
 dijkstraUncertainGoalDist ::
@@ -180,13 +184,13 @@ dijkstraUncertainGoalDist ::
   -> (k -> Bool)
   -> p
 dijkstraUncertainGoalDist startKey startDist neighbours isGoal =
-  dists ! fromJust goal
+  dists HM.! fromJust goal
   where
     (goal, (dists, _)) =
       dijkstraMech
         (Q.singleton startKey startDist startKey)
-        (M.singleton startKey startDist)
-        M.empty
+        (HM.singleton startKey startDist)
+        mempty
         neighbours
         isGoal
 
@@ -195,41 +199,49 @@ dijkstraAll ::
   => k
   -> p
   -> (k -> [(k, p)])
-  -> (Map k p, Map k k)
+  -> (HashMap k p, HashMap k k)
 dijkstraAll startKey startDist neighbours =
   dijkstraGoal startKey startDist neighbours (const False)
 
 dijkstraMech ::
      (Hashable k, Ord k, Num p, Ord p)
   => HashPSQ k p k
-  -> Map k p
-  -> Map k k
+  -> HashMap k p
+  -> HashMap k k
   -> (k -> [(k, p)])
   -> (k -> Bool)
-  -> (Maybe k, (Map k p, Map k k))
+  -> (Maybe k, (HashMap k p, HashMap k k))
 dijkstraMech queue dists paths neighbours isGoal
   | Q.null queue = (Nothing, (dists, paths))
   | isGoal curKey = (Just curKey, (dists, paths))
   | otherwise = dijkstraMech newQueue newDists newPaths neighbours isGoal
   where
     (curKey, estDist, _, rest) = fromJust (minView queue)
-    toConsider = mapMaybe consider (neighbours curKey)
-    newQueue = foldr (\(b, c) -> Q.insert b c b) rest toConsider
-    newDists = foldr (uncurry M.insert) dists toConsider
-    newPaths = foldr (\(b, _) -> M.insert b curKey) paths toConsider
+    toConsider =
+      {-# SCC toConsider #-} mapMaybe
+        ({-# SCC consider #-} consider)
+        (neighbours curKey)
+    newQueue =
+      {-# SCC newQueue #-} foldr (\(b, c) -> Q.insert b c b) rest toConsider
+    newDists = {-# SCC newDists #-} foldr (uncurry HM.insert) dists toConsider
+    newPaths =
+      {-# SCC newPaths #-} foldr
+        (\(b, _) -> HM.insert b curKey)
+        paths
+        toConsider
     consider (aKey, anEdge)
-      | not (M.member aKey dists) || estDist + anEdge < dists ! aKey =
-        Just (aKey, estDist + anEdge)
+      | not ({-# SCC member #-} HM.member aKey dists)
+          || estDist + anEdge < dists HM.! aKey = Just (aKey, estDist + anEdge)
       | otherwise = Nothing
 
 dijkstraAllShortestPaths ::
      (Hashable k, Ord k, Num p, Ord p)
   => HashPSQ k p k
-  -> Map k p
-  -> Map k (Set k)
+  -> HashMap k p
+  -> HashMap k (Set k)
   -> (k -> [(k, p)])
   -> (k -> Bool)
-  -> Map k (Set k)
+  -> HashMap k (Set k)
 dijkstraAllShortestPaths queue dists paths neighbours isGoal
   | isGoal node = prunedPaths
   | otherwise = dijkstraAllShortestPaths queue' dists' paths' neighbours isGoal
@@ -237,20 +249,20 @@ dijkstraAllShortestPaths queue dists paths neighbours isGoal
     (node, estDist, _, rest) = fromJust . minView $ queue
     toConsider = mapMaybe consider . neighbours $ node
     queue' = foldr (\(b, c) -> Q.insert b c b) rest toConsider
-    dists' = foldr (uncurry M.insert) dists toConsider
-    paths' = foldr (M.alter (setUpdate node) . fst) paths toConsider
+    dists' = foldr (uncurry HM.insert) dists toConsider
+    paths' = foldr (HM.alter (setUpdate node) . fst) paths toConsider
     setUpdate n Nothing   = Just . St.singleton $ n
     setUpdate n (Just ns) = Just . St.insert n $ ns
     consider (aNode, anEdge)
-      | aNode `M.notMember` dists || estDist' <= dists M.! aNode =
+      | not (aNode `HM.member` dists) || estDist' <= dists HM.! aNode =
         Just (aNode, estDist')
       | otherwise = Nothing
       where
         estDist' = estDist + anEdge
     prunedPaths =
-      foldr M.delete paths . filter ((> bestDist) . (M.!) dists) $ goalNodes
-    goalNodes = filter isGoal . keys $ dists
-    bestDist = minimum . map (dists M.!) $ goalNodes
+      foldr HM.delete paths . filter ((> bestDist) . (HM.!) dists) $ goalNodes
+    goalNodes = filter isGoal . HM.keys $ dists
+    bestDist = minimum . map (dists HM.!) $ goalNodes
 
 --A* search
 astarVal ::
