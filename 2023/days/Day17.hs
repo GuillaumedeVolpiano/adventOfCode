@@ -4,14 +4,16 @@ module Day17
   ) where
 
 import           Data.Array.Unboxed         (UArray, bounds, inRange, (!))
+import           Data.Bits                  (shiftL, shiftR, (.&.))
 import           Data.ByteString            (ByteString)
 import           Data.Hashable              (Hashable, hashWithSalt)
-import           Data.HashMap.Strict        as M (HashMap, elems, empty, insert,
+import qualified Data.IntMap.Strict         as M (IntMap, elems, empty, insert,
                                                   lookup, singleton)
-import           Data.HashPSQ               as Q (insert, singleton)
+import qualified Data.IntPSQ                as Q (insert, singleton)
 import           Data.Maybe                 (fromJust)
 import           Helpers.Parsers.ByteString (digitArrayFromByteString)
-import           Helpers.Search             (dijkstraMech)
+import           Helpers.Search.Int         (IntLike, dijkstraMech, fromInt,
+                                             toInt)
 import           Linear.V2                  (V2 (..))
 
 import           Debug.Trace
@@ -25,6 +27,28 @@ data Crucible = Crucible
 type Blocks = UArray Pos Int
 
 type Pos = V2 Int
+
+instance Integral a => IntLike (V2 a) where
+  toInt (V2 a b) = fromIntegral a + shiftL (fromIntegral b) 8
+  fromInt i = V2 (fromIntegral $ i .&. 255) (fromIntegral $ shiftR i 8)
+
+instance IntLike Crucible where
+  toInt (Crucible pos dir acc) = toInt pos + shiftL intPos 16 + shiftL acc 18
+    where
+      intPos
+        | dir == north = 0
+        | dir == east = 1
+        | dir == south = 2
+        | dir == west = 3
+  fromInt i = Crucible pos dir acc
+    where
+      pos = fromInt $ i .&. 65535
+      dir = posInt $ shiftR i 16 .&. 3
+      acc = shiftR i 18
+      posInt 0 = north
+      posInt 1 = east
+      posInt 2 = south
+      posInt 3 = west
 
 instance Hashable Crucible where
   hashWithSalt salt (Crucible a b c) =
@@ -60,13 +84,14 @@ nextMoves (Crucible p d a) =
 heatLoss :: Blocks -> Pos -> Pos -> Int
 heatLoss blocks _ p = blocks ! p
 
-moves :: Int -> Int -> Blocks -> Crucible -> [(Crucible, Int)]
-moves minMoves maxMoves blocks c@(Crucible p d nm) =
-  map (\x -> (x, blocks ! pos x))
+moves :: Int -> Int -> Blocks -> Int -> [(Int, Int)]
+moves minMoves maxMoves blocks intc =
+  map (\x -> (toInt x, blocks ! pos x))
     . filter
         (\(Crucible np _ na) -> inRange (bounds blocks) np && na <= maxMoves)
     $ next
   where
+    c@(Crucible p d nm) = fromInt intc
     next
       | nm < minMoves = [Crucible (p + d) d (nm + 1)]
       | otherwise = nextMoves c
@@ -75,30 +100,29 @@ part1 :: Bool -> ByteString -> String
 part1 _ input = show dijkVal
   where
     blocks = digitArrayFromByteString input
-    startPos = Crucible start east 0
+    startPos = toInt $ Crucible start east 0
     (start, endGoal) = bounds blocks
     (Just actualGoal, (dijVals, _)) =
       dijkstraMech
-        (Q.singleton startPos 0 startPos)
+        (Q.singleton startPos 0 ())
         (M.singleton startPos 0)
         M.empty
         (moves minMove1 maxMove1 blocks)
-        ((==) endGoal . pos)
+        ((==) endGoal . pos . fromInt)
     dijkVal = fromJust . M.lookup actualGoal $ dijVals
 
 part2 :: Bool -> ByteString -> String
 part2 _ input = show dijkVal
   where
     blocks = digitArrayFromByteString input
-    startPosEast = Crucible start east 0
-    startPosSouth = Crucible start south 0
+    startPosEast = toInt $ Crucible start east 0
+    startPosSouth = toInt $ Crucible start south 0
     (start, endGoal) = bounds blocks
     (Just actualGoal, (dijVals, _)) =
       dijkstraMech
-        (Q.insert startPosEast 0 startPosEast
-           $ Q.singleton startPosSouth 0 startPosSouth)
+        (Q.insert startPosEast 0 () $ Q.singleton startPosSouth 0 ())
         (M.insert startPosEast 0 $ M.singleton startPosSouth 0)
         M.empty
         (moves minMove2 maxMove2 blocks)
-        (\c -> pos c == endGoal && acc c >= 4)
+        (\c -> pos (fromInt c) == endGoal && acc (fromInt c) >= 4)
     dijkVal = fromJust . M.lookup actualGoal $ dijVals

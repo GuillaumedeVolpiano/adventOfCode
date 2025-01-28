@@ -218,19 +218,19 @@ dijkstraMech queue dists paths neighbours isGoal
   where
     (curKey, estDist, _, rest) = fromJust (minView queue)
     toConsider =
-      {-# SCC toConsider #-} mapMaybe
-        ({-# SCC consider #-} consider)
+       mapMaybe
+        consider
         (neighbours curKey)
     newQueue =
-      {-# SCC newQueue #-} foldr (\(b, c) -> Q.insert b c b) rest toConsider
-    newDists = {-# SCC newDists #-} foldr (uncurry HM.insert) dists toConsider
+       foldr (\(b, c) -> Q.insert b c b) rest toConsider
+    newDists =  foldr (uncurry HM.insert) dists toConsider
     newPaths =
-      {-# SCC newPaths #-} foldr
+       foldr
         (\(b, _) -> HM.insert b curKey)
         paths
         toConsider
     consider (aKey, anEdge)
-      | not ({-# SCC member #-} HM.member aKey dists)
+      | not ( HM.member aKey dists)
           || estDist + anEdge < dists HM.! aKey = Just (aKey, estDist + anEdge)
       | otherwise = Nothing
 
