@@ -6,6 +6,8 @@ module Helpers.Search.Int
   , bfsAll
   , bfsSafe
   , bfsSafeDist
+  , monadDijkstra
+  , monadAStar 
   , dijkstraMech
   , dijkstraUncertainGoalVal
   , dijkstraAllShortestPaths
@@ -16,24 +18,28 @@ module Helpers.Search.Int
   , fromInt
   ) where
 
-import           Data.Bits          (shiftL, (.&.))
-import           Data.IntMap.Strict (IntMap, alter, assocs, empty,
-                                     filterWithKey, keys, (!))
-import qualified Data.IntMap.Strict as IM (delete, insert, member, notMember,
-                                           singleton)
-import           Data.IntPSQ        (IntPSQ, minView)
-import qualified Data.IntPSQ        as Q (insert, null, singleton)
-import           Data.IntSet        (IntSet, findMin, fromList, size, toList)
-import qualified Data.IntSet        as S (delete, foldr, insert, member,
-                                          notMember, singleton)
-import           Data.List          (sortBy, subsequences)
-import           Data.Map           (Map)
-import qualified Data.Map           as M (fromList, insert, (!?))
-import           Data.Maybe         (catMaybes, fromJust, isJust, isNothing,
-                                     mapMaybe)
-import           Data.Ord           (Down (..), comparing)
-import           Data.Sequence      as Sq (Seq ((:<|), (:|>)))
-import qualified Data.Sequence      as Sq (null, singleton)
+import           Control.Monad        (msum)
+import           Control.Monad.Search (abandon, cost, runSearchBest)
+import           Data.Bits            (shiftL, (.&.))
+import           Data.IntMap.Strict   (IntMap, alter, assocs, empty,
+                                       filterWithKey, keys, (!))
+import qualified Data.IntMap.Strict   as IM (delete, insert, member, notMember,
+                                             singleton)
+import           Data.IntPSQ          (IntPSQ, minView)
+import qualified Data.IntPSQ          as Q (insert, null, singleton)
+import           Data.IntSet          (IntSet, findMin, fromList, size, toList)
+import qualified Data.IntSet          as S (delete, foldr, insert, member,
+                                            notMember, singleton)
+import           Data.List            (sortBy, subsequences)
+import           Data.Map             (Map)
+import qualified Data.Map             as M (fromList, insert, (!?))
+import           Data.Maybe           (catMaybes, fromJust, isJust, isNothing,
+                                       mapMaybe)
+import           Data.Ord             (Down (..), comparing)
+import           Data.Sequence        as Sq (Seq ((:<|), (:|>)))
+import qualified Data.Sequence        as Sq (null, singleton)
+
+import           Debug.Trace
 
 -- | A class for types that are homomorphic with Ints or a subset of Ints.
 class IntLike a where
@@ -107,6 +113,27 @@ dfsDists ((node, dist):ns) neighbours seen
     toConsider = map (, dist + 1) . neighbours $ node
     ns' = toConsider ++ ns
     seen' = IM.insert (toInt node) dist seen
+
+monadDijkstra ::
+     (Ord c, Monoid c) => (a -> [(a, c)]) -> a -> (a -> Bool) -> Maybe (c, [a])
+monadDijkstra neighbours = monadAStar neighbours mempty
+
+monadAStar ::
+     (Ord c, Monoid c)
+  => (a -> [(a, c)])
+  -> (a -> c)
+  -> a
+  -> (a -> Bool)
+  -> Maybe (c, [a])
+monadAStar neighbours heuristics from isGoal = runSearchBest $ go [from]
+  where
+    go [] = abandon
+    go ls@(h:_)
+      | isGoal h = pure ls
+      | otherwise =
+        msum
+          $ flip map (neighbours h)
+          $ \(l, d) -> cost d (heuristics l) >> go (l : ls)
 
 dijkstraMech ::
      (Num p, Ord p)
@@ -211,7 +238,7 @@ travelingSalesmanNoReturn numBits edges =
     encodedSize = shiftL 1 (numBits * maxNode)
     maxNode = maximum . map (.&. (bitSize - 1)) . keys $ edges
     pois =
-      map fromList . sortBy (comparing (Down . length)) . tail . subsequences
+      map fromList . sortBy (comparing (Down . length)) . drop 1 . subsequences
         $ [1 .. maxNode]
     findSubsets = foldr mapSubset empty pois
     mapSubset set subsets

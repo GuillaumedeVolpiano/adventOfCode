@@ -13,9 +13,10 @@ module Part
   , size
   ) where
 
+import Data.List (uncons)
 import           Data.List.Split (splitWhen)
 import           Data.Map        (Map, fromList, (!))
-import           Data.Maybe      (Maybe (Just, Nothing), fromJust, isNothing)
+import           Data.Maybe      (Maybe (Just, Nothing), fromJust, isNothing, maybe)
 import           Text.Regex.TDFA (getAllTextMatches, (=~))
 
 -- data types
@@ -98,7 +99,7 @@ instance Parseable Range where
       rangeSize (Range a b) = b - a + 1
   parseInput =
     toTuple .
-    head .
+    fst . fromJust . uncons .
     splitWhen null .
     map (\s -> getAllTextMatches (s =~ "[a-zA-Z0-9<>=]+") :: [String]) . lines
     where

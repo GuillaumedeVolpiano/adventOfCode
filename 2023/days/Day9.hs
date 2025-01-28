@@ -5,6 +5,8 @@ module Day9
 
 import           Data.ByteString            (ByteString)
 import           Helpers.Parsers.ByteString (signedInts)
+import Data.List (uncons)
+import Data.Maybe (maybe)
 
 toZero :: [Int] -> [[Int]]
 toZero s
@@ -20,7 +22,7 @@ extrapolate :: [[Int]] -> Int
 extrapolate = sum . map last
 
 extrapolateBackwards :: [[Int]] -> Int
-extrapolateBackwards = foldr ((-) . head) 0
+extrapolateBackwards = foldr ((-) . maybe (error "empty list") fst . uncons) 0
 
 part1 :: Bool -> ByteString -> String
 part1 _ = show . sum . map (extrapolate . toZero) . signedInts

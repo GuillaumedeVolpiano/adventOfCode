@@ -7,6 +7,7 @@ module Day13
 
 import           Data.Array.Unboxed         (UArray, array, bounds, (!))
 import           Data.ByteString            (ByteString)
+import Data.List (uncons)
 import           Data.Maybe                 (Maybe (Just, Nothing), fromJust,
                                              isJust)
 import           FlatParse.Stateful         (ask, char, eof, get, local,
@@ -122,7 +123,7 @@ findSmudgedVerticalAxis axis pat
         [(axis + 1) .. (axis + term)]
     diffPairs = filter (uncurry (/=)) . zip backward $ forward
     justTheOne = length diffPairs == 1
-    (bef, aft) = head diffPairs
+    Just ((bef, aft), _) = uncons diffPairs
     smudged = (length . filter (uncurry (/=)) . zip bef $ aft) == 1
     quasiSymmetric = justTheOne && smudged
 
@@ -144,7 +145,7 @@ findSmudgedHorizontalAxis axis pat
         [(axis + 1) .. (axis + term)]
     diffPairs = filter (uncurry (/=)) . zip backward $ forward
     justTheOne = length diffPairs == 1
-    (bef, aft) = head diffPairs
+    Just ((bef, aft), _) = uncons diffPairs
     smudged = (length . filter (uncurry (/=)) . zip bef $ aft) == 1
     quasiSymmetric = justTheOne && smudged
 

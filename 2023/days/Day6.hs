@@ -5,6 +5,8 @@ module Day6
 
 import           Data.ByteString            (ByteString)
 import qualified Data.ByteString            as B (filter)
+import Data.List (uncons)
+import Data.Maybe (maybe)
 import           Data.Word8                 (_space)
 import           Helpers.Parsers.ByteString (signedDoubles)
 
@@ -26,7 +28,7 @@ part2 :: Bool -> ByteString -> String
 part2 _ =
   show
     . quadraticSolution
-    . head
+    . maybe (error "no pair") fst . uncons
     . toPair
     . signedDoubles
     . B.filter (/= _space)

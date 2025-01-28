@@ -8,7 +8,7 @@ import           Data.Array.Unboxed    (UArray, array, bounds, inRange, indices,
 import           Data.ByteString       (ByteString)
 import           Data.ByteString.Char8 (index)
 import qualified Data.ByteString.Char8 as B (length, lines)
-import           Data.List             (nub, sortBy)
+import           Data.List             (nub, sortBy, uncons)
 import           Data.Maybe            (fromJust, isNothing, mapMaybe)
 import           Linear.V2             (V2 (..))
 
@@ -81,7 +81,8 @@ schem input =
     ]
   where
     preSchem = B.lines input
-    width = B.length (head preSchem) - 1
+    Just (h, _) = uncons preSchem
+    width = B.length h - 1
     height = length preSchem - 1
 
 part1 :: Bool -> ByteString -> String

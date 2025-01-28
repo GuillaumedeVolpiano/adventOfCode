@@ -7,6 +7,7 @@ module Day1
 
 import           Data.ByteString           (ByteString)
 import           Data.Char                 (digitToInt)
+import Data.List (uncons, unsnoc)
 import           FlatParse.Basic           (char, getPos, isDigit, runParser,
                                             satisfy, setPos, skip, skipSatisfy,
                                             some, switch, (<|>))
@@ -36,7 +37,7 @@ parseNumber = do
 
 parseInput :: Parser [Int] -> Parser Int
 parseInput parser =
-  sum <$> some (parser >>= \ints -> pure ((head ints * 10) + last ints))
+  sum <$> some (compute <$> parser)
 
 simpleParser :: Parser [Int]
 simpleParser =
@@ -49,6 +50,13 @@ complexParser =
     <|> (parseInteger >>= \x -> (x :) <$> complexParser)
     <|> (parseNumber >>= \x -> (x :) <$> complexParser)
     <|> (skip 1 >> complexParser)
+
+compute :: [Int] -> Int
+compute list = 10 * h + t
+  where
+    Just (h, _) = uncons list
+    Just (_, t) = unsnoc list
+    
 
 part1 :: Bool -> ByteString -> String
 part1 _ = show . extract . runParser (parseInput simpleParser)

@@ -9,7 +9,6 @@ import           Data.Bits                  (shiftL, (.&.))
 import           Data.ByteString            (ByteString, pack)
 import qualified Data.ByteString            as B (intercalate, length, null,
                                                   split, tail)
-import qualified Data.ByteString.Char8      as B (head, last)
 import           Data.ByteString.UTF8       (fromString)
 import           Data.Char                  (ord)
 import           Data.IntMap.Strict         (IntMap, fromList, insert, keys,

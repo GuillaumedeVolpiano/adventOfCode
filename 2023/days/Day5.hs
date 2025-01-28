@@ -4,14 +4,13 @@ module Day5
   ) where
 
 import           Data.ByteString            (ByteString)
-import           Data.List                  (minimumBy)
+import           Data.List                  (minimumBy, uncons)
 import           Data.List.Split            (chunksOf, splitWhen)
+import Data.Maybe (maybe)
 import           Helpers.Parsers.ByteString (signedInts)
 
---parseInput :: [String] -> ([Int], Int -> Int)
---parseInput i = (map read . getNumbers . head $ i, getMaps i)
 parseInput :: ByteString -> ([Int], Int -> Int)
-parseInput s = (head parsed, getMaps . drop 2 $ parsed)
+parseInput s = (maybe (error "couldn't parse") fst . uncons $ parsed, getMaps . drop 2 $ parsed)
   where
     parsed = signedInts s
 

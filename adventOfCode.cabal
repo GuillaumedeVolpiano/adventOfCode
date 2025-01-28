@@ -51,6 +51,7 @@ library helpers
     , hashable
     , linear
     , megaparsec
+    , monad-dijkstra
     , psqueues
     , regex-tdfa
     , split
@@ -659,6 +660,7 @@ library days2023
     , base
     , bytestring
     , containers
+    , monad-dijkstra
     , effectful
     , fgl
     , flatparse

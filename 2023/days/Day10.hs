@@ -7,8 +7,8 @@ import           Data.Array.Unboxed         as A (UArray, array, assocs, bounds,
                                                   inRange, indices, (!))
 import           Data.ByteString            (ByteString)
 import           Data.ByteString.UTF8       (fromString)
-import           Data.List                  as L (filter, null)
-import           Data.Maybe                 (fromJust)
+import           Data.List                  as L (filter, null, uncons)
+import           Data.Maybe                 (fromJust, maybe, isNothing)
 import           Data.Sequence              as Sq (Seq ((:<|), (:|>)), fromList,
                                                    null, (><))
 import           Data.Set                   as St (Set, empty, filter, fromList,
@@ -50,7 +50,7 @@ pipes =
   ]
 
 findStart :: Diagram -> Pos
-findStart = fst . head . L.filter (\(a, b) -> b == _S) . assocs
+findStart = fst . maybe (error "Starting position not found") fst . uncons . L.filter (\(a, b) -> b == _S) . assocs
 
 -- Which positions are accessible from a given position, based on the shape of
 -- the loop at that position.
@@ -65,11 +65,11 @@ neighbours diagram pos =
 -- Follow the loop. From each point, you can access exactly two points, so go to
 -- the one you haven't seen.
 explore :: Diagram -> Set Pos -> Pos -> Set Pos
-explore diagram seen pos
-  | L.null next = insert pos seen
-  | otherwise = explore diagram (insert pos seen) . head $ next
+explore diagram seen pos = case next of
+                              Nothing -> insert pos seen
+                              Just (n, _) -> explore diagram (insert pos seen) n
   where
-    next = L.filter (`notMember` seen) . neighbours diagram $ pos
+    next = uncons . L.filter (`notMember` seen) . neighbours diagram $ pos
 
 -- We don't know the shape of the Start pipe, so we can't deduce the next steps
 -- directly. We look at the four possible destinations and check which ones are
@@ -124,7 +124,7 @@ part1 _ input =
     . div
         (size
            . explore diagram (singleton start)
-           . head
+           . maybe (error "no neighbours found") fst . uncons
            . startNeighbours diagram
            $ start)
     $ 2
@@ -141,7 +141,7 @@ part2 test input = show $ totalSize - sizeLoop - sizeFilled
     expanded = expandDiagram diagram
     (_, V2 mx my) = bounds expanded
     loop =
-      explore expanded (singleton start) . head . startNeighbours expanded
+      explore expanded (singleton start) . maybe (error "no neighbours found") fst . uncons  . startNeighbours expanded
         $ start
     start = findStart expanded
     edgesSeq = Sq.fromList edges
