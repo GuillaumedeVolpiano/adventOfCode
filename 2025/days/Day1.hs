@@ -10,51 +10,47 @@ module Day1
 import           Control.Monad.IO.Class (MonadIO)
 import           Data.Word              (Word8)
 import           Data.Word8             (_cr, _lf, _space)
-import           Helpers.Streamly.Fold  (readInt)
-import qualified Streamly.Data.Fold     as F (foldl', many, one, splitWith,
-                                              take, takeEndBy_)
+import qualified Streamly.Data.Fold     as F (foldl')
 import           Streamly.Data.Fold     (Fold)
 import qualified Streamly.Data.Stream   as S (fold)
 import           Streamly.Data.Stream   (Stream)
+import Data.Maybe (fromMaybe)
 
 terminators :: [Word8]
 terminators = [_space, _lf, _cr]
 
-findPassword :: MonadIO m => ((Int, Int) -> Fold m Int (Int, Int)) -> Fold m Word8 Int
-findPassword c = fst <$> F.many (F.takeEndBy_ (`elem` terminators)
-  rotation) (c (0,50))
 
-rotation :: MonadIO m => Fold m Word8 Int
-rotation = F.splitWith extract (F.take 1 F.one) readInt
+findPassword :: MonadIO m => ((Int, Int) -> Int -> (Int, Int)) -> Fold m Word8 Int
+findPassword c = (\(count, _, _, _) -> count) <$> F.foldl' (rotation c) (0, 50, Nothing, 0)
 
-extract :: Maybe Word8 -> Int -> Int
-extract w v = case w of
-                Just 82 -> v
-                Just 76 -> negate v
-                _       -> error $ "wrong direction: " ++ show w
+rotation :: ((Int, Int) -> Int -> (Int, Int)) -> (Int, Int, Maybe (Int -> Int), Int) -> Word8 -> (Int, Int, Maybe (Int -> Int), Int)
+rotation c (count, pos, dir, n) w
+      | w == 82 = (count, pos, Just id, n)
+      | w == 76 = (count, pos, Just negate, n)
+      | w >= 48 && w <= 57 = (count, pos, dir, 10*n + fromIntegral w - 48)
+      | w `elem` terminators = (count', pos', Nothing, 0)
+      | otherwise = error $ "unexpected byte" ++ show w
+          where
+            (count', pos') = c (count, pos) $ fromMaybe (error "No direction found") dir n
 
-calc :: Monad m => (Int, Int) -> Fold m Int (Int, Int)
-calc = F.foldl' $
-  \(count, pos) v ->  let pos' = (pos + v) `mod` 100
-                          count' = if pos' == 0 then count + 1
-                                                else count
-                          in (count', pos')
+calc :: (Int, Int) -> Int -> (Int, Int)
+calc (count, pos) v = (count', pos')
+  where
+    pos' = (pos + v) `mod` 100
+    count' = if pos' == 0 then count + 1
+                          else count
 
-betterCalc :: Monad m => (Int, Int) -> Fold m Int (Int, Int)
-betterCalc = F.foldl' $ \(count, pos) v ->
-  let pos' = (pos + v) `mod` 100
-      rotations = (pos + v) `div` 100
-      delta
-        | rotations > 0 = rotations
-        | rotations == 0 && pos' == 0 = 1
-        | rotations == 0 = 0
-        | pos == 0 && pos' == 0 = negate rotations
-        | pos == 0 = negate rotations - 1
-        | pos' == 0 = negate rotations + 1
-        | otherwise = negate rotations
-      count' = count + delta
-      in (count', pos')
-
+betterCalc :: (Int, Int) -> Int -> (Int, Int)
+betterCalc (count, pos) v = (count', pos') 
+  where
+   total = pos + v
+   pos' = total `mod` 100
+   rotations = total `div` 100
+   delta
+     | rotations <= 0 && pos' == 0 = 1
+     | rotations < 0 && pos == 0 = - 1
+     | otherwise = 0
+   count' = count + abs rotations + delta
 
 part1 :: Bool -> Stream IO Word8 -> IO ()
 part1 _ s = S.fold (findPassword calc) s >>= print
