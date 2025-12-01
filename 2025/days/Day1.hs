@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
 module Day1
   ( part1
   , part2
@@ -14,43 +15,47 @@ import qualified Streamly.Data.Fold     as F (foldl')
 import           Streamly.Data.Fold     (Fold)
 import qualified Streamly.Data.Stream   as S (fold)
 import           Streamly.Data.Stream   (Stream)
-import Data.Maybe (fromMaybe)
 
-terminators :: [Word8]
-terminators = [_space, _lf, _cr]
+data FoldState = FS {
+                      count :: {-# UNPACK #-} !Int
+                    , pos :: {-# UNPACK #-} !Int
+                    , dir :: {-# UNPACK #-} !Int
+                    , val :: {-# UNPACK #-} !Int
+                    }
 
+findPassword :: MonadIO m => (FoldState -> FoldState) -> Fold m Word8 Int
+findPassword c = count <$> F.foldl' (rotation c) (FS 0 50 0 0)
 
-findPassword :: MonadIO m => ((Int, Int) -> Int -> (Int, Int)) -> Fold m Word8 Int
-findPassword c = (\(count, _, _, _) -> count) <$> F.foldl' (rotation c) (0, 50, Nothing, 0)
+rotation :: (FoldState -> FoldState) -> FoldState -> Word8 -> FoldState
+rotation c fs !w
+  | w == 82 = fs {dir = 1}
+  | w == 76 = fs {dir = -1}
+  | w >= 48 && w <= 57 = fs {val = 10*val fs + fromIntegral (w - 48)}
+  | w == _space || w == _lf || w == _cr = c fs
+  | otherwise = error $ "unexpected byte" ++ show w
+{-# INLINE rotation #-}
 
-rotation :: ((Int, Int) -> Int -> (Int, Int)) -> (Int, Int, Maybe (Int -> Int), Int) -> Word8 -> (Int, Int, Maybe (Int -> Int), Int)
-rotation c (count, pos, dir, n) w
-      | w == 82 = (count, pos, Just id, n)
-      | w == 76 = (count, pos, Just negate, n)
-      | w >= 48 && w <= 57 = (count, pos, dir, 10*n + fromIntegral w - 48)
-      | w `elem` terminators = (count', pos', Nothing, 0)
-      | otherwise = error $ "unexpected byte" ++ show w
-          where
-            (count', pos') = c (count, pos) $ fromMaybe (error "No direction found") dir n
-
-calc :: (Int, Int) -> Int -> (Int, Int)
-calc (count, pos) v = (count', pos')
+calc :: FoldState -> FoldState
+calc fs = FS count' pos' 0 0
   where
-    pos' = (pos + v) `mod` 100
-    count' = if pos' == 0 then count + 1
-                          else count
+    !v = dir fs * val fs
+    !pos' = (pos fs + v) `mod` 100
+    !count' = if pos' == 0 then count fs + 1
+                           else count fs
+{-# INLINE calc #-}
 
-betterCalc :: (Int, Int) -> Int -> (Int, Int)
-betterCalc (count, pos) v = (count', pos') 
+betterCalc :: FoldState -> FoldState
+betterCalc fs = FS count' pos' 0 0
   where
-   total = pos + v
-   pos' = total `mod` 100
-   rotations = total `div` 100
+   !v = dir fs * val fs
+   !total = pos fs + v
+   (!rotations, !pos') = total `divMod` 100
    delta
      | rotations <= 0 && pos' == 0 = 1
-     | rotations < 0 && pos == 0 = - 1
+     | rotations < 0 && pos fs == 0 = - 1
      | otherwise = 0
-   count' = count + abs rotations + delta
+   count' = count fs + abs rotations + delta
+{-# INLINE betterCalc #-}
 
 part1 :: Bool -> Stream IO Word8 -> IO ()
 part1 _ s = S.fold (findPassword calc) s >>= print
