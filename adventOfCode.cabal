@@ -1,6 +1,6 @@
-cabal-version:      2.4
+cabal-version:      3.0
 name:               adventOfCode
-version:            2024 
+version:            2025 
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -14,7 +14,7 @@ version:            2024
 -- The license under which the package is released.
 -- license:
 author:             GuillaumedeVolpiano
-maintainer:         guillaumedevolpiano@gmail.com
+maintainer:         guillaumedevolpiano@proton.me
 
 -- A copyright notice.
 -- copyright:
@@ -23,11 +23,16 @@ extra-source-files:
   CHANGELOG.md
   README.md
 
+common warnings
+  ghc-options: -Wall
+
 library helpers
+  import:           warnings
   hs-source-dirs:   lib
   exposed-modules:
     Helpers.General
     Helpers.General.ByteString
+    Helpers.General.Streamly
     Helpers.General.Text
     Helpers.Graph
     Helpers.Maths
@@ -37,6 +42,7 @@ library helpers
     Helpers.Parsers.Text
     Helpers.Search
     Helpers.Search.Int
+    Helpers.Streamly.Fold
 
   build-depends:
     , array
@@ -49,12 +55,17 @@ library helpers
     , flatparse
     , graphviz
     , hashable
+    , http-client           ^>=0.7.19
+    , http-client-tls       ^>=0.3.6.4
+    , http-types            ^>=0.12.4
     , linear
     , megaparsec
     , monad-dijkstra
     , psqueues
     , regex-tdfa
     , split
+    , streamly-bytestring   ^>=0.2.3
+    , streamly-core         ^>=0.3.0
     , text                  >=2.1
     , time
     , timeit
@@ -660,7 +671,6 @@ library days2023
     , base
     , bytestring
     , containers
-    , monad-dijkstra
     , effectful
     , fgl
     , flatparse
@@ -669,6 +679,7 @@ library days2023
     , linear
     , massiv
     , megaparsec
+    , monad-dijkstra
     , mtl
     , parallel
     , psqueues
@@ -772,58 +783,47 @@ library days2024
   ghc-options:      -fllvm -threaded -O3
   default-language: Haskell2010
 
--- executable aoc2025
---   main-is:          Main.hs
---   hs-source-dirs:   2025
---   build-depends:
---    , base
---    , cmdargs
---    , containers
---    , days2025
---    , helpers
---    , text
---    , time
---   ghc-options:
---     -threaded -O3 -fllvm -pgmlo /usr/lib/llvm/18/bin/opt -pgmlc
---     /usr/lib/llvm/18/bin/llc -with-rtsopts=-N8
--- 
---   default-language: Haskell2010
--- 
--- library days2025
---   hs-source-dirs:   2025/days
---   exposed-modules:
---     Day1
---     Day10
---     Day11
---     Day12
---     Day13
---     Day14
---     Day15
---     Day16
---     Day17
---     Day18
---     Day19
---     Day2
---     Day20
---     Day21
---     Day22
---     Day23
---     Day24
---     Day25
---     Day3
---     Day4
---     Day5
---     Day6
---     Day7
---     Day8
---     Day9
--- 
---   build-depends:
---    , base
---    , helpers
---    , text
--- 
---   default-language: Haskell2010
+executable aoc2025
+  import:           warnings
+  main-is:          Main.hs
+  hs-source-dirs:   2025
+  build-depends:
+    , base
+    , cmdargs
+    , containers
+    , days2025
+    , helpers
+    , streamly-core  ^>=0.3.0
+    , text
+    , time
+
+  ghc-options:      -threaded -O3 -fllvm -with-rtsopts=-N8
+  default-language: Haskell2010
+
+library days2025
+  import:           warnings
+  hs-source-dirs:   2025/days
+  exposed-modules:
+    Day1
+    Day10
+    Day11
+    Day12
+    Day2
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+
+  build-depends:
+    , base
+    , helpers
+    , streamly-core  ^>=0.3.0
+    , word8          ^>=0.1.3
+
+  default-language: Haskell2010
 
 test-suite tests2015
   type:             exitcode-stdio-1.0
@@ -922,34 +922,55 @@ test-suite tests2024
 
   default-language: Haskell2010
 
+test-suite tests2025
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test/2025
+  build-depends:
+    , base
+    , containers
+    , days2025
+    , helpers
+    , HUnit
+    , streamly-bytestring   ^>=0.2.3
+    , streamly-core         ^>=0.3.0
+    , text
+    , unordered-containers
+
+  default-language: Haskell2010
+
 benchmark bench
+  import:           warnings
   main-is:          Bench.hs
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench/general
   build-depends:
     , base
     , bytestring
-    , days2015
+    , days2025
     , directory
     , helpers
     , massiv
     , megaparsec
     , mtl
+    , streamly-core  ^>=0.3.0
     , tasty-bench
-    , text         >=2.1
+    , text           >=2.1
     , utf8-string
 
   ghc-options:      -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
   default-language: Haskell2010
 
 benchmark full-year
+  import:           warnings
   main-is:          FullYear.hs
   type:             exitcode-stdio-1.0
   hs-source-dirs:   bench/fullyear
   build-depends:
     , base
     , bytestring
-    , days2023
+    , days2025
     , directory
     , helpers
     , tasty-bench
