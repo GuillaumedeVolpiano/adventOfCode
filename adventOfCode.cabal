@@ -819,6 +819,7 @@ library days2025
 
   build-depends:
     , base
+    , containers     ^>=0.7
     , helpers
     , streamly-core  ^>=0.3.0
     , word8          ^>=0.1.3
@@ -921,6 +922,7 @@ test-suite tests2024
     , vector
 
   default-language: Haskell2010
+  ghc-options: -threaded -O1 -rtsopts "-with-rtsopts=-N"
 
 test-suite tests2025
   import:           warnings
