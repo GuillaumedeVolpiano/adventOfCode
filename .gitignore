@@ -19,3 +19,4 @@ test/*/*
 *.prof
 *.hp
 *.bench
+*.hsE
