@@ -1,7 +1,7 @@
 module Main where
 
-import qualified Day1
-import qualified Streamly.Data.Stream       as S (fold, fromList)
+import qualified Day2
+import qualified Streamly.Data.Stream       as S (fromList)
 import           System.Directory           (getHomeDirectory)
 import           Test.Tasty.Bench           (Benchmark, bench, defaultMain,
                                              whnfIO, env)
@@ -10,12 +10,12 @@ import Data.ByteString (ByteString)
 import Data.Function ((&))
 
 inputPath :: String
-inputPath = "/github/adventOfCode/input/2025/day1.txt"
+inputPath = "/github/adventOfCode/input/2025/day2.txt"
 
 tests :: IO ByteString -> [Benchmark]
 tests input =
-  [ env input $ \bs -> bench "Part 1" $ whnfIO (S.fromList (BS.unpack bs) & S.fold (Day1.findPassword Day1.calc))
-  , env input $ \bs -> bench "Part 2" $ whnfIO (S.fromList (BS.unpack bs) & S.fold (Day1.findPassword Day1.betterCalc))]
+  [ env input $ \bs -> bench "Part 1" $ whnfIO (S.fromList (BS.unpack bs) & Day2.getCount)
+  , env input $ \bs -> bench "Part 2" $ whnfIO (S.fromList (BS.unpack bs) & Day2.getMoreCount)]
 
 main :: IO ()
 main = do
