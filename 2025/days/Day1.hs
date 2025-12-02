@@ -1,5 +1,5 @@
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
 module Day1
   ( part1
   , part2
@@ -18,9 +18,9 @@ import           Streamly.Data.Stream   (Stream)
 
 data FoldState = FS {
                       count :: {-# UNPACK #-} !Int
-                    , pos :: {-# UNPACK #-} !Int
-                    , dir :: {-# UNPACK #-} !Int
-                    , val :: {-# UNPACK #-} !Int
+                    , pos   :: {-# UNPACK #-} !Int
+                    , dir   :: {-# UNPACK #-} !Int
+                    , val   :: {-# UNPACK #-} !Int
                     }
 
 findPassword :: MonadIO m => (FoldState -> FoldState) -> Fold m Word8 Int
