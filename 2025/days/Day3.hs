@@ -20,7 +20,7 @@ module Day3
 
 import           Streamly.Data.Stream (Stream)
 import           Data.Word (Word8)
-import Data.Bits (shiftR, shiftL, (.&.))
+import Data.Bits (unsafeShiftR, unsafeShiftL, (.&.))
 import Data.Word8 (_lf)
 import qualified Streamly.Data.Stream as S (fold)
 import qualified Streamly.Data.Fold as F (foldl')
@@ -66,6 +66,10 @@ instance State HighFoldState where
   acc = accHFS
   count = countHFS
 
+powTwo :: Int -> Word
+powTwo p = 1 `unsafeShiftL` p
+{-# INLINE powTwo #-}
+
 -- | Convert a packed 4-bit-per-digit word (up to 12 digits)
 -- into an actual decimal number while preserving digit order.
 -- Tail-recursive through factor *= 10.
@@ -86,13 +90,13 @@ unpackWord !factor !w = lo w * factor + unpackWord (factor * 10) (popRight w)
 --   should slot in (if it improves the number).
 insertHFS :: Word -> HighFoldState -> HighFoldState
 insertHFS w (HFS c v)
-  | h == 0 = HFS c $ (v `shiftL` 4) +  w
+  | h == 0 = HFS c $ (v `unsafeShiftL` 4) +  w
   | otherwise = HFS c v'
   where
     v' = crawlVal (CS 0 r h pos) w
     pos = 44
-    h = v `shiftR` pos
-    r = v .&. (2^pos - 1 )
+    h = v `unsafeShiftR` pos
+    r = v .&. (powTwo pos - 1)
 {-# INLINE insertHFS #-}
 
 -- | crawlVal:
@@ -106,16 +110,16 @@ crawlVal (CS seen _ cur 0) v
   | v > cur = seen' + v
   | otherwise = seen' + cur
   where
-    seen' = seen `shiftL` 4 
+    seen' = seen `unsafeShiftL` 4 
 crawlVal (CS seen toSee cur pos) v
-  | new > cur = seen' +  (new `shiftL` pos) + (toSee' `shiftL` 4) + v
+  | new > cur = seen' +  (new `unsafeShiftL` pos) + (toSee' `unsafeShiftL` 4) + v
   | otherwise = crawlVal (CS seen'' toSee' new pos') v
   where
-    seen' = seen `shiftL` (pos + 4)
+    seen' = seen `unsafeShiftL` (pos + 4)
     pos' = pos - 4
-    new = toSee `shiftR` pos'
-    toSee' = toSee .&. (2^pos' - 1)
-    seen'' = seen `shiftL` 4 + cur
+    new = toSee `unsafeShiftR` pos'
+    toSee' = toSee .&. (powTwo pos' - 1)
+    seen'' = seen `unsafeShiftL` 4 + cur
 
 insertFS :: Word -> FoldState -> FoldState
 insertFS !v !fs
@@ -126,8 +130,8 @@ insertFS !v !fs
     l = lo fs
     c = count fs
     fs'
-      | l > h = (c `shiftL` 8) + (l `shiftL` 4) + v
-      | l <= h = (c `shiftL` 8) + (h `shiftL` 4) + v
+      | l > h = (c `unsafeShiftL` 8) + (l `unsafeShiftL` 4) + v
+      | l <= h = (c `unsafeShiftL` 8) + (h `unsafeShiftL` 4) + v
       | otherwise = undefined
 {-# INLINE insertFS #-}
 
@@ -136,11 +140,11 @@ accHFS (HFS !c !v) = HFS (c + unpackWord 1 v) 0
 {-# INLINE accHFS #-}
 
 popRight :: Word -> Word
-popRight w = w `shiftR` 4
+popRight w = w `unsafeShiftR` 4
 {-# INLINE popRight #-}
 
 accFS :: FoldState -> FoldState
-accFS !fs = c' `shiftL` 8
+accFS !fs = c' `unsafeShiftL` 8
   where
     h = hi fs
     l = lo fs
@@ -152,7 +156,7 @@ countHFS :: HighFoldState -> Word
 countHFS (HFS !c _ ) = c
 
 countFS :: FoldState -> Word 
-countFS = flip shiftR 8
+countFS = flip unsafeShiftR 8
 {-# INLINE countFS #-}
 
 -- | Check if a byte represents a decimal digit
