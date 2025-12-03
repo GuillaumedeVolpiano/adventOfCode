@@ -86,8 +86,9 @@ unpackWord !factor !w = lo w * factor + unpackWord (factor * 10) (popRight w)
 --
 -- Strategy:
 --   If high bits empty, append easily.
---   Otherwise run a left-to-right crawl to find where the new digit
---   should slot in (if it improves the number).
+--   Otherwise run a left-to-right crawl to find where the number
+--   can be squeezed, opening a slot for the digit
+--   (if it improves the number).
 insertHFS :: Word -> HighFoldState -> HighFoldState
 insertHFS w (HFS c v)
   | h == 0 = HFS c $ (v `unsafeShiftL` 4) +  w
@@ -101,7 +102,7 @@ insertHFS w (HFS c v)
 
 -- | crawlVal:
 --   Walks the packed digits from left to right to find a position
---   where `v` can replace a weaker digit, while preserving slice order.
+--   where the sequence can be saueezed, opening a slot for `v`
 --
 -- This implements the optimal subsequence-of-fixed-length selection
 -- using only bit shifts (no lists/arrays).
