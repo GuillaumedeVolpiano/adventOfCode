@@ -1,4 +1,16 @@
 {-# LANGUAGE BangPatterns #-}
+-- Each input line is a bank of batteries represented as digits.
+-- We must select exactly:
+--  * 2 digits in Part 1 (“low joltage”)
+--  * 12 digits in Part 2 (“high joltage”)
+--
+-- Digits must preserve their relative ordering from the input line.
+-- For each line, the joltage is defined as the number formed by those digits.
+-- The goal is to maximize this number per line, then sum across all lines.
+--
+-- This module parses the input as a stream of digit bytes and uses bit-level
+-- packing to maintain digits efficiently in registers during the fold.
+
 module Day3
   ( part1
   , part2
@@ -13,13 +25,33 @@ import Data.Word8 (_lf)
 import qualified Streamly.Data.Stream as S (fold)
 import qualified Streamly.Data.Fold as F (foldl')
 
+-- | State m:
+-- A generic "digit selection" fold state. Different implementations
+-- store either 2 digits (FoldState/Word) or 12 digits (HighFoldState).
+--
+-- insert: Attempt to incorporate a new digit into the selection.
+-- acc: Finalize and accumulate the current line (triggered by newline).
+-- count: Extract total accumulated joltage so far.
+
 class State m where
   insert :: Word8 -> m -> m
   acc :: m -> m
   count :: m -> Word 
 
+-- | FoldState Word layout (for selecting 2 digits):
+--   Bits [7..4] = high digit
+--   Bits [3..0] = low digit
+--   Upper bits  = accumulated total joltage across previous lines
+--
+-- `insertFS` keeps only the two most valuable digits in order.
+-- `accFS` interprets them as a 2-digit number and adds to count.
 type FoldState = Word
 
+-- | HighFoldState:
+--   c = accumulated joltage across completed lines
+--   v = packed digit buffer for the current line
+--
+-- We pack up to 12 digits into v using 4 bits per digit.
 data HighFoldState = HFS {-# UNPACK #-} !Word {-# UNPACK #-} !Word
 
 data CrawlState = CS {-# UNPACK #-} !Word {-# UNPACK #-} !Word {-# UNPACK #-} !Word {-# UNPACK #-} !Int
@@ -34,11 +66,24 @@ instance State HighFoldState where
   acc = accHFS
   count = countHFS
 
-unpackWord :: Word -> Word
-unpackWord 0 = 0
-unpackWord w = lo w + 10 * unpackWord (popRight w)
+-- | Convert a packed 4-bit-per-digit word (up to 12 digits)
+-- into an actual decimal number while preserving digit order.
+-- Tail-recursive through factor *= 10.
+unpackWord :: Word -> Word -> Word
+unpackWord _ 0 = 0
+unpackWord !factor !w = lo w * factor + unpackWord (factor * 10) (popRight w)
 {-# INLINE unpackWord #-}
 
+-- | insertHFS: Insert a new digit into the packed buffer `v`.
+-- Maintains:
+--   • exactly 12 digits (discarding the smallest if > 12 appear)
+--   • original left-to-right ordering
+--   • lexicographically maximal number
+--
+-- Strategy:
+--   If high bits empty, append easily.
+--   Otherwise run a left-to-right crawl to find where the new digit
+--   should slot in (if it improves the number).
 insertHFS :: Word -> HighFoldState -> HighFoldState
 insertHFS w (HFS c v)
   | h == 0 = HFS c $ (v `shiftL` 4) +  w
@@ -50,6 +95,12 @@ insertHFS w (HFS c v)
     r = v .&. (2^pos - 1 )
 {-# INLINE insertHFS #-}
 
+-- | crawlVal:
+--   Walks the packed digits from left to right to find a position
+--   where `v` can replace a weaker digit, while preserving slice order.
+--
+-- This implements the optimal subsequence-of-fixed-length selection
+-- using only bit shifts (no lists/arrays).
 crawlVal :: CrawlState -> Word -> Word
 crawlVal (CS seen _ cur 0) v
   | v > cur = seen' + v
@@ -81,7 +132,7 @@ insertFS !v !fs
 {-# INLINE insertFS #-}
 
 accHFS :: HighFoldState -> HighFoldState
-accHFS (HFS !c !v) = HFS (c + unpackWord v) 0
+accHFS (HFS !c !v) = HFS (c + unpackWord 1 v) 0
 {-# INLINE accHFS #-}
 
 popRight :: Word -> Word
@@ -120,8 +171,11 @@ hi !w = popRight w .&. 15
 
 lo :: Word -> Word
 lo !w = w .&. 15
+{-# INLINE lo #-}
 
--- | Fold function for part1: update FoldState based on current byte
+-- | Stream fold step:
+--   On digit → try to insert into current state block
+--   On newline → finalize the line and reset the block
 countJoltage :: State m => m -> Word8 -> m
 countJoltage fs !w
   | w == _lf = acc fs              -- end of line
@@ -129,6 +183,9 @@ countJoltage fs !w
   | otherwise = undefined               -- invalid input
 {-# INLINE countJoltage #-}
 
+-- | Streamly effectful fold that scans all lines in the input stream,
+-- using either 2-digit or 12-digit selection mode.
+-- At the end, extracts the summed joltage.
 totalJoltage :: State m => m -> Stream IO Word8 -> IO Word 
 totalJoltage m = fmap count . S.fold (F.foldl' countJoltage m)
 
