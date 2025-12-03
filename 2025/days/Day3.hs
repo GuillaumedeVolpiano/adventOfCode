@@ -18,12 +18,12 @@ module Day3
   , highJoltage
   ) where
 
-import           Streamly.Data.Stream (Stream)
-import           Data.Word (Word8)
-import Data.Bits (unsafeShiftR, unsafeShiftL, (.&.))
-import Data.Word8 (_lf)
+import           Data.Bits            (unsafeShiftL, unsafeShiftR, (.&.))
+import           Data.Word            (Word8)
+import           Data.Word8           (_lf)
+import qualified Streamly.Data.Fold   as F (foldl')
 import qualified Streamly.Data.Stream as S (fold)
-import qualified Streamly.Data.Fold as F (foldl')
+import           Streamly.Data.Stream (Stream)
 
 -- | State m:
 -- A generic "digit selection" fold state. Different implementations
@@ -36,7 +36,7 @@ import qualified Streamly.Data.Fold as F (foldl')
 class State m where
   insert :: Word8 -> m -> m
   acc :: m -> m
-  count :: m -> Word 
+  count :: m -> Word
 
 -- | FoldState Word layout (for selecting 2 digits):
 --   Bits [7..4] = high digit
@@ -74,7 +74,7 @@ powTwo p = 1 `unsafeShiftL` p
 -- into an actual decimal number while preserving digit order.
 -- Tail-recursive through factor *= 10.
 unpackWord :: Word -> Word -> Word
-unpackWord _ 0 = 0
+unpackWord _ 0        = 0
 unpackWord !factor !w = lo w * factor + unpackWord (factor * 10) (popRight w)
 {-# INLINE unpackWord #-}
 
@@ -110,7 +110,7 @@ crawlVal (CS seen _ cur 0) v
   | v > cur = seen' + v
   | otherwise = seen' + cur
   where
-    seen' = seen `unsafeShiftL` 4 
+    seen' = seen `unsafeShiftL` 4
 crawlVal (CS seen toSee cur pos) v
   | new > cur = seen' +  (new `unsafeShiftL` pos) + (toSee' `unsafeShiftL` 4) + v
   | otherwise = crawlVal (CS seen'' toSee' new pos') v
@@ -155,7 +155,7 @@ accFS !fs = c' `unsafeShiftL` 8
 countHFS :: HighFoldState -> Word
 countHFS (HFS !c _ ) = c
 
-countFS :: FoldState -> Word 
+countFS :: FoldState -> Word
 countFS = flip unsafeShiftR 8
 {-# INLINE countFS #-}
 
@@ -183,14 +183,14 @@ lo !w = w .&. 15
 countJoltage :: State m => m -> Word8 -> m
 countJoltage fs !w
   | w == _lf = acc fs              -- end of line
-  | isDigit w = insert w fs 
+  | isDigit w = insert w fs
   | otherwise = undefined               -- invalid input
 {-# INLINE countJoltage #-}
 
 -- | Streamly effectful fold that scans all lines in the input stream,
 -- using either 2-digit or 12-digit selection mode.
 -- At the end, extracts the summed joltage.
-totalJoltage :: State m => m -> Stream IO Word8 -> IO Word 
+totalJoltage :: State m => m -> Stream IO Word8 -> IO Word
 totalJoltage m = fmap count . S.fold (F.foldl' countJoltage m)
 
 lowJoltage :: Stream IO Word8 -> IO Word
