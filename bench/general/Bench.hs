@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import qualified Day2
+import qualified Day3
 import qualified Streamly.Data.Stream       as S (fromList)
 import           System.Directory           (getHomeDirectory)
 import           Test.Tasty.Bench           (Benchmark, bench, defaultMain,
@@ -11,12 +11,12 @@ import Data.ByteString (ByteString)
 import Data.Function ((&))
 
 inputPath :: String
-inputPath = "/github/adventOfCode/input/2025/day2.txt"
+inputPath = "/github/adventOfCode/input/2025/day3.txt"
 
 tests :: IO ByteString -> [Benchmark]
 tests input =
-  [ env input $ \bs -> bench "Part 1" $ whnfIO (S.fromList (BS.unpack bs) & Day2.getCount)
-  , env input $ \bs -> bench "Part 2" $ whnfIO (S.fromList (BS.unpack bs) & Day2.getMoreCount)]
+  [ env input $ \bs -> bench "Part 1" $ whnfIO (S.fromList (BS.unpack bs) & Day3.lowJoltage)
+  , env input $ \bs -> bench "Part 2" $ whnfIO (S.fromList (BS.unpack bs) & Day3.highJoltage)]
 
 main :: IO ()
 main = do
