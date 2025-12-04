@@ -10,25 +10,41 @@ module Day4
 import           Streamly.Data.Stream (Stream)
 import           Data.Word (Word8)
 import Data.IntSet (IntSet)
-import qualified Data.IntSet as IS (insert, size, filter, member)
+import qualified Data.IntSet as IS (insert, size, filter, member, null, foldr, delete)
 import qualified Streamly.Data.Fold as F (foldl')
 import Streamly.Data.Fold (Fold)
 import qualified Streamly.Data.Stream as S (fold)
 import Data.Bits ((.|.))
 
 purge :: IntSet -> IntSet
-purge rs
-  | IS.size rs == IS.size rs' = rs
-  | otherwise = purge rs'
+purge r = purge' (r, r)
   where
-    rs' = removeFree rs
+  purge' (rs, toTest)
+   | IS.null toTest = rs
+   | otherwise = purge' p'
+   where
+     p' = IS.foldr removeFreeGetNeighbours (rs, mempty) toTest
+     removeFreeGetNeighbours p (kept, maybeFreed) =
+       case countOccupiedMaybe p 0 [-255, -256, -257, -1, 1, 255, 256, 257] of
+         Nothing -> (kept, maybeFreed)
+         Just ns -> (IS.delete p kept, foldr IS.insert maybeFreed ns)
+     countOccupiedMaybe :: Int -> Int -> [Int] -> Maybe [Int]
+     countOccupiedMaybe _ 4 _ = Nothing
+     countOccupiedMaybe _ _ [] = Just []
+     countOccupiedMaybe p c (x:xs)
+       | (p + x) `IS.member` rs = ((p + x) :) <$> countOccupiedMaybe p (c + 1) xs
+       | otherwise = countOccupiedMaybe p c xs
+
 
 removeFree :: IntSet -> IntSet
 removeFree rs = IS.filter isNotFree rs
   where
-    isNotFree p = (>= 4) . length . filter (occupied . (p +)) $ 
-      [-255, -256, -257, -1, 1, 255, 256, 257]
-    occupied p = p `IS.member` rs
+    isNotFree p = countOccupied p 0 [-255, -256, -257, -1, 1, 255, 256, 257]
+    countOccupied :: Int -> Int -> [Int] -> Bool
+    countOccupied _ 4 _ = True
+    countOccupied _ _ [] = False
+    countOccupied p c (x:xs) = countOccupied p 
+      (if (p + x) `IS.member` rs then c+1 else c) xs
     
 countAccessible :: (IntSet -> IntSet) -> IntSet -> Int
 countAccessible f rs = IS.size rs - (IS.size . f $ rs)
