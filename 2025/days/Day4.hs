@@ -10,57 +10,84 @@ module Day4
 import           Streamly.Data.Stream (Stream)
 import           Data.Word (Word8)
 import Data.IntSet (IntSet)
-import qualified Data.IntSet as IS (insert, size, filter, member, null, foldr, delete)
-import qualified Streamly.Data.Fold as F (foldl')
+import qualified Data.IntSet as IS (insert, size)
+import qualified Streamly.Data.Fold as F (foldlM')
 import Streamly.Data.Fold (Fold)
 import qualified Streamly.Data.Stream as S (fold)
-import Data.Bits ((.|.))
+import Data.Bits ((.|.), shiftL)
+import Data.Vector.Unboxed.Mutable (IOVector)
+import Data.Sequence (Seq ((:|>)), ViewL (EmptyL, (:<)))
+import qualified Data.Vector.Unboxed.Mutable as MV (write, new, read)
+import qualified Data.Sequence as Seq (viewl)
+import Data.Bifunctor (first)
+import Control.DeepSeq (NFData, rnf)
+import Control.Monad (foldM)
 
-purge :: IntSet -> IntSet
-purge r = purge' (r, r)
-  where
-  purge' (rs, toTest)
-   | IS.null toTest = rs
-   | otherwise = purge' p'
-   where
-     p' = IS.foldr removeFreeGetNeighbours (rs, mempty) toTest
-     removeFreeGetNeighbours p (kept, maybeFreed) =
-       case countOccupiedMaybe p 0 [-255, -256, -257, -1, 1, 255, 256, 257] of
-         Nothing -> (kept, maybeFreed)
-         Just ns -> (IS.delete p kept, foldr IS.insert maybeFreed ns)
-     countOccupiedMaybe :: Int -> Int -> [Int] -> Maybe [Int]
-     countOccupiedMaybe _ 4 _ = Nothing
-     countOccupiedMaybe _ _ [] = Just []
-     countOccupiedMaybe p c (x:xs)
-       | (p + x) `IS.member` rs = ((p + x) :) <$> countOccupiedMaybe p (c + 1) xs
-       | otherwise = countOccupiedMaybe p c xs
+data ForkRolls = FR !(IOVector Bool) !(Seq Int) !IntSet
 
+instance NFData ForkRolls where
+  rnf (FR _ sq st) = rnf sq `seq` rnf st
 
-removeFree :: IntSet -> IntSet
-removeFree rs = IS.filter isNotFree rs
-  where
-    isNotFree p = countOccupied p 0 [-255, -256, -257, -1, 1, 255, 256, 257]
-    countOccupied :: Int -> Int -> [Int] -> Bool
-    countOccupied _ 4 _ = True
-    countOccupied _ _ [] = False
-    countOccupied p c (x:xs) = countOccupied p 
-      (if (p + x) `IS.member` rs then c+1 else c) xs
+purge :: ForkRolls -> IO IntSet
+purge (FR rs rseq fs) = case Seq.viewl rseq of 
+                          EmptyL -> pure fs
+                          (next :< rest) -> do
+                            stillOccupied <- MV.read rs next :: IO Bool
+                            if stillOccupied then do
+                                             let checkFree :: Int -> [Int] -> IO (Maybe (Seq Int, IntSet))
+                                                 checkFree 4 _ = pure Nothing
+                                                 checkFree _ [] = do
+                                                   MV.write rs next False
+                                                   pure . Just $ (rseq, IS.insert next fs)
+                                                 checkFree c (x:xs)
+                                                  | next + x < 0 = checkFree c xs
+                                                  | otherwise = do
+                                                      occ <- MV.read rs (next + x)
+                                                      if occ then fmap (first (:|> (next +  x))) 
+                                                                    <$> checkFree (c + 1) xs
+                                                             else checkFree c xs
+                                             res <- checkFree 0 [-255, -256, -257, -1, 1, 255, 256, 257]
+                                             case res of
+                                               Nothing -> purge (FR rs rest fs)
+                                               Just (rseq', fs') -> purge (FR rs rseq' fs')
+                                             else purge (FR rs rest fs)
+
+removeFree :: ForkRolls -> IO IntSet
+removeFree (FR rs rseq freeSet) = do
+  let isNotFree s p = insertFree p 0 s [-255, -256, -257, -1, 1, 255, 256, 257]
+      insertFree :: Int -> Int -> IntSet -> [Int] -> IO IntSet
+      insertFree _ 4 s _ = pure s
+      insertFree p _ s [] = pure $ IS.insert p s
+      insertFree p c s (x:xs)
+        | p + x >= 0 = do
+            occ <- MV.read rs (p + x)
+            if occ then insertFree p (c + 1) s xs
+                   else insertFree p c s xs
+        | otherwise = insertFree p c s xs
+  foldM isNotFree freeSet rseq
     
-countAccessible :: (IntSet -> IntSet) -> IntSet -> Int
-countAccessible f rs = IS.size rs - (IS.size . f $ rs)
+countAccessible :: (ForkRolls -> IO IntSet) -> ForkRolls -> IO Int
+countAccessible f = fmap IS.size . f
 
-mapReader :: Monad m => (Int, IntSet) -> Fold m Word8 (Int, IntSet)
-mapReader = F.foldl' $ \(pos, rs) w -> case w of
-                            64 -> (pos + 1, IS.insert pos rs)
-                            46 -> (pos + 1, rs)
-                            10 -> ((pos .|. 255) + 1, rs)
+mapReader :: IO (Int, ForkRolls) -> Fold IO Word8 ForkRolls
+mapReader = fmap snd . F.foldlM' folder 
+  where
+    folder :: (Int, ForkRolls) -> Word8 -> IO (Int, ForkRolls)
+    folder (pos, FR rs rseq freeSet) w = case w of
+                            64 -> do
+                              MV.write rs pos True
+                              pure (pos + 1, FR rs (rseq :|> pos) freeSet)
+                            46 -> pure (pos + 1, FR rs rseq freeSet)
+                            10 -> pure ((pos .|. 255) + 1, FR rs rseq freeSet)
                             _ -> error $ "unexpectd bit" ++ show w
 
-mkMap :: Stream IO Word8 -> IO IntSet
-mkMap = fmap snd. S.fold (mapReader (0, mempty))
+mkMap :: Stream IO Word8 -> IO ForkRolls
+mkMap s = do
+  mv <- MV.new (1 `shiftL` 16) 
+  S.fold (mapReader $ pure (0, FR mv mempty mempty)) s
 
 part1 :: Bool -> Stream IO Word8 -> IO ()
-part1 _ s = mkMap s >>= print . countAccessible removeFree
+part1 _ s = mkMap s >>= countAccessible removeFree >>= print
 
 part2 :: Bool -> Stream IO Word8 -> IO ()
-part2 _ s = mkMap s >>= print . countAccessible purge
+part2 _ s = mkMap s >>= countAccessible purge >>= print

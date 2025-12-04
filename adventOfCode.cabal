@@ -820,6 +820,7 @@ library days2025
   build-depends:
     , base
     , containers     ^>=0.7
+    , deepseq        ^>=1.5.1.0
     , helpers
     , streamly-core  ^>=0.3.0
     , vector         ^>=0.13.2.0
