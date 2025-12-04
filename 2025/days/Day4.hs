@@ -3,41 +3,48 @@ module Day4
   , part2
   , mkMap
   , countAccessible
+  , removeFree
+  , purge
   ) where
 
 import           Streamly.Data.Stream (Stream)
 import           Data.Word (Word8)
 import Data.IntSet (IntSet)
-import qualified Data.IntSet as IS (insert, foldr, notMember)
+import qualified Data.IntSet as IS (insert, size, filter, member)
 import qualified Streamly.Data.Fold as F (foldl')
 import Streamly.Data.Fold (Fold)
 import qualified Streamly.Data.Stream as S (fold)
+import Data.Bits ((.|.))
 
-data RollMap = RM {-# UNPACK #-} !Int !IntSet  !IntSet !IntSet {-# UNPACK #-} !Int
-
-countNeighbours :: RollMap -> RollMap
-countNeighbours (RM _ top middle bottom c) = RM 0 middle bottom mempty (IS.foldr countN c middle)
+purge :: IntSet -> IntSet
+purge rs
+  | IS.size rs == IS.size rs' = rs
+  | otherwise = purge rs'
   where
-    countN p c' = (\res -> if res > (4 :: Int) then c' + 1 else c') $
-      foldr (countOcc p) 0 [-1, 0, 1]
-    countOcc p v c' = foldr (countOne (p +v)) c' [top, middle, bottom]
-    countOne v s c' = if v `IS.notMember` s then c' + 1 else c'
-    
-countAccessible :: RollMap -> Int
-countAccessible = (\(RM _ _ _ _ c') -> c') . countNeighbours 
+    rs' = removeFree rs
 
-mapReader :: Monad m => RollMap -> Fold m Word8 RollMap
-mapReader = F.foldl' $ \rm@(RM pos top middle bottom c) w -> case w of
-                            64 -> RM (pos + 1) top middle (IS.insert pos bottom) c
-                            46 -> RM (pos + 1) top middle bottom c
-                            10 -> countNeighbours rm
+removeFree :: IntSet -> IntSet
+removeFree rs = IS.filter isNotFree rs
+  where
+    isNotFree p = (>= 4) . length . filter (occupied . (p +)) $ 
+      [-255, -256, -257, -1, 1, 255, 256, 257]
+    occupied p = p `IS.member` rs
+    
+countAccessible :: (IntSet -> IntSet) -> IntSet -> Int
+countAccessible f rs = IS.size rs - (IS.size . f $ rs)
+
+mapReader :: Monad m => (Int, IntSet) -> Fold m Word8 (Int, IntSet)
+mapReader = F.foldl' $ \(pos, rs) w -> case w of
+                            64 -> (pos + 1, IS.insert pos rs)
+                            46 -> (pos + 1, rs)
+                            10 -> ((pos .|. 255) + 1, rs)
                             _ -> error $ "unexpectd bit" ++ show w
 
-mkMap :: Stream IO Word8 -> IO RollMap 
-mkMap = S.fold (mapReader (RM 0 mempty mempty mempty 0))
+mkMap :: Stream IO Word8 -> IO IntSet
+mkMap = fmap snd. S.fold (mapReader (0, mempty))
 
 part1 :: Bool -> Stream IO Word8 -> IO ()
-part1 _ s = mkMap s >>= print . countAccessible
+part1 _ s = mkMap s >>= print . countAccessible removeFree
 
 part2 :: Bool -> Stream IO Word8 -> IO ()
-part2 _ _ = print "Part 2"
+part2 _ s = mkMap s >>= print . countAccessible purge
