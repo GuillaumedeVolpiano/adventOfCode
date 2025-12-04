@@ -17,7 +17,7 @@ import qualified Streamly.Data.Stream as S (fold)
 import Data.Bits ((.|.), shiftL)
 import Data.Vector.Unboxed.Mutable (IOVector)
 import Data.Sequence (Seq ((:|>)), ViewL (EmptyL, (:<)))
-import qualified Data.Vector.Unboxed.Mutable as MV (write, new, read)
+import qualified Data.Vector.Unboxed.Mutable as MV (unsafeWrite, new, unsafeRead)
 import qualified Data.Sequence as Seq (viewl)
 import Data.Bifunctor (first)
 import Control.DeepSeq (NFData, rnf)
@@ -32,17 +32,17 @@ purge :: ForkRolls -> IO IntSet
 purge (FR rs rseq fs) = case Seq.viewl rseq of 
                           EmptyL -> pure fs
                           (next :< rest) -> do
-                            stillOccupied <- MV.read rs next :: IO Bool
+                            stillOccupied <- MV.unsafeRead rs next :: IO Bool
                             if stillOccupied then do
                                              let checkFree :: Int -> [Int] -> IO (Maybe (Seq Int, IntSet))
                                                  checkFree 4 _ = pure Nothing
                                                  checkFree _ [] = do
-                                                   MV.write rs next False
+                                                   MV.unsafeWrite rs next False
                                                    pure . Just $ (rseq, IS.insert next fs)
                                                  checkFree c (x:xs)
                                                   | next + x < 0 = checkFree c xs
                                                   | otherwise = do
-                                                      occ <- MV.read rs (next + x)
+                                                      occ <- MV.unsafeRead rs (next + x)
                                                       if occ then fmap (first (:|> (next +  x))) 
                                                                     <$> checkFree (c + 1) xs
                                                              else checkFree c xs
@@ -60,7 +60,7 @@ removeFree (FR rs rseq freeSet) = do
       insertFree p _ s [] = pure $ IS.insert p s
       insertFree p c s (x:xs)
         | p + x >= 0 = do
-            occ <- MV.read rs (p + x)
+            occ <- MV.unsafeRead rs (p + x)
             if occ then insertFree p (c + 1) s xs
                    else insertFree p c s xs
         | otherwise = insertFree p c s xs
@@ -75,7 +75,7 @@ mapReader = fmap snd . F.foldlM' folder
     folder :: (Int, ForkRolls) -> Word8 -> IO (Int, ForkRolls)
     folder (pos, FR rs rseq freeSet) w = case w of
                             64 -> do
-                              MV.write rs pos True
+                              MV.unsafeWrite rs pos True
                               pure (pos + 1, FR rs (rseq :|> pos) freeSet)
                             46 -> pure (pos + 1, FR rs rseq freeSet)
                             10 -> pure ((pos .|. 255) + 1, FR rs rseq freeSet)
