@@ -964,7 +964,7 @@ benchmark bench
     , utf8-string
     , word8          ^>=0.1.3
 
-  ghc-options:      -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
+  ghc-options:      -fllvm -threaded -O3 -rtsopts -funbox-strict-fields "-with-rtsopts=-N8 -T"
   default-language: Haskell2010
 
 benchmark full-year

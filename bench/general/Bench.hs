@@ -7,7 +7,7 @@ import qualified Day5
 import qualified Streamly.Data.Stream as S (fromList, fold)
 import           System.Directory     (getHomeDirectory)
 import           Test.Tasty.Bench     (Benchmark, bench, defaultMain, env,
-                                       whnfIO)
+                                       whnfIO, bcompare)
 import Data.Function ((&))
 import qualified Streamly.Data.Fold as F (drain)
 import Streamly.Internal.Data.Fold (Step(Partial, Done))
@@ -26,9 +26,9 @@ shortDrain b w
 tests :: IO ByteString -> [Benchmark]
 tests input =
   [ env (BS.unpack <$> input) $ \bs -> bench "Overhead" $ whnfIO $ S.fromList bs & S.fold F.drain
-  , env (BS.unpack <$> input) $ \bs -> bench "Part 1" $ whnfIO $ S.fromList bs & Day5.countFresh
+  , bcompare "Overhead" $ env (BS.unpack <$> input) $ \bs -> bench "Part 1" $ whnfIO $ S.fromList bs & Day5.countFresh
   , env (BS.unpack <$> input) $ \bs -> bench "Part 2 overhead" $ whnfIO $ S.fromList bs & S.fold (F.foldt' shortDrain (Partial True) (const ()))
-  , env (BS.unpack <$> input) $ \bs -> bench "Part 2" $ whnfIO $ S.fromList bs & Day5.countAllFresh ]
+  , bcompare "Part 2 overhead" $ env (BS.unpack <$> input) $ \bs -> bench "Part 2" $ whnfIO $ S.fromList bs & Day5.countAllFresh ]
 
 main :: IO ()
 main = do

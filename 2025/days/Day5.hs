@@ -6,22 +6,24 @@ module Day5
   , countAllFresh
   ) where
 
-import           Data.IntMap.Strict           (IntMap)
-import qualified Data.IntMap.Strict           as IM (assocs, delete,
-                                                     foldrWithKey, insert, keys,
-                                                     lookupLE)
-import           Data.Maybe                   (fromJust, isNothing)
-import           Data.Vector.Unboxed          (Vector)
-import qualified Data.Vector.Unboxed          as V (fromList, length,
-                                                    unsafeIndex)
-import           Data.Word                    (Word8)
-import           Data.Word8                   (_hyphen, _lf)
-import qualified Streamly.Data.Fold           as F (foldl')
-import qualified Streamly.Data.Stream         as S (fold, foldBreak)
-import           Streamly.Data.Stream         (Stream)
-import qualified Streamly.Internal.Data.Fold  as F (foldt')
-import           Streamly.Internal.Data.Scanl (Step (Done, Partial))
-import Data.Bits (shiftR)
+import           Control.Monad                 (void)
+import           Data.Bits                     (shiftR)
+import           Data.Complex                  (Complex ((:+)))
+import           Data.IntMap.Strict            (IntMap)
+import qualified Data.IntMap.Strict            as IM (delete, foldrWithKey,
+                                                      insert, keys, lookupLE,
+                                                      size)
+import           Data.Maybe                    (fromJust, isNothing)
+import           Data.Vector.Primitive.Mutable (IOVector)
+import qualified Data.Vector.Primitive.Mutable as MV (new, unsafeRead,
+                                                      unsafeWrite)
+import           Data.Word                     (Word8)
+import           Data.Word8                    (_hyphen, _lf)
+import qualified Streamly.Data.Fold            as F (foldlM')
+import qualified Streamly.Data.Stream          as S (fold, foldBreak)
+import           Streamly.Data.Stream          (Stream)
+import qualified Streamly.Internal.Data.Fold   as F (foldt')
+import           Streamly.Internal.Data.Fold   (Step (Done, Partial))
 
 -- | Folding state machine: pper
 -- limit, current lower value (or just an value), current higher value, if in
@@ -29,7 +31,8 @@ import Data.Bits (shiftR)
 -- the first stage of the fold was the last character we saw an hyphen or a
 -- second linefeed, count of valid values
 data FoodRange = FR !(IntMap Int) {-# UNPACK #-} !Int {-# UNPACK #-} !Int !Bool !Bool
-data RangeCount = RC !(Vector (Int, Int)) {-# UNPACK #-} !Int {-# UNPACK #-} !Int  {-# UNPACK #-} !Int
+data RangeCount = RC !(IOVector (Complex Int)) {-# UNPACK #-} !Int {-# UNPACK #-} !Int  {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
+newtype Build = Build (Int -> IO Int)
 
 isDigit :: Word8 -> Bool
 isDigit w = w - 48 <= 9
@@ -39,10 +42,19 @@ digit :: Word8 -> Int
 digit w = fromIntegral (w - 48)
 {-# INLINE digit #-}
 
-mkRangeCount :: IntMap Int -> RangeCount
-mkRangeCount !lohis = RC v (V.length v) 0 0
-  where
-    v = V.fromList . IM.assocs $ lohis
+mkRangeCount :: IntMap Int -> IO RangeCount
+mkRangeCount !lohis = do
+  let l = IM.size lohis
+  v <- MV.new l
+  let pass key val (Build k) = Build $ \i -> do
+                                  MV.unsafeWrite v i (key :+ val)
+                                  k (i + 1)
+      Build fd = IM.foldrWithKey pass (Build pure) lohis
+  void $ fd 0
+  (lo :+ _) <- MV.unsafeRead v 0
+  (_ :+ hi) <- MV.unsafeRead v (l - 1)
+  pure $ RC v lo hi l 0 0
+{-# INLINE mkRangeCount #-}
 {-# SCC mkRangeCount #-}
 
 insertFR :: FoodRange -> FoodRange
@@ -62,19 +74,22 @@ insertFR (FR !lohis !l !h _ _)
                                           else IM.insert (fst . fromJust $ l') (max h . snd . fromJust $ h') lohis'
 {-# SCC insertFR #-}
 
-searchIngredient :: RangeCount -> RangeCount
-searchIngredient (RC v l n c) 
-  | l < fst (V.unsafeIndex v 0) || l > snd (V.unsafeIndex v (l - 1)) = RC v l 0 c
+searchIngredient :: RangeCount -> IO RangeCount
+searchIngredient (RC !v !lo !hi !l !n !c)
+  | n < lo || n > hi = pure $ RC v lo hi l 0 c
   | otherwise = binarySearch 0 (l - 1)
   where
-    binarySearch !lo !hi
-      | lo > hi = RC v l 0 c
-      | n < a = binarySearch lo (mid - 1)
-      | n > b = binarySearch (mid + 1) hi
-      | otherwise = RC v l 0 (c + 1)
-      where
-        mid = (lo + hi) `shiftR` 1
-        (a, b) = V.unsafeIndex v mid
+    binarySearch !lv !hv
+        | lv > hv = pure $ RC v lo hi l 0 c
+        | otherwise = do
+            let mid = (lv + hv) `shiftR` 1
+            (a :+ b) <- MV.unsafeRead v mid
+            let bs
+                  | n < a = binarySearch lv (mid - 1)
+                  | n > b = binarySearch (mid + 1) hv
+                  | otherwise = pure $ RC v lo hi l 0 (c + 1)
+            bs
+{-# INLINE searchIngredient #-}
 {-# SCC searchIngredient #-}
 
 shortReadDB :: FoodRange -> Word8 -> Step FoodRange (IntMap Int)
@@ -87,18 +102,19 @@ shortReadDB fr@(FR !lohis !l !h !switch !toggle) w
                          else Partial $ insertFR fr
   | otherwise = undefined
 
-readIngredients :: RangeCount -> Word8 -> RangeCount
-readIngredients rc@(RC v l n c) w
-  | isDigit w = RC v l (10 * n + digit w) c
+readIngredients :: RangeCount -> Word8 -> IO RangeCount
+readIngredients rc@(RC v lo hi l n c) w
+  | isDigit w = pure $ RC v lo hi l (10 * n + digit w) c
   | w == _lf = searchIngredient rc
   | otherwise = undefined
+{-# INLINE readIngredients #-}
 
 freshCount :: IntMap Int -> Int
 freshCount !lohis = IM.foldrWithKey (\k v c -> c + v - k + 1) 0 lohis
 {-# INLINE freshCount #-}
 
 getCount :: RangeCount -> Int
-getCount (RC _ _ _ c) = c
+getCount (RC _ _ _ _ _ c) = c
 {-# INLINE getCount #-}
 
 extractLoHis :: FoodRange -> IntMap Int
@@ -107,7 +123,7 @@ extractLoHis (FR !lohis _ _ _ _) = lohis
 
 countFresh :: Stream IO Word8 -> IO Int
 countFresh s = S.foldBreak (F.foldt' shortReadDB (Partial $ FR mempty 0 0 False False) extractLoHis) s
-  >>= \(res, s') -> getCount <$> S.fold (F.foldl' readIngredients (mkRangeCount res)) s'
+  >>= \(res, s') -> getCount <$> S.fold (F.foldlM' readIngredients (mkRangeCount res)) s'
 
 countAllFresh :: Stream IO Word8 -> IO Int
 countAllFresh s = freshCount <$> S.fold (F.foldt' shortReadDB (Partial $ FR mempty 0 0 False False) extractLoHis) s
