@@ -24,7 +24,7 @@ shortDrain b w
 tests :: ByteString -> [Benchmark]
 tests input =
   [ env (Day6.getWrongWorksheet . S.fromList . BS.unpack $ input) $ \ws -> bench "Part 1" $ whnf (uncurry Day6.getTotal . second Day6.buildWrongWorksheet) ws
-  , env (Day6.getCorrectWorksheet . S.fromList . BS.unpack $ input) $ \ws -> bench "Part 2" $ whnf (uncurry Day6.getTotal . second Day6.buildCorrectWorksheet) ws]
+  , env (Day6.getCorrectWorksheet . S.fromList . BS.unpack $ input) $ \ws -> bench "Part 2" $ whnf (uncurry Day6.getCorrectTotal) ws]
 
 main :: IO ()
 main = do
