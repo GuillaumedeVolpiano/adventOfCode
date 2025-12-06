@@ -24,6 +24,7 @@ import qualified Streamly.Data.Stream          as S (fold, foldBreak)
 import           Streamly.Data.Stream          (Stream)
 import qualified Streamly.Internal.Data.Fold   as F (foldt')
 import           Streamly.Internal.Data.Fold   (Step (Done, Partial))
+import Helpers.General.Streamly (isDigit, digit)
 
 -- | Folding state machine: pper
 -- limit, current lower value (or just an value), current higher value, if in
@@ -33,14 +34,6 @@ import           Streamly.Internal.Data.Fold   (Step (Done, Partial))
 data FoodRange = FR !(IntMap Int) {-# UNPACK #-} !Int {-# UNPACK #-} !Int !Bool !Bool
 data RangeCount = RC !(IOVector (Complex Int)) {-# UNPACK #-} !Int {-# UNPACK #-} !Int  {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 newtype Build = Build (Int -> IO Int)
-
-isDigit :: Word8 -> Bool
-isDigit w = w - 48 <= 9
-{-# INLINE isDigit #-}
-
-digit :: Word8 -> Int
-digit w = fromIntegral (w - 48)
-{-# INLINE digit #-}
 
 mkRangeCount :: IntMap Int -> IO RangeCount
 mkRangeCount !lohis = do

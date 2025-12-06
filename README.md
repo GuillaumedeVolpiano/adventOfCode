@@ -10,7 +10,7 @@ according to r/adventofcode when my own solution was much less efficient.
 
 <!-- AOC TILES BEGIN -->
 <h1 align="center">
-  Advent of Code - 524/510 ⭐
+  Advent of Code - 524/512 ⭐
 </h1>
 <h1 align="center">
   2025 - 24 ⭐ - Haskell

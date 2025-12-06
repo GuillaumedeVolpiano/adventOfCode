@@ -4,6 +4,8 @@ module Helpers.General.Streamly
   , customPreciseTimeIt
   , retrieveInput
   , wallTimeIt
+  , isDigit
+  , digit
   ) where
 
 import           Control.Monad                (unless, void)
@@ -59,6 +61,14 @@ eols = [_lf, _cr]
 
 allEnds :: [Word8]
 allEnds = terminators ++ eols
+
+isDigit :: Word8 -> Bool
+isDigit w = w - 48 <= 9
+{-# INLINE isDigit #-}
+
+digit :: Word8 -> Int
+digit w = fromIntegral (w - 48)
+{-# INLINE digit #-}
 
 cookiePath :: FilePath
 cookiePath = "/github/adventOfCode/cookies.txt"
