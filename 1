@@ -1,0 +1,56 @@
+Configuration is affected by the following files:
+- cabal.project
+Cases: 2  Tried: 0  Errors: 0  Failures: 0Cases: 2  Tried: 1  Errors: 0  Failures: 0                                          Cases: 2  Tried: 2  Errors: 0  Failures: 0
+adding a new list
+first space FS True False (fromList [0,1,2]) 3 (fromList []) (fromList []) 123 (fromList []) [] FS True True (fromList [0,1,2,3]) 0 (fromList []) (fromList [[123]]) 0 (fromList []) []
+adding a new list
+adding a new list
+first space FS True False (fromList [0,1,2,3,0,3,2]) 8 (fromList []) (fromList [[123]]) 328 (fromList []) [] FS True True (fromList [0,1,2,3,0,3,2,8]) 0 (fromList []) (fromList [[123],[328]]) 0 (fromList []) []
+adding a new list
+new space FS True True (fromList [0,1,2,3,0,3,2,8]) 0 (fromList []) (fromList [[123],[328]]) 0 (fromList []) [] FS True True (fromList [0,1,2,3,0,3,2,8,0]) 0 (fromList []) (fromList [[123],[328]]) 0 (fromList []) []
+adding a new list
+first space FS True False (fromList [0,1,2,3,0,3,2,8,0,0,5]) 1 (fromList []) (fromList [[123],[328]]) 51 (fromList []) [] FS True True (fromList [0,1,2,3,0,3,2,8,0,0,5,1]) 0 (fromList []) (fromList [[123],[328],[51]]) 0 (fromList []) []
+adding a new list
+adding a new list
+first space FS True False (fromList [0,1,2,3,0,3,2,8,0,0,5,1,0,6]) 4 (fromList []) (fromList [[123],[328],[51]]) 64 (fromList []) [] FS True True (fromList [0,1,2,3,0,3,2,8,0,0,5,1,0,6,4]) 0 (fromList []) (fromList [[123],[328],[51],[64]]) 0 (fromList []) []
+adding a new list
+new lineFS True True (fromList [0,1,2,3,0,3,2,8,0,0,5,1,0,6,4]) 0 (fromList []) (fromList [[123],[328],[51],[64]]) 0 (fromList []) []
+first space FS False False (fromList [0,1,2,3,0,3,2,8,0,0,5,1,0,6,4]) 0 (fromList []) (fromList []) 0 (fromList [[123],[328],[51],[64]]) [] FS False True (fromList [0,1,2,3,0,3,2,8,0,0,5,1,0,6]) 4 (fromList [0]) (fromList []) 0 (fromList [[123],[328],[51],[64]]) []
+we had a list ready
+first space FS False False (fromList [0,1,2,3,0,3,2,8,0,0,5,1]) 5 (fromList [64,4,0]) (fromList []) 45 (fromList [[123],[328],[51],[64]]) [] FS False True (fromList [0,1,2,3,0,3,2,8,0,0,5]) 1 (fromList [5,64,4,0]) (fromList [[45,123]]) 0 (fromList [[328],[51],[64]]) []
+we had a list ready
+we had a list ready
+first space FS False False (fromList [0,1,2,3,0,3,2,8,0]) 4 (fromList [56,1,5,64,4,0]) (fromList [[45,123]]) 64 (fromList [[328],[51],[64]]) [] FS False True (fromList [0,1,2,3,0,3,2,8]) 0 (fromList [4,56,1,5,64,4,0]) (fromList [[45,123],[64,328]]) 0 (fromList [[51],[64]]) []
+we had a list ready
+new space FS False True (fromList [0,1,2,3,0,3,2,8]) 0 (fromList [4,56,1,5,64,4,0]) (fromList [[45,123],[64,328]]) 0 (fromList [[51],[64]]) [] FS False True (fromList [0,1,2,3,0,3,2]) 8 (fromList [0,4,56,1,5,64,4,0]) (fromList [[45,123],[64,328]]) 0 (fromList [[51],[64]]) []
+we had a list ready
+first space FS False False (fromList [0,1,2,3]) 7 (fromList [38,23,8,0,4,56,1,5,64,4,0]) (fromList [[45,123],[64,328]]) 387 (fromList [[51],[64]]) [] FS False True (fromList [0,1,2]) 3 (fromList [7,38,23,8,0,4,56,1,5,64,4,0]) (fromList [[45,123],[64,328],[387,51]]) 0 (fromList [[64]]) []
+we had a list ready
+we had a list ready
+first space FS False False (fromList [0]) 13 (fromList [22,3,7,38,23,8,0,4,56,1,5,64,4,0]) (fromList [[45,123],[64,328],[387,51]]) 23 (fromList [[64]]) [] FS False True (fromList []) 0 (fromList [13,22,3,7,38,23,8,0,4,56,1,5,64,4,0]) (fromList [[45,123],[64,328],[387,51],[23,64]]) 0 (fromList []) []
+we had a list ready
+new lineFS False True (fromList []) 0 (fromList [13,22,3,7,38,23,8,0,4,56,1,5,64,4,0]) (fromList [[45,123],[64,328],[387,51],[23,64]]) 0 (fromList []) []
+first space FS True False (fromList []) 0 (fromList [13,22,3,7,38,23,8,0,4,56,1,5,64,4,0]) (fromList []) 0 (fromList [[45,123],[64,328],[387,51],[23,64]]) [] FS True True (fromList [0]) 13 (fromList [22,3,7,38,23,8,0,4,56,1,5,64,4,0]) (fromList []) 0 (fromList [[45,123],[64,328],[387,51],[23,64]]) []
+new space FS True True (fromList [0]) 13 (fromList [22,3,7,38,23,8,0,4,56,1,5,64,4,0]) (fromList []) 0 (fromList [[45,123],[64,328],[387,51],[23,64]]) [] FS True True (fromList [0,13]) 22 (fromList [3,7,38,23,8,0,4,56,1,5,64,4,0]) (fromList []) 0 (fromList [[45,123],[64,328],[387,51],[23,64]]) []
+we had a list ready
+first space FS True False (fromList [0,13,22]) 36 (fromList [7,38,23,8,0,4,56,1,5,64,4,0]) (fromList []) 6 (fromList [[45,123],[64,328],[387,51],[23,64]]) [] FS True True (fromList [0,13,22,36]) 7 (fromList [38,23,8,0,4,56,1,5,64,4,0]) (fromList [[6,45,123]]) 0 (fromList [[64,328],[387,51],[23,64]]) []
+we had a list ready
+we had a list ready
+first space FS True False (fromList [0,13,22,36,7,389]) 238 (fromList [8,0,4,56,1,5,64,4,0]) (fromList [[6,45,123]]) 98 (fromList [[64,328],[387,51],[23,64]]) [] FS True True (fromList [0,13,22,36,7,389,238]) 8 (fromList [0,4,56,1,5,64,4,0]) (fromList [[6,45,123],[98,64,328]]) 0 (fromList [[387,51],[23,64]]) []
+we had a list ready
+new space FS True True (fromList [0,13,22,36,7,389,238]) 8 (fromList [0,4,56,1,5,64,4,0]) (fromList [[6,45,123],[98,64,328]]) 0 (fromList [[387,51],[23,64]]) [] FS True True (fromList [0,13,22,36,7,389,238,8]) 0 (fromList [4,56,1,5,64,4,0]) (fromList [[6,45,123],[98,64,328]]) 0 (fromList [[387,51],[23,64]]) []
+we had a list ready
+first space FS True False (fromList [0,13,22,36,7,389,238,8,0,42,561]) 15 (fromList [5,64,4,0]) (fromList [[6,45,123],[98,64,328]]) 215 (fromList [[387,51],[23,64]]) [] FS True True (fromList [0,13,22,36,7,389,238,8,0,42,561,15]) 5 (fromList [64,4,0]) (fromList [[6,45,123],[98,64,328],[215,387,51]]) 0 (fromList [[23,64]]) []
+we had a list ready
+new lineFS True False (fromList [0,13,22,36,7,389,238,8,0,42,561,15,5,643,41]) 4 (fromList []) (fromList [[6,45,123],[98,64,328],[215,387,51]]) 314 (fromList [[23,64]]) []
+first space FS False False (fromList [0,13,22,36,7,389,238,8,0,42,561,15,5,643,41]) 0 (fromList []) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 0] FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561,15,5,643]) 41 (fromList [0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 1]
+new space FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561,15,5,643]) 41 (fromList [0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 1] FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561,15,5]) 643 (fromList [41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 2]
+new space FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561,15,5]) 643 (fromList [41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 2] FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561,15]) 5 (fromList [643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 3]
+new space FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561,15]) 5 (fromList [643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 0,Mult 3] FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561]) 15 (fromList [5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 1,Mult 3]
+new space FS False True (fromList [0,13,22,36,7,389,238,8,0,42,561]) 15 (fromList [5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 1,Mult 3] FS False True (fromList [0,13,22,36,7,389,238,8,0,42]) 561 (fromList [15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 2,Mult 3]
+new space FS False True (fromList [0,13,22,36,7,389,238,8,0,42]) 561 (fromList [15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 2,Mult 3] FS False True (fromList [0,13,22,36,7,389,238,8,0]) 42 (fromList [561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 3,Mult 3]
+new space FS False True (fromList [0,13,22,36,7,389,238,8,0]) 42 (fromList [561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 0,Add 3,Mult 3] FS False True (fromList [0,13,22,36,7,389,238,8]) 0 (fromList [42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 1,Add 3,Mult 3]
+new space FS False True (fromList [0,13,22,36,7,389,238,8]) 0 (fromList [42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 1,Add 3,Mult 3] FS False True (fromList [0,13,22,36,7,389,238]) 8 (fromList [0,42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 2,Add 3,Mult 3]
+new space FS False True (fromList [0,13,22,36,7,389,238]) 8 (fromList [0,42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 2,Add 3,Mult 3] FS False True (fromList [0,13,22,36,7,389]) 238 (fromList [8,0,42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Mult 3,Add 3,Mult 3]
+new space FS False True (fromList [0,13,22,36,7,389]) 238 (fromList [8,0,42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 0,Mult 3,Add 3,Mult 3] FS False True (fromList [0,13,22,36,7]) 389 (fromList [238,8,0,42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 1,Mult 3,Add 3,Mult 3]
+new space FS False True (fromList [0,13,22,36,7]) 389 (fromList [238,8,0,42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 1,Mult 3,Add 3,Mult 3] FS False True (fromList [0,13,22,36]) 7 (fromList [389,238,8,0,42,561,15,5,643,41,0]) (fromList []) 0 (fromList [[6,45,123],[98,64,328],[215,387,51]]) [Add 2,Mult 3,Add 3,Mult 3]
