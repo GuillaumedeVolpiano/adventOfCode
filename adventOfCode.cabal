@@ -818,14 +818,16 @@ library days2025
     Day9
 
   build-depends:
-    , split ^>=0.2.5
     , base
-    , containers     ^>=0.7
-    , deepseq        ^>=1.5.1.0
+    , containers            ^>=0.7
+    , deepseq               ^>=1.5.1.0
+    , hashable              ^>=1.4.7.0
     , helpers
-    , streamly-core  ^>=0.3.0
-    , vector         ^>=0.13.2.0
-    , word8          ^>=0.1.3
+    , psqueues              ^>=0.2.8.1
+    , streamly-core         ^>=0.3.0
+    , unordered-containers  ^>=0.2.20.1
+    , vector                ^>=0.13.2.0
+    , word8                 ^>=0.1.3
 
   default-language: Haskell2010
 
@@ -965,7 +967,10 @@ benchmark bench
     , utf8-string
     , word8          ^>=0.1.3
 
-  ghc-options:      -fllvm -threaded -O3 -rtsopts -funbox-strict-fields "-with-rtsopts=-N8 -T"
+  ghc-options:
+    -fllvm -threaded -O3 -rtsopts -funbox-strict-fields
+    "-with-rtsopts=-N8 -T"
+
   default-language: Haskell2010
 
 benchmark full-year
