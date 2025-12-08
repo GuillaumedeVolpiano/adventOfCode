@@ -4,15 +4,14 @@ module Main where
 import           Data.ByteString               (ByteString)
 import qualified Data.ByteString               as BS (readFile, unpack)
 import           Data.Function                 ((&))
-import qualified Data.Vector.Primitive.Mutable as MV (new)
 import           Data.Word8                    (Word8, _lf)
 import qualified Day8
 import qualified Streamly.Data.Fold            as F (drain)
-import qualified Streamly.Data.Stream          as S (fold, fromList, parse)
+import qualified Streamly.Data.Stream          as S (fold, fromList)
 import           Streamly.Internal.Data.Fold   (Step (Done, Partial))
 import           System.Directory              (getHomeDirectory)
 import           Test.Tasty.Bench              (Benchmark, bench, defaultMain,
-                                                env, whnf, whnfIO)
+                                                env, whnfIO)
 
 inputPath :: String
 inputPath = "/github/adventOfCode/input/2025/day8.txt"
