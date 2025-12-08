@@ -5,16 +5,16 @@ import           Data.ByteString             (ByteString)
 import qualified Data.ByteString             as BS (readFile, unpack)
 import           Data.Function               ((&))
 import           Data.Word8                  (Word8, _lf)
-import qualified Day6
+import qualified Day8
 import qualified Streamly.Data.Fold          as F (drain)
-import qualified Streamly.Data.Stream        as S (fold, fromList)
+import qualified Streamly.Data.Stream        as S (fold, fromList, parse)
 import           Streamly.Internal.Data.Fold (Step (Done, Partial))
 import           System.Directory            (getHomeDirectory)
 import           Test.Tasty.Bench            (Benchmark, bench, defaultMain,
                                               env, whnf, whnfIO)
 
 inputPath :: String
-inputPath = "/github/adventOfCode/input/2025/day6.txt"
+inputPath = "/github/adventOfCode/input/2025/day8.txt"
 
 shortDrain :: Bool -> Word8 -> Step Bool ()
 shortDrain b w
@@ -22,17 +22,20 @@ shortDrain b w
   | w == _lf = Partial True
   | otherwise = Partial False
 
-tests :: ByteString -> IO ByteString -> [Benchmark]
-tests input ioInput =
-  [ env (Day6.foldSheet . S.fromList . BS.unpack $ input) $ \ws -> bench "Part 1" $ whnf Day6.getTotal ws
-  , env (Day6.foldSheet . S.fromList . BS.unpack $ input) $ \ws -> bench "Part 2" $ whnf Day6.getCorrectTotal ws
-  , env (BS.unpack <$> ioInput) $ \bs -> bench "Overhead" $ whnfIO $ S.fromList bs & S.fold F.drain
-  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 1 with parsing" $ whnfIO $ Day6.getTotal <$> (S.fromList bs & Day6.foldSheet) 
-  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 2 with parsing" $ whnfIO $ Day6.getCorrectTotal <$> (S.fromList bs & Day6.foldSheet)]
+tests :: IO ByteString -> IO (Day8.Queue, Day8.DisjointSets) -> [Benchmark]
+tests ioInput qc =
+  [ env (BS.unpack <$> ioInput) $ \bs -> bench "Overhead" $ whnfIO $ S.fromList bs & S.fold F.drain
+  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 1 with parsing" $ whnfIO $ S.fromList bs & Day8.findCircuits False
+  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 2 with parsing" $ whnfIO $ S.fromList bs 
+          & Day8.findLastCircuits
+  , env qc $ \qc' -> bench "Part 1 without parsing" $ whnf (Day8.prodThree . uncurry (Day8.getCircuit 1000)) qc'
+  , env qc $ \qc' -> bench "Part 2 without parsing" $ whnf (uncurry (Day8.connectAll 1000)) qc'
+  ]
 
 main :: IO ()
 main = do
   home <- getHomeDirectory
   let file = BS.readFile $ home ++ inputPath
-  file' <- file
-  defaultMain . tests file' $ file
+  bs <- BS.unpack <$> file
+  let qc = fmap (either undefined id) $ S.fromList bs & S.parse Day8.parseInput
+  defaultMain $ tests file qc

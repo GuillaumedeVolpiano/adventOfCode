@@ -961,11 +961,12 @@ benchmark bench
     , massiv
     , megaparsec
     , mtl
-    , streamly-core  ^>=0.3.0
+    , streamly-core         ^>=0.3.0
     , tasty-bench
-    , text           >=2.1
+    , text                  >=2.1
+    , unordered-containers  ^>=0.2.20.1
     , utf8-string
-    , word8          ^>=0.1.3
+    , word8                 ^>=0.1.3
 
   ghc-options:
     -fllvm -threaded -O3 -rtsopts -funbox-strict-fields
