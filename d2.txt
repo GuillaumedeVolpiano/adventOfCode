@@ -1,9 +1,0 @@
-Configuration is affected by the following files:
-- cabal.project
-aoc2025: Uncaught exception ghc-internal:GHC.Internal.Exception.ErrorCall:
-
-Prelude.undefined
-
-HasCallStack backtrace:
-  undefined, called at 2025/days/Day2.hs:112:21 in adventOfCode-2025-inplace-days2025:Day2
-

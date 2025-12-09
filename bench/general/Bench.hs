@@ -26,8 +26,8 @@ tests :: IO ByteString -> [Benchmark]
 tests ioInput =
   [ env (BS.unpack <$> ioInput) $ \bs -> bench "Overhead" $ whnfIO $ S.fromList bs & S.fold F.drain
   , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 1 with parsing" $ whnfIO $ S.fromList bs & Day9.getLargest
---  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 2 with parsing" $ whnfIO $ S.fromList bs
---          & Day8.findLastCircuits
+  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 2 with parsing" $ whnfIO $ S.fromList bs
+         & Day9.getLargestValid
   ]
 
 main :: IO ()
