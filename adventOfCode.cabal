@@ -43,8 +43,11 @@ library helpers
     Helpers.Search
     Helpers.Search.Int
     Helpers.Streamly.Fold
+    Helpers.Heap.Unboxed.Mutable
+    Helpers.Heap.Primitive.Mutable
 
   build-depends:
+    , vector ^>=0.13.2.0
     , array
     , base
     , bytestring

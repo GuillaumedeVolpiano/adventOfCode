@@ -14,7 +14,7 @@ module Day8
   ) where
 
 import           Control.DeepSeq               (NFData, rnf)
-import           Control.Monad                 (unless, void, when)
+import           Control.Monad                 (void)
 import           Data.Hashable                 (Hashable, hashWithSalt)
 import           Data.IORef                    (IORef)
 import qualified Data.IORef                    as R (modifyIORef', newIORef,
@@ -25,14 +25,13 @@ import           Data.Ord                      (Down (Down), comparing)
 import           Data.Vector.Primitive.Mutable (IOVector)
 import qualified Data.Vector.Primitive.Mutable as MV (new, unsafeRead,
                                                       unsafeWrite)
-import qualified Data.Vector.Unboxed.Mutable   as UMV (IOVector, unsafeNew,
-                                                       unsafeRead, unsafeWrite)
 import           Data.Word                     (Word8)
 import           Data.Word8                    (_comma, _lf)
 import           Helpers.General.Streamly      (digit, isDigit)
 import qualified Streamly.Data.Fold            as F (foldlM')
 import qualified Streamly.Data.Stream          as S (fold)
 import           Streamly.Data.Stream          (Stream)
+import Helpers.Heap.Unboxed.Mutable (Heap, popMin, push, newHeap)
 
 -- | 3D coordinates of a node.
 data Coords = C {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
@@ -42,7 +41,7 @@ data Coords = C {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 data DisjointSets = DS (IOVector Int) (IOVector Int) (IORef [(Int, Int)])
 
 -- | Mutable priority queue for edges, storing current size in an IORef.
-data PQueue = PQ !(UMV.IOVector Edge) !(IORef Int)
+type PQueue = Heap Edge
 
 -- | Edge representation: (distance, node1, node2, x1, x2)
 type Edge = (Int, Int, Int, Int, Int)
@@ -98,59 +97,8 @@ dist (x, _, _, _, _) = x
 
 -- | Allocate a new priority queue with given capacity.
 newQueue :: Int -> IO PQueue
-newQueue sz = do
-  pq <- UMV.unsafeNew sz
-  s <- R.newIORef 0
-  pure $ PQ pq s
+newQueue sz = newHeap sz (comparing dist)
 
--- | Push an edge into the priority queue, maintaining heap invariant.
-push :: PQueue -> Edge -> IO ()
-push p@(PQ pq sz) e = do
-  i <- R.readIORef sz
-  UMV.unsafeWrite pq i e
-  R.writeIORef sz (i + 1)
-  siftUp p i
-
--- | Bubble an element up to maintain min-heap property.
-siftUp :: PQueue -> Int -> IO ()
-siftUp p@(PQ pq _) i = when (i > 0) $ do
-  let i' = div (i - 1) 2
-  v <- UMV.unsafeRead pq i
-  v' <- UMV.unsafeRead pq i'
-  when (dist v < dist v') $ do
-    UMV.unsafeWrite pq i' v
-    UMV.unsafeWrite pq i v'
-    siftUp p i'
-
--- | Pop the minimum edge from the priority queue, if non-empty.
-popMin :: PQueue -> IO (Maybe Edge)
-popMin p@(PQ pq sz) = do
-  i <- R.readIORef sz
-  if i == 0 then pure Nothing
-            else do
-              v <- UMV.unsafeRead pq 0
-              v' <- UMV.unsafeRead pq (i - 1)
-              UMV.unsafeWrite pq 0 v'
-              siftDown p 0
-              pure $ Just v
-
--- | Push down an element to maintain min-heap property.
-siftDown :: PQueue -> Int -> IO ()
-siftDown p@(PQ pq sz) i = do
-  s <- R.readIORef sz
-  let left = 2 * i + 1
-      right = 2 * i + 2
-  unless (left >= s) $ do
-    v <- UMV.unsafeRead pq i
-    v' <- UMV.unsafeRead pq left
-    (ni, nv) <- if right < s then do
-                                  v''<- UMV.unsafeRead pq right
-                                  if dist v' <= dist v'' then pure (left, v') else pure (right, v'')
-                                  else pure (left, v')
-    when (dist v > dist nv) $ do
-      UMV.unsafeWrite pq i nv
-      UMV.unsafeWrite pq ni v
-      siftDown p ni
 
 -- | Squared Euclidean distance between two coordinates.
 distance :: Coords -> Coords -> Int
