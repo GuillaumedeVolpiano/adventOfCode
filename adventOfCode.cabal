@@ -35,6 +35,9 @@ library helpers
     Helpers.General.Streamly
     Helpers.General.Text
     Helpers.Graph
+    Helpers.Heap.Mutable
+    Helpers.Heap.Primitive.Mutable
+    Helpers.Heap.Unboxed.Mutable
     Helpers.Maths
     Helpers.Parsers
     Helpers.Parsers.ByteString
@@ -43,12 +46,8 @@ library helpers
     Helpers.Search
     Helpers.Search.Int
     Helpers.Streamly.Fold
-    Helpers.Heap.Unboxed.Mutable
-    Helpers.Heap.Primitive.Mutable
-    Helpers.Heap.Mutable
 
   build-depends:
-    , vector ^>=0.13.2.0
     , array
     , base
     , bytestring
@@ -75,6 +74,7 @@ library helpers
     , timeit
     , unordered-containers
     , utf8-string
+    , vector                ^>=0.13.2.0
     , word8
 
   ghc-options:      -fllvm -threaded -O3
@@ -822,14 +822,14 @@ library days2025
     Day9
 
   build-depends:
-    , streamly-bytestring ^>=0.2.3
     , base
-    , bytestring ^>=0.12.2.0
+    , bytestring            ^>=0.12.2.0
     , containers            ^>=0.7
     , deepseq               ^>=1.5.1.0
     , hashable              ^>=1.4.7.0
     , helpers
     , psqueues              ^>=0.2.8.1
+    , streamly-bytestring   ^>=0.2.3
     , streamly-core         ^>=0.3.0
     , unordered-containers  ^>=0.2.20.1
     , vector                ^>=0.13.2.0
