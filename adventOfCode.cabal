@@ -45,6 +45,7 @@ library helpers
     Helpers.Streamly.Fold
     Helpers.Heap.Unboxed.Mutable
     Helpers.Heap.Primitive.Mutable
+    Helpers.Heap.Mutable
 
   build-depends:
     , vector ^>=0.13.2.0
@@ -821,7 +822,9 @@ library days2025
     Day9
 
   build-depends:
+    , streamly-bytestring ^>=0.2.3
     , base
+    , bytestring ^>=0.12.2.0
     , containers            ^>=0.7
     , deepseq               ^>=1.5.1.0
     , hashable              ^>=1.4.7.0
