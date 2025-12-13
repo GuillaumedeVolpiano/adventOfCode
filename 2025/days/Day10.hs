@@ -4,12 +4,12 @@ module Day10
   , parseMachines
   ) where
 
-import           Control.Monad            (void)
+import           Control.Monad            (void, foldM_, (>=>))
 import           Data.Bifunctor           (bimap)
 import           Data.Bits                (setBit, shiftL, xor, (.&.), shiftR)
 import qualified Data.IntSet              as IS (insert, member, singleton)
 import           Data.Sequence            (Seq (..), ViewL (EmptyL, (:<)))
-import qualified Data.Sequence            as Sq (singleton, viewl, filter)
+import qualified Data.Sequence            as Sq (singleton, viewl, length)
 import           Data.Word                (Word8)
 import           Data.Word8               (_braceleft, _braceright,
                                            _bracketleft, _bracketright, _comma,
@@ -23,8 +23,11 @@ import qualified Streamly.Data.Parser     as P (deintercalate, eof, many,
 import           Streamly.Data.Parser     (Parser)
 import qualified Streamly.Data.Stream     as S (parse)
 import           Streamly.Data.Stream     (Stream)
-import Data.HashSet (HashSet)
-import qualified Data.HashSet as HS (insert, member)
+import Control.Monad.IO.Class (liftIO)
+import Data.Vector.Mutable (IOVector)
+import qualified Data.Vector.Mutable as MV (unsafeRead, unsafeWrite, replicateM, length, replicate, mapM_, unsafeSwap, imapM_)
+import qualified Data.Vector as V (fromList, thaw, freeze)
+import Debug.Trace
 
 data Machine = M {-# UNPACK #-} !Int !(Seq Int) ![Int]
 
@@ -41,7 +44,7 @@ parseMachine = do
   b <- P.manyTill parseButton (P.satisfy (==_braceleft)) toSeq
   j <- parseJoltage
   void $ P.satisfy (==_lf)
-  pure $ bfsBoth $ M i b j
+  liftIO $ bfsBoth $ M i b j
 
 parseButton :: Parser Word8 IO Int
 parseButton = do
@@ -82,13 +85,15 @@ eitherToList = flip F.foldl' [] $ \ns v ->
 sumBoth :: Fold IO (Int, Int) (Int, Int)
 sumBoth = F.foldl' (\(a, b) -> bimap (a +) (b +)) (0, 0)
 
-bfsBoth :: Machine  -> (Int, Int)
-bfsBoth (M i bs j) = (bfsIndicator i bs, result)
-  where
-    nToList 0 _ l = l
-    nToList v n l = nToList (v - 1) (n `shiftR` 1) ((n .&. 1) : l)
-    bs' = fmap (nToList (length j)) bs
-    result = 0
+bfsBoth :: Machine  -> IO (Int, Int)
+bfsBoth (M i bs j) = do
+  let p1 = bfsIndicator i bs
+      p2 = 0 :: Int
+  (mat, vec) <- matrixify bs j
+  V.freeze vec >>= traceIO.show
+  MV.mapM_ (V.freeze >=> (traceIO. show)) mat
+  traceIO "\n"
+  pure (p1, p2)
 
 bfsIndicator :: Int -> Seq Int -> Int
 bfsIndicator i bs = bfs (Sq.singleton (0, 0)) (IS.singleton 0)
@@ -105,22 +110,87 @@ bfsIndicator i bs = bfs (Sq.singleton (0, 0)) (IS.singleton 0)
           where
             b' = s `xor` b
 
-tieredBFS :: Seq [Int] -> [Int] -> Int
-tieredBFS bs js = undefined
-  where
-    (ns, ni, _) = foldr (\a (c, d, i) -> if a > c then (a, i, i + 1) else (c, d, i + 1)) ((0, 0, 0) :: (Int, Int, Int)) js
-    usable = Sq.filter ((== 1) . (!! ni)) bs
-    bfsPart sn seen = case Sq.viewl sn of
-                        EmptyL -> []
-                        ((n, c) :< rest) -> if n !! ni == ns
-                                                then ((n, c):) $ bfsPart rest seen
-                                                else  uncurry bfsPart .  foldr (updateSearch n c) (rest, seen) $ usable 
-    updateSearch n c n' (nseq, set)
-      | n'' `HS.member` set = (nseq, set)
-      | otherwise = (nseq :|> (n'', c + 1), HS.insert n'' set)
-      where
-        n'' = zipWith (+) n n'
+matrixify :: Seq Int -> [Int] -> IO (IOVector (IOVector Int), IOVector Int)
+matrixify sq vals = do
+  vec <- V.thaw . V.fromList . reverse $ vals
+  let lv = MV.length vec
+      ls = Sq.length sq
+  mat <- MV.replicateM lv (MV.replicate ls 0)
+  let foldInt _ _ 0 = pure ()
+      foldInt i j v = MV.unsafeRead mat i
+                        >>= \r -> MV.unsafeWrite r j (v .&. 1)
+                        >> foldInt (i + 1) j (v `shiftR` 1)
+  foldM_ (\j v -> foldInt 0 j v >> pure (j + 1)) 0 sq
+  V.freeze vec >>= traceIO.show
+  MV.mapM_ (V.freeze >=> (traceIO. show)) mat
+  traceIO "\n"
+  reduce mat vec
+  pure (mat, vec)
 
+reduce :: IOVector (IOVector Int) -> IOVector Int -> IO ()
+reduce mat vec = do 
+  lc <- MV.length <$> MV.unsafeRead mat 0
+  let lr = MV.length mat
+      crawl k r
+        | r == lr = pure Nothing
+        | otherwise = do
+            cr <- MV.unsafeRead mat r
+            kv <- MV.unsafeRead cr k
+            if kv == 0 then crawl k (r + 1)
+                       else pure $ Just r
+      reduce' k n
+        | k == min lr lc = pure ()
+        | otherwise = do
+            order k k 
+            kr <- MV.unsafeRead mat k
+            kv <- MV.unsafeRead kr k
+            if kv == 0 && k >= lc - n
+               then pure ()
+               else if kv == 0
+                then do
+                  traceIO $ "k = " ++ show k ++ " and n " ++ show n
+                  MV.mapM_ (\r -> MV.unsafeSwap r k (lc - n)) mat
+                  reduce' k (n + 1)
+                else do
+                  pivot k kv kr 0 
+                  traceIO $ " k = " ++ show k
+                  V.freeze vec >>= traceIO.show
+                  MV.mapM_ (V.freeze >=> (traceIO. show)) mat
+                  traceIO "\n"
+                  reduce' (k + 1) n
+      order k r
+        | r == lr = pure ()
+        | otherwise = do
+            curR <- MV.unsafeRead mat r
+            kv <- MV.unsafeRead curR k
+            if kv == 0
+               then do
+                 nv <- crawl k ( r + 1 )
+                 case nv of
+                   Nothing -> pure ()
+                   Just sw -> do 
+                     MV.unsafeSwap mat r sw 
+                     MV.unsafeSwap vec r sw
+                     order k (r + 1)
+               else order k (r + 1)
+      pivot k kv kr r
+        | r == lr = pure ()
+        | r == k = pivot k kv kr (r + 1)
+        | otherwise = do
+            rr <- MV.unsafeRead mat r
+            rv <- MV.unsafeRead rr k
+            if rv == 0 
+               then pure ()
+               else do
+                 vkv <- MV.unsafeRead vec k
+                 vrv <- MV.unsafeRead vec r
+                 MV.unsafeWrite vec r (kv * vrv - rv * vkv) 
+                 MV.imapM_ (pivot' kr rr kv rv) rr
+                 pivot k kv kr (r + 1)
+      pivot' kr rr kv rv i v = do
+        kiv <- MV.unsafeRead kr i
+        MV.unsafeWrite rr i (kv * v - rv * kiv)
+  reduce' 0 1
 
 part1 :: Bool -> Stream IO Word8 -> IO ()
 part1 _ s = S.parse parseMachines s >>= print . fst . either (\e -> error $ "Parser failed: " ++ show e) id
