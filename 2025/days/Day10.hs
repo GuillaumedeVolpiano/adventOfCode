@@ -4,19 +4,16 @@ module Day10
   , parseMachines
   ) where
 
-import           Control.Monad            (void, foldM_, (>=>))
+import           Control.Monad            (void, foldM_, when)
 import           Data.Bifunctor           (bimap)
-import           Data.Bits                (setBit, shiftL, xor, (.&.), shiftR)
-import qualified Data.IntSet              as IS (insert, member, singleton)
-import           Data.Sequence            (Seq (..), ViewL (EmptyL, (:<)))
-import qualified Data.Sequence            as Sq (singleton, viewl, length)
+import           Data.Bits                (setBit, shiftL, xor)
 import           Data.Word                (Word8)
 import           Data.Word8               (_braceleft, _braceright,
                                            _bracketleft, _bracketright, _comma,
                                            _lf, _numbersign, _parenleft,
                                            _parenright, _space)
 import           Helpers.General.Streamly (digit, isDigit)
-import qualified Streamly.Data.Fold       as F (foldl', foldr')
+import qualified Streamly.Data.Fold       as F (foldl', foldr', foldlM', toList)
 import           Streamly.Data.Fold       (Fold)
 import qualified Streamly.Data.Parser     as P (deintercalate, eof, many,
                                                 manyTill, one, satisfy)
@@ -25,13 +22,47 @@ import qualified Streamly.Data.Stream     as S (parse)
 import           Streamly.Data.Stream     (Stream)
 import Control.Monad.IO.Class (liftIO)
 import Data.Vector.Mutable (IOVector)
-import qualified Data.Vector.Mutable as MV (unsafeRead, unsafeWrite, replicateM, length, replicate, mapM_, unsafeSwap, imapM_)
-import qualified Data.Vector as V (fromList, thaw, freeze)
-import Debug.Trace
+import qualified Data.Vector.Mutable as MV (replicate, replicateM, unsafeWrite, unsafeRead, unsafeNew, unsafeSwap, unsafeModify, length)
+import qualified Data.Vector as V (freeze)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import Debug.Trace ( traceIO )
+import Data.Foldable (foldrM)
 
-data Machine = M {-# UNPACK #-} !Int !(Seq Int) ![Int]
+data Machine = M {-# UNPACK #-} !Int ![Int] Matrix
 
-data RBFS = Failure Int | Success Int Int | Prune deriving Show
+data Matrix = Mx {-# UNPACK #-} !Int {-# UNPACK #-} !Int (IOVector (IOVector Int))
+
+data RingBuffer a = RB !(IORef Int) !(IORef Int) !(IORef Int) {-# UNPACK #-} !Int !(IOVector a)
+
+newRingBuffer :: Int -> IO (RingBuffer a)
+newRingBuffer cap = do
+  rb <- MV.unsafeNew cap
+  pos <- newIORef 0
+  end <- newIORef 0
+  size <- newIORef 0
+  pure $ RB pos end size cap rb
+
+pop :: RingBuffer a -> IO a
+pop (RB pos _ size cap rb) = do
+  s <- readIORef size
+  if s == 0
+     then error "RingBuffer is empty"
+     else do
+        p <- readIORef pos
+        v <- MV.unsafeRead rb p
+        writeIORef pos (( p + 1) `mod` cap)
+        pure v
+
+push :: RingBuffer a -> a -> IO ()
+push (RB _ end size cap rb) v = do
+  s <- readIORef size
+  e <- readIORef end
+  if s == cap
+     then error "RingBuffer is full"
+     else do
+       MV.unsafeWrite rb e v
+       writeIORef end ((e + 1) `mod` cap)
+       writeIORef size (s + 1)
 
 parseMachines :: Parser Word8 IO (Int, Int)
 parseMachines = P.manyTill parseMachine P.eof sumBoth
@@ -39,14 +70,16 @@ parseMachines = P.manyTill parseMachine P.eof sumBoth
 parseMachine :: Parser Word8 IO (Int, Int)
 parseMachine = do
   void $ P.satisfy (==_bracketleft)
-  i <- P.manyTill P.one (P.satisfy (==_bracketright)) toIndicator
+  (i, rows) <- P.manyTill P.one (P.satisfy (==_bracketright)) toIndicator
   void $ P.satisfy (==_space)
-  b <- P.manyTill parseButton (P.satisfy (==_braceleft)) toSeq
-  j <- parseJoltage
+  bs <- P.manyTill parseButton (P.satisfy (==_braceleft)) F.toList
+  let b = map fst bs
+      b' = map snd bs
+  j <- parseJoltage rows b'
   void $ P.satisfy (==_lf)
-  liftIO $ bfsBoth $ M i b j
+  liftIO . solveBoth $ M i b j
 
-parseButton :: Parser Word8 IO Int
+parseButton :: Parser Word8 IO (Int, [Int])
 parseButton = do
   void $ P.satisfy (==_parenleft)
   b <- P.deintercalate (P.satisfy isDigit) (P.satisfy (==_comma)) toButton
@@ -54,143 +87,153 @@ parseButton = do
   void $ P.satisfy (==_space)
   pure b
 
-parseJoltage :: Parser Word8 IO [Int]
-parseJoltage = do
-  j <- P.deintercalate (P.many (P.satisfy isDigit) toNumber) (P.satisfy (==_comma)) eitherToList
+parseJoltage :: Int -> [[Int]] -> Parser Word8 IO Matrix
+parseJoltage rows buttons = do
+  let lb = length buttons
+      columns = lb + 1
+  mx <- liftIO $ MV.replicateM rows (MV.replicate columns 0)
+  let innerFold i _ b = do
+        r <- MV.unsafeRead mx b
+        MV.unsafeWrite r i 1
+      buttonify i bs = do
+        foldM_ (innerFold i) () bs
+        pure (i + 1)
+  liftIO $ foldM_ buttonify 0 buttons
+  P.deintercalate (P.many (P.satisfy isDigit) toNumber) (P.satisfy (==_comma)) (eitherToList lb mx)
   void $ P.satisfy (==_braceright)
-  pure j
+  pure $ Mx rows lb mx
 
-toIndicator :: Fold IO Word8 Int
-toIndicator = flip F.foldr' 0 $ \w i -> (i `shiftL` 1) +
-  if w ==_numbersign then 1 else 0
+toIndicator :: Fold IO Word8 (Int, Int)
+toIndicator = flip F.foldr' (0, 0) $ \w (i, j) ->
+  (i `shiftL` 1 + if w ==_numbersign then 1 else 0, j + 1)
 
-toSeq :: Fold IO Int (Seq Int)
-toSeq = F.foldl' (:|>) mempty
-
-toButton :: Fold IO (Either Word8 Word8) Int
-toButton = flip F.foldl' 0 $ \b w ->
+toButton :: Fold IO (Either Word8 Word8) (Int, [Int])
+toButton = flip F.foldl' (0, []) $ \b@(bi, bl) w ->
   case w of
-    Left d  -> b `setBit` digit d
+    Left d  -> (bi `setBit` digit d, digit d : bl)
     Right _ -> b
 
 toNumber :: Fold IO Word8 Int
 toNumber = flip F.foldl' 0 $ \n w -> 10 * n + digit w
 
-eitherToList :: Fold IO (Either Int Word8) [Int]
-eitherToList = flip F.foldl' [] $ \ns v ->
+eitherToList :: Int -> IOVector (IOVector Int) -> Fold IO (Either Int Word8) ()
+eitherToList col mx = void $ flip F.foldlM' (pure 0) $ \i v ->
   case v of
-    Left n  -> n : ns
-    Right _ -> ns
+    Left n  -> do
+      r <- MV.unsafeRead mx i
+      MV.unsafeWrite r col n
+      pure (i + 1)
+    Right _ -> pure i
 
 sumBoth :: Fold IO (Int, Int) (Int, Int)
 sumBoth = F.foldl' (\(a, b) -> bimap (a +) (b +)) (0, 0)
 
-bfsBoth :: Machine  -> IO (Int, Int)
-bfsBoth (M i bs j) = do
-  let p1 = bfsIndicator i bs
-      p2 = 0 :: Int
-  (mat, vec) <- matrixify bs j
-  V.freeze vec >>= traceIO.show
-  MV.mapM_ (V.freeze >=> (traceIO. show)) mat
-  traceIO "\n"
+solveBoth :: Machine  -> IO (Int, Int)
+solveBoth (M i bs j@(Mx rows _ _)) = do
+  rb <- newRingBuffer 1024 
+  push rb (0, 0)
+  seen <- MV.replicate (1 `shiftL` rows) False
+  MV.unsafeWrite seen 0 True
+  p1 <- bfsIndicators rb seen bs i 
+  let p2 = 0
+  hermiteNormalForm j
+  traceMatrix j
   pure (p1, p2)
 
-bfsIndicator :: Int -> Seq Int -> Int
-bfsIndicator i bs = bfs (Sq.singleton (0, 0)) (IS.singleton 0)
+bfsIndicators :: RingBuffer (Int, Int) -> IOVector Bool -> [Int] -> Int -> IO Int
+bfsIndicators toSee seen bs goal = bfsIndicators'
   where
-    bfs toSee seen = if s == i then c else bfs toSee' seen'
-      where
-        (s, c, rest) = case Sq.viewl toSee of
-                            EmptyL        -> undefined
-                            ((v, a) :< r) -> (v, a, r)
-        (toSee', seen') = foldr buildNext (rest, seen) bs
-        buildNext b (t, st)
-          | b' `IS.member` seen = (t, st)
-          | otherwise = (t :|> (b', c + 1), IS.insert b' st)
-          where
-            b' = s `xor` b
+    bfsIndicators' = do
+      (c, cur) <- pop toSee
+      if cur == goal
+         then pure c
+         else do 
+           let folder _ b = do
+                  let cur' = cur `xor` b
+                  s <- MV.unsafeRead seen cur'
+                  if s then pure ()
+                       else do
+                         push toSee (c + 1, cur')
+                         MV.unsafeWrite seen cur' True
+           foldM_ folder () bs
+           bfsIndicators'
 
-matrixify :: Seq Int -> [Int] -> IO (IOVector (IOVector Int), IOVector Int)
-matrixify sq vals = do
-  vec <- V.thaw . V.fromList . reverse $ vals
-  let lv = MV.length vec
-      ls = Sq.length sq
-  mat <- MV.replicateM lv (MV.replicate ls 0)
-  let foldInt _ _ 0 = pure ()
-      foldInt i j v = MV.unsafeRead mat i
-                        >>= \r -> MV.unsafeWrite r j (v .&. 1)
-                        >> foldInt (i + 1) j (v `shiftR` 1)
-  foldM_ (\j v -> foldInt 0 j v >> pure (j + 1)) 0 sq
-  V.freeze vec >>= traceIO.show
-  MV.mapM_ (V.freeze >=> (traceIO. show)) mat
-  traceIO "\n"
-  reduce mat vec
-  pure (mat, vec)
-
-reduce :: IOVector (IOVector Int) -> IOVector Int -> IO ()
-reduce mat vec = do 
-  lc <- MV.length <$> MV.unsafeRead mat 0
-  let lr = MV.length mat
-      crawl k r
-        | r == lr = pure Nothing
-        | otherwise = do
-            cr <- MV.unsafeRead mat r
-            kv <- MV.unsafeRead cr k
-            if kv == 0 then crawl k (r + 1)
-                       else pure $ Just r
-      reduce' k n
-        | k == min lr lc = pure ()
-        | otherwise = do
-            order k k 
-            kr <- MV.unsafeRead mat k
-            kv <- MV.unsafeRead kr k
-            if kv == 0 && k >= lc - n
-               then pure ()
-               else if kv == 0
-                then do
-                  traceIO $ "k = " ++ show k ++ " and n " ++ show n
-                  MV.mapM_ (\r -> MV.unsafeSwap r k (lc - n)) mat
-                  reduce' k (n + 1)
-                else do
-                  pivot k kv kr 0 
-                  traceIO $ " k = " ++ show k
-                  V.freeze vec >>= traceIO.show
-                  MV.mapM_ (V.freeze >=> (traceIO. show)) mat
-                  traceIO "\n"
-                  reduce' (k + 1) n
-      order k r
-        | r == lr = pure ()
-        | otherwise = do
-            curR <- MV.unsafeRead mat r
-            kv <- MV.unsafeRead curR k
-            if kv == 0
-               then do
-                 nv <- crawl k ( r + 1 )
-                 case nv of
-                   Nothing -> pure ()
-                   Just sw -> do 
-                     MV.unsafeSwap mat r sw 
-                     MV.unsafeSwap vec r sw
-                     order k (r + 1)
-               else order k (r + 1)
-      pivot k kv kr r
-        | r == lr = pure ()
-        | r == k = pivot k kv kr (r + 1)
-        | otherwise = do
-            rr <- MV.unsafeRead mat r
-            rv <- MV.unsafeRead rr k
-            if rv == 0 
-               then pure ()
+-- | Calculate the Hermite Normal Form of a Matrix using Cohen 2.4.4
+-- note : unlike Cohen, we start from 0
+hermiteNormalForm :: Matrix -> IO ()
+hermiteNormalForm (Mx m n mx) = hnf (m - 1) (n - 1) $ max (n - m) 0
+  where
+    hnf k j l = do
+      let finish v = when (j > l) $ hnf (v - 1) (j - 1) l -- Step 6
+-- Step 2 :: if all the a_ij with i < k are0 then step 5 else step 3
+      az <- foldrM (\v sc -> do
+        r <- MV.unsafeRead mx v
+        avj <- MV.unsafeRead r j
+        pure (avj == 0 && sc)) 
+        True [0..k - 1]
+      if az
+         then do
+            rk <- MV.unsafeRead mx k
+            akj <- MV.unsafeRead rk j
+-- end of step 2, treat negative akj
+            when (akj < 0) $ mapIOVector rk negate
+-- step 5
+            if akj == 0 
+               then finish (k + 1)
                else do
-                 vkv <- MV.unsafeRead vec k
-                 vrv <- MV.unsafeRead vec r
-                 MV.unsafeWrite vec r (kv * vrv - rv * vkv) 
-                 MV.imapM_ (pivot' kr rr kv rv) rr
-                 pivot k kv kr (r + 1)
-      pivot' kr rr kv rv i v = do
-        kiv <- MV.unsafeRead kr i
-        MV.unsafeWrite rr i (kv * v - rv * kiv)
-  reduce' 0 1
+                  reduce ( k + 1 ) ( m - 1 ) j n (abs akj) rk mx 
+                  finish k
+         else do
+-- Step 3. choose the minimal aij for i <= k
+            (mini, minv) <- foldrM (\i (mi, mv) -> do
+              r <- MV.unsafeRead mx i
+              aij <- MV.unsafeRead r j
+              if aij /= 0 && abs aij < abs mv 
+                 then pure (i, aij)
+                 else pure (mi, mv)) (undefined, maxBound) [0..k]
+-- Step 3b. If min_i < k then swap rows min_i and k. Then if our (maybe)
+-- new akjis negative, negate the whole row.
+            when (mini < k) $ MV.unsafeSwap mx mini k
+            rk <- MV.unsafeRead mx k
+            when (minv < 0) $ mapIOVector rk negate
+            let akj = abs minv
+-- Step 4. for i = 0 .. k -1, do a modular replacement
+            reduce 0 (k - 1) j n akj rk mx
+-- loop back to step 2
+            hnf k j l
+
+reduce :: Int -> Int -> Int -> Int -> Int -> IOVector Int -> IOVector (IOVector Int) -> IO ()
+reduce f t j l akj rk mx = reduce' f
+  where
+    reduce' i
+      | i > t = pure ()
+      | otherwise = do
+          ri <- MV.unsafeRead mx i
+          aij <- MV.unsafeRead ri j
+          let q = aij `div` akj
+              reduce'' x
+                | x > l = pure ()
+                | otherwise = do
+                    aix <- MV.unsafeRead ri x
+                    akx <- MV.unsafeRead rk x
+                    MV.unsafeWrite ri x (aix - q * akx)
+                    reduce'' (x + 1)
+          reduce'' 0
+          reduce' (i + 1)
+
+mapIOVector :: IOVector a -> (a -> a) -> IO ()
+mapIOVector v f = mapIOVector' 0 (MV.length v)
+  where
+    mapIOVector' i n
+      | i == n = pure ()
+      | otherwise = MV.unsafeModify v f i >> mapIOVector' (i + 1) n
+
+traceMatrix :: Matrix -> IO ()
+traceMatrix (Mx rows columns mx) = do
+  traceIO $ "Rows: " ++ show rows ++ " columns " ++ show columns
+  fmx <- V.freeze mx
+  ffmx <- mapM V.freeze fmx
+  mapM_ (traceIO . show) ffmx
 
 part1 :: Bool -> Stream IO Word8 -> IO ()
 part1 _ s = S.parse parseMachines s >>= print . fst . either (\e -> error $ "Parser failed: " ++ show e) id

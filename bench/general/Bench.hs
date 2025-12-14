@@ -5,16 +5,16 @@ import           Data.ByteString               (ByteString)
 import qualified Data.ByteString               as BS (readFile, unpack)
 import           Data.Function                 ((&))
 import           Data.Word8                    (Word8, _lf)
-import qualified Day11
+import qualified Day10
 import qualified Streamly.Data.Fold            as F (drain)
-import qualified Streamly.Data.Stream          as S (fold, fromList)
+import qualified Streamly.Data.Stream          as S (fold, fromList, parse)
 import           Streamly.Internal.Data.Fold   (Step (Done, Partial))
 import           System.Directory              (getHomeDirectory)
 import           Test.Tasty.Bench              (Benchmark, bench, defaultMain,
                                                 env, whnfIO)
 
 inputPath :: String
-inputPath = "/github/adventOfCode/input/2025/day11.txt"
+inputPath = "/github/adventOfCode/input/2025/day10.txt"
 
 shortDrain :: Bool -> Word8 -> Step Bool ()
 shortDrain b w
@@ -25,8 +25,7 @@ shortDrain b w
 tests :: IO ByteString -> [Benchmark]
 tests ioInput =
   [ env (BS.unpack <$> ioInput) $ \bs -> bench "Overhead" $ whnfIO $ S.fromList bs & S.fold F.drain
-  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 1 with parsing" $ whnfIO $ S.fromList bs & Day11.easyOut
-  , env (BS.unpack <$> ioInput) $ \bs -> bench "Part 2 with parsing" $ whnfIO $ S.fromList bs & Day11.hardOut
+  , env (BS.unpack <$> ioInput) $ \bs -> bench "Both parts with parsing" $ whnfIO $ S.fromList bs & S.parse Day10.parseMachines 
   ]
 
 main :: IO ()
