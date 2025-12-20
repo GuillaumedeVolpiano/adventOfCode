@@ -45,6 +45,7 @@ popMin p@(H _ pq sz) = do
   if i == 0 then pure Nothing
             else do
               v <- unsafeRead pq 0
+              writeIORef sz (i - 1)
               v' <- unsafeRead pq (i - 1)
               unsafeWrite pq 0 v'
               siftDown p 0

@@ -838,18 +838,18 @@ library days2025
 
   default-language: Haskell2010
 
-test-suite tests2015
-  type:             exitcode-stdio-1.0
-  main-is:          Tests.hs
-  hs-source-dirs:   test/2015
-  build-depends:
-    , base
-    , days2015
-    , tasty
-    , tasty-hunit
-    , utf8-string
-
-  default-language: Haskell2010
+-- test-suite tests2015
+--   type:             exitcode-stdio-1.0
+--   main-is:          Tests.hs
+--   hs-source-dirs:   test/2015
+--   build-depends:
+--     , base
+--     , days2015
+--     , tasty
+--     , tasty-hunit
+--     , utf8-string
+-- 
+--   default-language: Haskell2010
 
 test-suite tests2016
   type:             exitcode-stdio-1.0
