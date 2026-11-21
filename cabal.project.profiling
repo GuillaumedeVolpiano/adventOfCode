@@ -1,0 +1,6 @@
+-- Profiling build, kept apart so that everyday timings come from an
+-- uninstrumented binary. Use a separate build directory so that switching
+-- between the two does not rebuild everything each time:
+--   cabal --project-file=cabal.project.profiling --builddir=dist-profiling run aoc2026 -- --day 3
+import: cabal.project
+profiling: True

@@ -11,21 +11,15 @@ import           System.TimeIt          (timeItT)
 import           Text.Printf            (printf)
 
 import           Data.List.Split        (splitOn)
-import           Network.Curl           (CurlOption (CurlCookie, CurlProxy),
+import           Helpers.Repository      (inputFile, rootFile, testFile,
+                                         userAgent)
+import           Network.Curl           (CurlOption (CurlCookie, CurlProxy,
+                                                     CurlUserAgent),
                                          curlGetString)
-import           System.Directory       (getHomeDirectory)
 
 import           Debug.Trace
 
-cookiePath = "/adventOfCode/cookies.json"
-
 adventURL = "https://adventofcode.com/"
-
-testPath = "/adventOfCode/test/"
-
-inputPath = "/adventOfCode/input/"
-
-proxyPath = "/adventOfCode/proxy"
 
 preciseTimeIt :: (MonadIO m, Show a) => Int -> m a -> m a
 preciseTimeIt = customPreciseTimeIt "CPU time: "
@@ -66,24 +60,26 @@ parseCookie path = do
 
 retrieveInput :: Int -> Int -> Bool -> Bool -> Bool -> IO String
 retrieveInput year day test local withProxy = do
-  home <- getHomeDirectory
+  inputName <- inputFile year day
+  testName <- testFile year day
   if test
     then readFile $
-         home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
+         testName
     else if local
            then readFile $
-                home ++ inputPath ++ show year ++ "/day" ++ show day ++ ".txt"
+                inputName
            else remoteInput year day withProxy
 
 remoteInput :: Int -> Int -> Bool -> IO String
 remoteInput year day withProxy = do
   let url = adventURL ++ show year ++ "/day/" ++ show day ++ "/input"
-  home <- getHomeDirectory
-  cookie <- parseCookie $ home ++ cookiePath
-  proxy <- readFile (home ++ proxyPath)
+  cookieName <- rootFile "cookies.json"
+  proxyName <- rootFile "proxy"
+  cookie <- parseCookie $ cookieName
+  proxy <- readFile (proxyName)
   let curlArgs =
         if withProxy
-          then [CurlProxy (init proxy), CurlCookie cookie]
-          else [CurlCookie cookie]
+          then [CurlProxy (init proxy), CurlCookie cookie, CurlUserAgent userAgent]
+          else [CurlCookie cookie, CurlUserAgent userAgent]
   (code, rsp) <- curlGetString url curlArgs
   return rsp

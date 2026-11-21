@@ -1,4 +1,43 @@
 optimization: 2
 tests: True
 packages: ./*.cabal
-profiling: True
+
+-- The input of a day is downloaded through effectful-streamly-http, which
+-- is not on Hackage yet, no more than the libraries it is built on: they
+-- are fetched from GitHub, each at its release.
+
+source-repository-package
+  type: git
+  location: https://github.com/GuillaumedeVolpiano/effectful-streamly-http
+  tag: v0.1.0.0
+
+source-repository-package
+  type: git
+  location: https://github.com/GuillaumedeVolpiano/effectful-streamly-http-tls
+  tag: v0.1.0.0
+
+source-repository-package
+  type: git
+  location: https://github.com/GuillaumedeVolpiano/streamly-http
+  tag: v0.2.0.0
+
+source-repository-package
+  type: git
+  location: https://github.com/GuillaumedeVolpiano/streamly-http-tls
+  tag: v0.2.0.0
+
+source-repository-package
+  type: git
+  location: https://github.com/GuillaumedeVolpiano/streamly-network-tls
+  tag: v0.2.0.0
+
+source-repository-package
+  type: git
+  location: https://github.com/GuillaumedeVolpiano/streamly-network-tcp
+  tag: v0.1.0.0
+
+-- flatparse parsers on the input of a day and on streams of arrays.
+source-repository-package
+  type: git
+  location: https://github.com/GuillaumedeVolpiano/streamly-flatparse
+  tag: v0.1.0.1

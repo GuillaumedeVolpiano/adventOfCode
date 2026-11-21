@@ -27,7 +27,6 @@ import           System.Console.CmdArgs.Implicit (Data, cmdArgs, def, help, opt,
 data Arguments = Arguments
   { day         :: Int
   , test        :: Bool
-  , proxy       :: Bool
   , wallTime    :: Bool
   , interactive :: Bool
   } deriving (Show, Data)
@@ -67,7 +66,6 @@ main = do
                 &= help "Which day to process. Defaults to the current day"
                 &= opt curDay
           , test = def &= help "Run the test suite? Defaults to True if used"
-          , proxy = def &= help "Use a proxy? Defaults to True if used"
           , wallTime = def &= help "Report wall Time rather than CPU time"
           , interactive = def &= help "Run interactively"
           }
@@ -77,7 +75,7 @@ main = do
         case day args of
           0 -> curDay
           _ -> day args
-  input <- retrieveInput year theDay (test args) (proxy args)
+  input <- retrieveInput year theDay (test args)
   let (solve1, solve2) = solver ! theDay
       timer =
         if wallTime args

@@ -7,12 +7,16 @@ PythonHelpers_for_Quitterie
 *.swp
 template.hs
 dist-newstyle
+dist-profiling
 *.dot
 *.svg
 input/*
 input/*/*
 test/*
 test/*/*
+!test/2026/
+test/2026/*
+!test/2026/Tests.hs
 .pre-commit-config.yaml
 .aoc_tiles/*
 !.aoc_tiles/tiles/
@@ -20,3 +24,5 @@ test/*/*
 *.hp
 *.bench
 *.hsE
+cabal.project.local
+cabal.project.profiling.local

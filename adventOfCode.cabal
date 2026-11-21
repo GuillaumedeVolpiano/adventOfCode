@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               adventOfCode
-version:            2025 
+version:            2026
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -30,12 +30,14 @@ library helpers
   import:           warnings
   hs-source-dirs:   lib
   exposed-modules:
+    Helpers.Day
     Helpers.General
     Helpers.General.ByteString
     Helpers.General.Streamly
     Helpers.General.Text
     Helpers.Graph
     Helpers.Heap.Mutable
+    Helpers.Input
     Helpers.Heap.Primitive.Mutable
     Helpers.Heap.Unboxed.Mutable
     Helpers.Maths
@@ -43,24 +45,31 @@ library helpers
     Helpers.Parsers.ByteString
     Helpers.Parsers.FlatParse
     Helpers.Parsers.Text
+    Helpers.Repository
+    Helpers.Runner
     Helpers.Search
     Helpers.Search.Int
     Helpers.Streamly.Fold
+    Helpers.Testing
 
   build-depends:
     , array
     , base
     , bytestring
+    , cmdargs
     , containers
     , curl
+    , deepseq
     , directory
+    , effectful-core               ^>=2.7.1
+    , effectful-streamly-http      ^>=0.1
+    , effectful-streamly-http-tls  ^>=0.1
     , fgl
+    , filepath
     , flatparse
     , graphviz
     , hashable
-    , http-client           ^>=0.7.19
-    , http-client-tls       ^>=0.3.6.4
-    , http-types            ^>=0.12.4
+    , HUnit
     , linear
     , megaparsec
     , monad-dijkstra
@@ -838,6 +847,57 @@ library days2025
 
   default-language: Haskell2010
 
+executable aoc2026
+  import:           warnings
+  main-is:          Main.hs
+  hs-source-dirs:   2026
+  build-depends:
+    , base
+    , days2026
+    , helpers
+
+library days2026
+  import:           warnings
+  hs-source-dirs:   2026/days
+  exposed-modules:
+    Day1
+    Day2
+    Day3
+    Day4
+    Day5
+    Day6
+    Day7
+    Day8
+    Day9
+    Days
+    Day10
+    Day11
+    Day12
+
+  build-depends:
+    , base
+    , bytestring            ^>=0.12.2.0
+    , containers            ^>=0.7
+    , deepseq               ^>=1.5.1.0
+    , flatparse             ^>=0.5
+    , fusion-plugin         ^>=0.2.8
+    , hashable              ^>=1.4.7.0
+    , helpers
+    , psqueues              ^>=0.2.8.1
+    , streamly-bytestring   ^>=0.2.3
+    , streamly-core         ^>=0.3.0
+    , streamly-flatparse    ^>=0.1
+    , unordered-containers  ^>=0.2.20.1
+    , vector                ^>=0.13.2.0
+    , vector-algorithms     ^>=0.9.1.0
+    , word8                 ^>=0.1.3
+
+  -- Streamly needs the fusion plugin to get rid of the constructors of
+  -- its streams: without it even a simple fold over a stream allocates
+  -- for every element.
+  ghc-options:      -fplugin Fusion.Plugin
+  default-language: Haskell2010
+
 -- test-suite tests2015
 --   type:             exitcode-stdio-1.0
 --   main-is:          Tests.hs
@@ -954,6 +1014,16 @@ test-suite tests2025
 
   default-language: Haskell2010
 
+test-suite tests2026
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Tests.hs
+  hs-source-dirs:   test/2026
+  build-depends:
+    , base
+    , days2026
+    , helpers
+
 benchmark bench
   import:           warnings
   main-is:          Bench.hs
@@ -962,12 +1032,14 @@ benchmark bench
   build-depends:
     , base
     , bytestring
-    , days2025
+    , days2026
     , directory
+    , fusion-plugin         ^>=0.2.8
     , helpers
     , massiv
     , megaparsec
     , mtl
+    , streamly-bytestring   ^>=0.2.3
     , streamly-core         ^>=0.3.0
     , tasty-bench
     , text                  >=2.1
@@ -976,9 +1048,13 @@ benchmark bench
     , vector                ^>=0.13.2.0
     , word8                 ^>=0.1.3
 
+  -- One capability: with more, the parallel collector alone slows
+  -- sequential code down by a third. For a day that runs in parallel, add
+  -- --benchmark-options='--time-mode wall +RTS -N8'. -T gives the
+  -- allocations, the first thing to look at.
   ghc-options:
     -fllvm -threaded -O3 -rtsopts -funbox-strict-fields
-    "-with-rtsopts=-N8 -T"
+    -fplugin Fusion.Plugin -with-rtsopts=-T
 
   default-language: Haskell2010
 
@@ -990,11 +1066,16 @@ benchmark full-year
   build-depends:
     , base
     , bytestring
-    , days2025
+    , containers
+    , days2026
     , directory
+    , fusion-plugin         ^>=0.2.8
     , helpers
+    , streamly-bytestring   ^>=0.2.3
+    , streamly-core         ^>=0.3.0
     , tasty-bench
-    , utf8-string
 
-  ghc-options:      -fllvm -threaded -O3 -rtsopts "-with-rtsopts=-N8 -T"
+  -- See the benchmark above for the options.
+  ghc-options:
+    -fllvm -threaded -O3 -rtsopts -fplugin Fusion.Plugin -with-rtsopts=-T
   default-language: Haskell2010

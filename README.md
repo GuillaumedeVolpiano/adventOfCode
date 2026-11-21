@@ -10,46 +10,85 @@ according to r/adventofcode when my own solution was much less efficient.
 
 <!-- AOC TILES BEGIN -->
 <h1 align="center">
-  Advent of Code - 524/532 ⭐
+  Advent of Code - 548/550 ⭐
 </h1>
+<h1 align="center">
+  2026 - 24 ⭐ - Haskell
+</h1>
+<a href="2026/days/Day1.hs">
+  <img src=".aoc_tiles/tiles/2026/01.png" width="203px">
+</a>
+<a href="2026/days/Day2.hs">
+  <img src=".aoc_tiles/tiles/2026/02.png" width="203px">
+</a>
+<a href="2026/days/Day3.hs">
+  <img src=".aoc_tiles/tiles/2026/03.png" width="203px">
+</a>
+<a href="2026/days/Day4.hs">
+  <img src=".aoc_tiles/tiles/2026/04.png" width="203px">
+</a>
+<a href="2026/days/Day5.hs">
+  <img src=".aoc_tiles/tiles/2026/05.png" width="203px">
+</a>
+<a href="2026/days/Day6.hs">
+  <img src=".aoc_tiles/tiles/2026/06.png" width="203px">
+</a>
+<a href="2026/days/Day7.hs">
+  <img src=".aoc_tiles/tiles/2026/07.png" width="203px">
+</a>
+<a href="2026/days/Day8.hs">
+  <img src=".aoc_tiles/tiles/2026/08.png" width="203px">
+</a>
+<a href="2026/days/Day9.hs">
+  <img src=".aoc_tiles/tiles/2026/09.png" width="203px">
+</a>
+<a href="2026/days/Day10.hs">
+  <img src=".aoc_tiles/tiles/2026/10.png" width="203px">
+</a>
+<a href="2026/days/Day11.hs">
+  <img src=".aoc_tiles/tiles/2026/11.png" width="203px">
+</a>
+<a href="2026/days/Day12.hs">
+  <img src=".aoc_tiles/tiles/2026/12.png" width="203px">
+</a>
 <h1 align="center">
   2025 - 24 ⭐ - Haskell
 </h1>
 <a href="2025/days/Day1.hs">
-  <img src=".aoc_tiles/tiles/2025/01.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/01.png" width="203px">
 </a>
 <a href="2025/days/Day2.hs">
-  <img src=".aoc_tiles/tiles/2025/02.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/02.png" width="203px">
 </a>
 <a href="2025/days/Day3.hs">
-  <img src=".aoc_tiles/tiles/2025/03.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/03.png" width="203px">
 </a>
 <a href="2025/days/Day4.hs">
-  <img src=".aoc_tiles/tiles/2025/04.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/04.png" width="203px">
 </a>
 <a href="2025/days/Day5.hs">
-  <img src=".aoc_tiles/tiles/2025/05.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/05.png" width="203px">
 </a>
 <a href="2025/days/Day6.hs">
-  <img src=".aoc_tiles/tiles/2025/06.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/06.png" width="203px">
 </a>
 <a href="2025/days/Day7.hs">
-  <img src=".aoc_tiles/tiles/2025/07.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/07.png" width="203px">
 </a>
 <a href="2025/days/Day8.hs">
-  <img src=".aoc_tiles/tiles/2025/08.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/08.png" width="203px">
 </a>
 <a href="2025/days/Day9.hs">
-  <img src=".aoc_tiles/tiles/2025/09.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/09.png" width="203px">
 </a>
 <a href="2025/days/Day10.hs">
-  <img src=".aoc_tiles/tiles/2025/10.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/10.png" width="203px">
 </a>
 <a href="2025/days/Day11.hs">
-  <img src=".aoc_tiles/tiles/2025/11.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/11.png" width="203px">
 </a>
 <a href="2025/days/Day12.hs">
-  <img src=".aoc_tiles/tiles/2025/12.png" width="161px">
+  <img src=".aoc_tiles/tiles/2025/12.png" width="203px">
 </a>
 <h1 align="center">
   2024 - 50 ⭐ - Haskell

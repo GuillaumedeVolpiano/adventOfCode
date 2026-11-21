@@ -1,14 +1,19 @@
 module DayX
-  ( part1
-  , part2
+  ( solve1
+  , solve2
   ) where
 
-import           Data.ByteString           (ByteString)
-import           Helpers.Parsers.FlatParse (extract)
-import qualified Helpers.Parsers.FlatParse as F (Parser)
+import           Helpers.Input (Input)
 
-part1 :: Bool -> ByteString -> String
-part1 _ _ = "Part 1"
+-- The Bool is True when running on the example input (--test). The input
+-- is the whole file: Helpers.Input turns it into a stream of bytes
+-- (bytes), a stream of arrays for streamly-flatparse (chunks) or a
+-- ByteString (byteString). Change the result types at will: they only need
+-- Eq, Show and NFData. Register the day, with the answers to the example,
+-- in the year's Days module.
 
-part2 :: Bool -> ByteString -> String
-part2 _ _ = "Part 2"
+solve1 :: Bool -> Input -> IO Int
+solve1 _ _ = error "Day X, part 1: not written yet"
+
+solve2 :: Bool -> Input -> IO Int
+solve2 _ _ = error "Day X, part 2: not written yet"

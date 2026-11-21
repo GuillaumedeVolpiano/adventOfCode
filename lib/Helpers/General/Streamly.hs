@@ -1,65 +1,67 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeOperators       #-}
 module Helpers.General.Streamly
   ( preciseTimeIt
   , customPreciseTimeIt
   , retrieveInput
+  , readInput
+  , fetchInput
   , wallTimeIt
   , isDigit
   , digit
   ) where
 
-import           Control.Monad                (unless, void)
+import           Control.Monad                (unless, when)
 import           Control.Monad.IO.Class       (MonadIO (liftIO))
-import           Data.Time.Clock              (UTCTime, diffUTCTime,
-                                               getCurrentTime)
+import           Data.Time.Clock              (diffUTCTime, getCurrentTime)
 import           System.TimeIt                (timeItT)
 import           Text.Printf                  (printf)
 
 import           Control.Applicative          ((<|>))
 import           Data.ByteString              (ByteString)
-import           Data.ByteString              as BS (drop, isPrefixOf, null)
+import qualified Data.ByteString              as BS (drop, intercalate,
+                                                     isPrefixOf, isSuffixOf,
+                                                     readFile, writeFile)
 import qualified Data.ByteString.Char8        as BS (readInt)
-import           Data.Function                ((&))
+import qualified Data.ByteString.Char8        as C (pack)
 import           Data.Maybe                   (catMaybes)
 import qualified Data.Text                    as T (unpack)
 import qualified Data.Text.Encoding           as T (decodeUtf8)
-import           Data.Time.Clock.POSIX        (posixSecondsToUTCTime)
+import           Data.Time.Clock.POSIX        (getPOSIXTime)
 import           Data.Word                    (Word8)
-import           Data.Word8                   (_colon, _cr, _lf, _numbersign,
-                                               _slash, _tab)
-import           Network.HTTP.Client          (BodyReader, Cookie (Cookie),
-                                               CookieJar, Proxy (Proxy),
-                                               Response, brRead,
-                                               createCookieJar,
-                                               insertCookiesIntoRequest,
-                                               parseUrlThrow, requestHeaders,
-                                               responseBody,
-                                               responseStatus, withResponse)
-import qualified Network.HTTP.Client          as H (proxy)
-import           Network.HTTP.Client.TLS      (newTlsManager)
-import           Network.HTTP.Types           (statusCode)
+import           Data.Word8                   (_cr, _lf, _numbersign, _tab)
+import           Effectful                    (Eff, IOE, runEff, (:>))
+import           Effectful.Error.Static       (runErrorNoCallStack)
+import           Effectful.HTTP               (Http, HttpFailure,
+                                               Response (..), Scheme (Https),
+                                               defaultLimits, fetch, get,
+                                               withHeaders)
+import           Effectful.HTTP.TLS           (Certificates (SystemCertificates),
+                                               runHttp)
+import           Helpers.Input                (Input, fromByteString)
+import           Helpers.Repository           (inputFile, rootFile, testFile,
+                                               userAgent)
 import qualified Streamly.Data.Fold           as F (drain, toList)
 import qualified Streamly.Data.Parser         as P (many, satisfy, takeWhile)
 import           Streamly.Data.Parser         (ParseError (ParseError), Parser)
-import qualified Streamly.Data.Stream         as S (concatMap, fold, parse,
-                                                    unfold)
+import qualified Streamly.Data.Stream         as S (parse)
 import           Streamly.Data.Stream         (Stream)
-import qualified Streamly.Data.Unfold         as U (unfoldrM)
-import           Streamly.Data.Unfold         (Unfold)
-import qualified Streamly.External.ByteString as SBS (reader, write)
-import qualified Streamly.FileSystem.FileIO   as S (read, write)
+import qualified Streamly.External.ByteString as SBS (write)
+import qualified Streamly.FileSystem.FileIO   as S (read)
 import qualified Streamly.FileSystem.Path     as S (fromString_)
-import           Streamly.FileSystem.Path     (Path)
 import qualified System.Directory             as SD (doesFileExist)
-import           System.Directory             (getHomeDirectory)
 
-terminators :: [Word8]
+terminators :: [Word8]
 terminators = [_tab]
 
-eols :: [Word8]
+eols :: [Word8]
 eols = [_lf, _cr]
 
-allEnds :: [Word8]
+allEnds :: [Word8]
 allEnds = terminators ++ eols
 
 isDigit :: Word8 -> Bool
@@ -70,23 +72,18 @@ digit :: Word8 -> Int
 digit w = fromIntegral (w - 48)
 {-# INLINE digit #-}
 
-cookiePath :: FilePath
-cookiePath = "/github/adventOfCode/cookies.txt"
+adventHost :: String
+adventHost = "adventofcode.com"
 
-adventURL :: FilePath
-adventURL = "https://adventofcode.com/"
-
-testPath :: FilePath
-testPath = "/github/adventOfCode/test/"
-
-inputPath :: FilePath
-inputPath = "/github/adventOfCode/input/"
-
-proxyPath :: FilePath
-proxyPath = "/github/adventOfCode/proxy"
-
-epoch :: UTCTime
-epoch = posixSecondsToUTCTime 0
+-- | A line of cookies.txt, in the Netscape format: what is needed to know
+-- whether the cookie goes to a host, and to send it.
+data Cookie = Cookie
+  { cookieDomain  :: ByteString
+  , cookieExpiry  :: Int
+  -- ^ Seconds since the epoch; 0 for a cookie that lasts the session.
+  , cookieName    :: ByteString
+  , cookieValue   :: ByteString
+  }
 
 preciseTimeIt :: (MonadIO m, Show a) => Int -> m a -> m a
 preciseTimeIt = customPreciseTimeIt "CPU time: "
@@ -112,23 +109,24 @@ wallTimeItT ioa = do
       t = realToFrac (diffUTCTime t2 t1)
   return (t, a)
 
-parseCookies :: Parser Word8 IO CookieJar
-parseCookies = createCookieJar . catMaybes <$> P.many parseLine F.toList
+parseCookies :: Parser Word8 IO [Cookie]
+parseCookies = catMaybes <$> P.many parseLine F.toList
 
 parseLine :: Parser Word8 IO (Maybe Cookie)
 parseLine = parseComment <|> parseEmpty <|> parseCookie
 
+-- domain, subdomains too?, path, secure?, expiry, name, value
 parseCookie :: Parser Word8 IO (Maybe Cookie)
 parseCookie = do
   domain <- normaliseDomain <$> parseChunk
   P.many (P.satisfy (`elem` terminators)) F.drain
-  hostOnly <- not <$> parseBool
-  path <- parseChunk
-  secure <- parseBool
-  expiry <- parseDate
+  _subdomains <- parseChunk
+  _path <- parseChunk
+  _secure <- parseChunk
+  expiry <- parseInt
   name <- parseChunk
   value <- parseChunk
-  pure . Just $ Cookie name value expiry domain path epoch epoch True hostOnly secure True
+  pure . Just $ Cookie domain expiry name value
 
 normaliseDomain :: ByteString -> ByteString
 normaliseDomain bs = if "." `BS.isPrefixOf` bs then BS.drop 1 bs else bs
@@ -136,14 +134,8 @@ normaliseDomain bs = if "." `BS.isPrefixOf` bs then BS.drop 1 bs else bs
 parseChunk :: Parser Word8 IO ByteString
 parseChunk = P.takeWhile (`notElem` allEnds) SBS.write >>= \bs ->  P.many (P.satisfy (`elem` allEnds)) F.drain >> pure bs
 
-parseBool :: Parser Word8 IO Bool
-parseBool = (== "TRUE") <$> parseChunk
-
 parseComment :: Parser Word8 IO (Maybe Cookie)
 parseComment = P.many (P.satisfy (`elem` terminators)) F.drain >> P.satisfy (== _numbersign ) >> P.many (P.satisfy (`notElem` eols)) F.drain >> P.satisfy (`elem` eols) >> pure Nothing
-
-parseDate :: Parser Word8 IO UTCTime
-parseDate = posixSecondsToUTCTime . fromIntegral <$> parseInt
 
 parseInt :: Parser Word8 IO Int
 parseInt = do
@@ -156,53 +148,73 @@ parseInt = do
 parseEmpty :: Parser Word8 IO (Maybe Cookie)
 parseEmpty = P.many (P.satisfy (`elem` terminators)) F.drain >> P.satisfy (`elem` eols) >> pure Nothing
 
--- to be improved
-parseProxy :: Parser Word8 IO Proxy
-parseProxy = do
-  P.many (P.satisfy (/= _colon)) F.drain
-  void $ P.satisfy (== _colon) >> P.satisfy (== _slash) >> P.satisfy (== _slash)
-  host <- P.takeWhile (/= _colon) SBS.write
-  void $ P.satisfy (== _colon)
-  Proxy host <$> parseInt
+-- | The value of the Cookie header for a host: the cookies of cookies.txt
+-- that belong to it or to a domain above it, and have not expired.
+cookieHeader :: String -> IO ByteString
+cookieHeader host = do
+  cookieName' <- rootFile "cookies.txt"
+  parsed <- S.parse parseCookies . S.read . S.fromString_ $ cookieName'
+  now <- round <$> getPOSIXTime
+  let cookies = case parsed of
+        Left (ParseError s) -> error $ "Could not parse cookie jar " ++ s
+        Right c             -> c
+      host' = C.pack host
+      matches c =
+        (cookieDomain c == host' || ("." <> cookieDomain c) `BS.isSuffixOf` host')
+          && (cookieExpiry c == 0 || cookieExpiry c > now)
+      sent = [cookieName c <> "=" <> cookieValue c | c <- cookies, matches c]
+  when (null sent) . fail $
+    "no valid cookie for " ++ host ++ " in " ++ cookieName'
+  pure $ BS.intercalate "; " sent
 
-streamResponse :: Response BodyReader -> Stream IO Word8
-streamResponse response = S.unfold unfoldBodyReader (responseBody response) & S.concatMap (S.unfold SBS.reader)
+-- | The input of a day as a stream read from its file as it is consumed.
+retrieveInput :: Int -> Int -> Bool -> IO (Stream IO Word8)
+retrieveInput year day test = S.read . S.fromString_ <$> localInput year day test
 
-unfoldBodyReader :: Unfold IO BodyReader ByteString
-unfoldBodyReader = U.unfoldrM $ \body -> do
-  chunk <- brRead body
-  if BS.null chunk then pure Nothing
-                   else pure . Just $ (chunk, body)
+-- | The input of a day, whole in memory.
+readInput :: Int -> Int -> Bool -> IO Input
+readInput year day test = fromByteString <$> (localInput year day test >>= BS.readFile)
 
-
-retrieveInput :: Int -> Int -> Bool -> Bool -> IO (Stream IO Word8)
-retrieveInput year day test withProxy = do
-  home <- getHomeDirectory
+-- | The file that holds the input of a day, or its example, downloaded
+-- first when it is the input and it is not there yet.
+localInput :: Int -> Int -> Bool -> IO FilePath
+localInput year day test = do
+  inputName <- inputFile year day
+  testName <- testFile year day
   let file
-        | test = home ++ testPath ++ show year ++ "/day" ++ show day ++ ".txt"
+        | test = testName
         | otherwise =
-          home ++ inputPath ++ show year ++ "/day" ++ show day ++ ".txt"
+          inputName
   exist <- SD.doesFileExist file
-  unless (test || exist) $ remoteInput year day withProxy $ S.fromString_ file
-  pure . S.read . S.fromString_ $ file
+  unless (test || exist) $ remoteInput year day file
+  pure file
 
-remoteInput :: Int -> Int -> Bool -> Path -> IO ()
-remoteInput year day withProxy file = do
-  let url = adventURL ++ show year ++ "/day/" ++ show day ++ "/input"
-  req <- parseUrlThrow url
-  home <- getHomeDirectory
-  eCookieJar <- S.parse parseCookies . S.read . S.fromString_ $ home ++ cookiePath
-  eProxy <- S.parse parseProxy . S.read . S.fromString_  $ home ++ proxyPath
-  now <- getCurrentTime
-  let cookieJar = case eCookieJar of
-                    Left (ParseError s) -> error $ "Could not parse cookie jar " ++ s
-                    Right c -> c
-      proxy = case eProxy of
-                    Left (ParseError s) -> error $ "Could not parse proxy" ++ s
-                    Right p             -> if withProxy then Just p else Nothing
-      fullReq = fst $ insertCookiesIntoRequest (req {H.proxy = proxy, requestHeaders = ("User-Agent", "curl/8.5.0"):requestHeaders req}) cookieJar now
-  manager <- newTlsManager
-  withResponse fullReq manager $ \rsp -> do
-    let code = statusCode $ responseStatus rsp
-    if code == 200 then streamResponse rsp & S.fold (S.write file)
-                   else error $ "failed to fetch input, status: " ++ show code
+-- | Download the input of a day to a file, over the Http effect of
+-- effectful-streamly-http, interpreted over TLS. The file is only written
+-- once the whole input has arrived.
+remoteInput :: Int -> Int -> FilePath -> IO ()
+remoteInput year day file = do
+  outcome <-
+    runEff
+      . runErrorNoCallStack @HttpFailure
+      . runHttp SystemCertificates defaultLimits
+      $ fetchInput year day
+  case outcome of
+    Left failure -> fail $ "failed to fetch input: " ++ show failure
+    Right input  -> BS.writeFile file input
+
+-- | The input of a day, asked from Advent of Code with the session cookie
+-- of cookies.txt.
+fetchInput :: (IOE :> es, Http :> es) => Int -> Int -> Eff es ByteString
+fetchInput year day = do
+  cookies <- liftIO $ cookieHeader adventHost
+  response <-
+    fetch Https
+      . withHeaders [("User-Agent", C.pack userAgent), ("Cookie", cookies)]
+      $ get adventHost 443 target
+  if response.status == 200
+    then pure response.body
+    else liftIO . fail $
+           "failed to fetch input, status: " ++ show response.status
+  where
+    target = C.pack $ "/" ++ show year ++ "/day/" ++ show day ++ "/input"
