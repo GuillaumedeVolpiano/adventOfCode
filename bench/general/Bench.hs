@@ -15,7 +15,7 @@ import           Test.Tasty.Bench             (Benchmark, bcompare, bench,
 -- Scratch benchmark for the day being optimised: change the import, the
 -- day below and the benchmarks as needed.
 --
---   cabal bench bench --benchmark-options='--stdev 2'
+--   cabal bench bench2026 --benchmark-options='--stdev 2'
 --
 -- Read the allocations before the time: they do not vary from one run to
 -- the next, and they tell whether the streams fused. A loop that fused
@@ -24,8 +24,8 @@ import           Test.Tasty.Bench             (Benchmark, bcompare, bench,
 --
 -- To compare two versions of a solution, keep the first as a baseline:
 --
---   cabal bench bench --benchmark-options='--csv before.csv'
---   cabal bench bench --benchmark-options='--baseline before.csv'
+--   cabal bench bench2026 --benchmark-options='--csv before.csv'
+--   cabal bench bench2026 --benchmark-options='--baseline before.csv'
 
 year, day :: Int
 year = 2026

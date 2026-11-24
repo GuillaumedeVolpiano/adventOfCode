@@ -26,3 +26,5 @@ test/2026/*
 *.hsE
 cabal.project.local
 cabal.project.profiling.local
+.claude/
+.mcp.json

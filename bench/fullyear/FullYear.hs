@@ -10,6 +10,8 @@ import           System.Directory             (doesFileExist)
 import           Test.Tasty.Bench             (Benchmark, bench, bgroup,
                                                defaultMain, nfAppIO)
 
+--   cabal bench full-year2026 --benchmark-options='--stdev 2'
+--
 -- Times both parts of every day of the table whose input has been
 -- downloaded. Reading the file is left out of the timing; parsing the
 -- input is included. Days without an input file are skipped.
