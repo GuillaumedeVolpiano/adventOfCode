@@ -7,18 +7,20 @@ module Day9
   , getLargestValid
   ) where
 
-import           Data.Word                    (Word8)
-import           Data.Word8                   (_comma, _lf)
-import           Helpers.General.Streamly     (isDigit, digit)
-import           Streamly.Data.Stream         (Stream)
-import qualified Streamly.Data.Stream as S (fold)
-import qualified Streamly.Data.Fold as F (foldl')
-import Data.Vector.Primitive (Vector)
-import qualified Data.Vector.Primitive as V (fromList, length, (!), unsafeFreeze)
-import qualified Data.Set as St (fromList, toList)
-import Data.Vector.Primitive.Mutable (IOVector)
-import qualified Data.Vector.Primitive.Mutable as MV (replicate, unsafeWrite, unsafeRead)
-import Control.Monad (forM_, (>=>))
+import           Control.Monad                 (forM_, (>=>))
+import qualified Data.Set                      as St (fromList, toList)
+import           Data.Vector.Primitive         (Vector)
+import qualified Data.Vector.Primitive         as V (fromList, length,
+                                                     unsafeFreeze, (!))
+import           Data.Vector.Primitive.Mutable (IOVector)
+import qualified Data.Vector.Primitive.Mutable as MV (replicate, unsafeRead,
+                                                      unsafeWrite)
+import           Data.Word                     (Word8)
+import           Data.Word8                    (_comma, _lf)
+import           Helpers.General.Streamly      (digit, isDigit)
+import qualified Streamly.Data.Fold            as F (foldl')
+import qualified Streamly.Data.Stream          as S (fold)
+import           Streamly.Data.Stream          (Stream)
 
 type Rect = (Coords, Coords)
 
@@ -49,8 +51,8 @@ getCoords s = S.fold (F.foldl' folder (ReadX 0 [])) s
 
 getLargest :: Stream IO Word8 -> IO Int
 getLargest s = do
-  let getAreas [] = 0
-      getAreas [_] = 0
+  let getAreas []       = 0
+      getAreas [_]      = 0
       getAreas (a : as) = max (maximum . map (area a) $ as) $ getAreas as
   getAreas <$> getCoords s
 
@@ -66,7 +68,7 @@ getLargestValid s = do
   let coords' = map (\(x, y) -> ((x, y), (getBand x xs, getBand y ys))) coords
       checkRectangles [] = 0
       checkRectangles [_] = 0
-      checkRectangles (c:cs) = max (maximum . map (checkRectangle sums l c) $ cs) $ checkRectangles cs 
+      checkRectangles (c:cs) = max (maximum . map (checkRectangle sums l c) $ cs) $ checkRectangles cs
   pure . checkRectangles $ coords'
 
 extractXY :: [Coords] -> (Vector Int, Vector Int)

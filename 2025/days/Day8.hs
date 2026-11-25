@@ -1,29 +1,28 @@
-{-# LANGUAGE LambdaCase #-}
--- | Day8 module: solves a graph-based problem using incremental MST and disjoint sets.
+
+-- | Day8 module: solves a graph-based problem using incremental MST and
+-- disjoint sets.
 -- Provides both part1 and part2 solutions, plus lower-level operations on disjoint sets
 -- and a mutable priority queue.
 module Day8
   ( part1
   , part2
-  , connectAll
-  , getCircuit
-  , prodThree
   , findCircuits
   , findLastCircuits
   , DisjointSets (DS)
   ) where
 
 import           Control.DeepSeq               (NFData, rnf)
-import           Control.Monad                 (void)
-import           Data.Hashable                 (Hashable, hashWithSalt)
-import           Data.IORef                    (IORef)
-import qualified Data.IORef                    as R (modifyIORef', newIORef,
-                                                     readIORef, writeIORef)
+import           Control.Monad                 (forM_, when)
+import           Data.Bits                     (shiftL, shiftR, (.&.), (.|.))
+import           Data.Foldable                 (foldrM)
 import qualified Data.List                     as L (sortBy)
-import           Data.Maybe                    (fromMaybe)
+import           Data.Maybe                    (catMaybes)
 import           Data.Ord                      (Down (Down), comparing)
+import           Data.Vector.Algorithms.Intro  (select)
 import           Data.Vector.Primitive.Mutable (IOVector)
-import qualified Data.Vector.Primitive.Mutable as MV (new, unsafeRead,
+import qualified Data.Vector.Primitive.Mutable as MV (generate, length, mapM_,
+                                                      replicate, unsafeNew,
+                                                      unsafeRead, unsafeTake,
                                                       unsafeWrite)
 import           Data.Word                     (Word8)
 import           Data.Word8                    (_comma, _lf)
@@ -31,43 +30,23 @@ import           Helpers.General.Streamly      (digit, isDigit)
 import qualified Streamly.Data.Fold            as F (foldlM')
 import qualified Streamly.Data.Stream          as S (fold)
 import           Streamly.Data.Stream          (Stream)
-import Helpers.Heap.Unboxed.Mutable (Heap, popMin, push, newHeap)
-
--- | 3D coordinates of a node.
-data Coords = C {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
-  deriving (Eq, Ord, Show)
 
 -- | Disjoint sets with path compression and a reference to top three largest sets.
-data DisjointSets = DS (IOVector Int) (IOVector Int) (IORef [(Int, Int)])
-
--- | Mutable priority queue for edges, storing current size in an IORef.
-type PQueue = Heap Edge
-
--- | Edge representation: (distance, node1, node2, x1, x2)
-type Edge = (Int, Int, Int, Int, Int)
+data DisjointSets = DS (IOVector Int) (IOVector Int)
 
 -- | Mutable fold state for streaming input parsing.
-data FoldState = FS !PQueue !(IORef Int) !(IORef [(Coords, Int)]) !DisjointSets !(IORef [Int])
-
-instance NFData Coords where
-  rnf (C x y z) = rnf x `seq` rnf y `seq` rnf z
-
-instance Hashable Coords where
-  hashWithSalt s (C h w d) = hashWithSalt s (h, w, d)
+data FoldState
+  = ReadX !Int !Int
+  | ReadY !Int !Int
+  | ReadZ !Int !Int
 
 instance NFData DisjointSets where
-  rnf (DS p s tt) = rnf p `seq` rnf s `seq` rnf tt
+  rnf (DS p s) = rnf p `seq` rnf s
 
--- | Initialize a singleton set for a node.
-mkSet :: Int -> DisjointSets -> IO ()
-mkSet c (DS p s _) = do
-  MV.unsafeWrite p c c
-  MV.unsafeWrite s c 1
-{-# INLINE mkSet #-}
 
 -- | Find the representative of a set with path compression.
 find :: Int -> DisjointSets -> IO Int
-find c ds@(DS p _ _) = do
+find c ds@(DS p _) = do
   pc <- MV.unsafeRead p c
   if pc == c then pure c
              else do
@@ -77,7 +56,7 @@ find c ds@(DS p _ _) = do
 
 -- | Union two sets; update top three largest sets if needed.
 union :: Int -> Int -> DisjointSets -> IO Int
-union c c' ds@(DS p s tt) = do
+union c c' ds@(DS p s) = do
   x <- find c ds
   y <- find c' ds
   xs <- MV.unsafeRead s x
@@ -87,106 +66,152 @@ union c c' ds@(DS p s tt) = do
     let (nr, nc) = if xs < ys then (y, x)
                               else (x, y)
     MV.unsafeWrite p nc nr >> MV.unsafeWrite s nr (xs + ys)
-    topThree <- filter (\(co, _) -> (co /= x) && (co /= y)) <$> R.readIORef tt
-    R.writeIORef tt (take 3 . L.sortBy (comparing (Down . snd)) $ (nr, xs + ys) : topThree)
     pure $ xs + ys
 
--- | Extract distance from an edge.
-dist :: Edge -> Int
-dist (x, _, _, _, _) = x
-
--- | Allocate a new priority queue with given capacity.
-newQueue :: Int -> IO PQueue
-newQueue sz = newHeap sz (comparing dist)
-
-
--- | Squared Euclidean distance between two coordinates.
-distance :: Coords -> Coords -> Int
-distance (C h w d) (C h' w' d') = ((h - h')^(2 :: Int)) + ((w - w')^(2 :: Int)) + ((d - d')^(2 :: Int))
-{-# INLINE distance #-}
-
--- | Process accumulated coordinates on line feed; push new edges to PQ and update sets.
-treatState :: FoldState -> IO ()
-treatState (FS pq idx cs ds xs) = do
-  csv <- R.readIORef cs
-  coords@(C x _ _)<- (\case
-                        [z, y, x] -> C x y z
-                        _ -> undefined) <$> R.readIORef xs
-  R.writeIORef xs []
-  p <- R.readIORef idx
-  let addQueue (coords'@(C x' _ _), p') = push pq (distance coords coords', p, p', x, x')
-  mapM_ addQueue csv
-  mkSet p ds
-  R.writeIORef cs ((coords, p) : csv)
-  R.writeIORef idx (p + 1)
-
--- | Fold function for parsing input stream incrementally.
-mutableFold :: FoldState -> () -> Word8 -> IO ()
-mutableFold fs@(FS _ _ _ _ xs) _ w
-  | w == _lf = treatState fs
-  | w == _comma = R.modifyIORef' xs (0:)
-  | isDigit w = R.modifyIORef' xs (\case
-                                      [] -> [digit w]
-                                      (a:as) -> (10 * a + digit w):as)
-  | otherwise = undefined
-
--- | Extract a fixed number of edges from the PQ and merge corresponding sets.
-getCircuit :: Int -> PQueue -> DisjointSets -> IO ()
-getCircuit c pq circuit = subCircuit c
-  where
-    subCircuit 0 = pure ()
-    subCircuit c' = do
-      mPairQueue <- popMin pq
-      let (_, coords, coords', _, _) = fromMaybe undefined mPairQueue
-      void $ union coords coords' circuit
-      subCircuit (c' - 1)
-
--- | Return the product of sizes of the three largest sets.
-prodThree :: DisjointSets -> IO Int
-prodThree (DS _ _ topThree) = product . map snd <$> R.readIORef topThree
-
--- | Incrementally union edges until all nodes are connected; return product of last edge's x-values.
-connectAll :: Int -> PQueue -> DisjointSets -> IO Int
-connectAll sz pq ds = crawl
-  where
-    crawl = do
-      mPairQueue <- popMin pq
-      let (_, coords, coords', x, x') = fromMaybe undefined mPairQueue
-      ns <- union coords coords' ds
-      if ns == sz then pure (x * x') else crawl
 
 -- | Parse input stream and fully connect graph; return final MST value for part 2.
 findLastCircuits :: Stream IO Word8 -> IO Int
 findLastCircuits s = do
-  p <- MV.new 1000
-  si <- MV.new 1000
-  tt <- R.newIORef []
-  let circuits = DS p si tt
-  idx <- R.newIORef 0
-  cs <- R.newIORef []
-  v <- R.newIORef []
-  pq <- newQueue 499500
-  let fs = FS pq idx cs circuits v
-  S.fold (F.foldlM' (mutableFold fs) (pure ())) s
-  sz <- R.readIORef idx
-  connectAll sz pq circuits
+  (xs, ys, zs) <- getBoxes s
+  (inTree, best, from) <- initTree xs ys zs
+  (_, f, j) <- prim xs ys zs inTree best from
+  xf <- MV.unsafeRead xs f
+  xj <- MV.unsafeRead xs j
+  pure $ xf * xj
 
 -- | Parse input stream and compute MST for part 1; optionally use test size.
 findCircuits :: Bool -> Stream IO Word8 -> IO Int
-findCircuits isTest s = do
-    p <- MV.new 1000
-    si <- MV.new 1000
-    tt <- R.newIORef []
-    let circuits = DS p si tt
-    idx <- R.newIORef 0
-    cs <- R.newIORef []
-    v <- R.newIORef []
-    pq <- newQueue (if isTest then 380 else 499500)
-    let fs = FS pq idx cs circuits v
-    S.fold (F.foldlM' (mutableFold fs) (pure ())) s
-    let ind = if isTest then 10 else 1000
-    getCircuit ind pq circuits
-    prodThree circuits
+findCircuits isBool s = do
+  (xs, ys, zs) <- getBoxes s
+  edges <- makeEdges xs ys zs
+  shortests <- getShortest isBool edges
+  let n = MV.length xs
+  parents <- MV.generate n id
+  sizes <- MV.replicate n (1 :: Int)
+  let ds = DS parents sizes
+      unionize key = union ((key `shiftR` 10) .&. 1023) (key .&. 1023) ds
+  MV.mapM_ unionize shortests
+  let maybeSize i = MV.unsafeRead parents i >>=
+                      \p -> if i == p
+                                then Just <$> MV.unsafeRead sizes i
+                                else pure Nothing
+  product . take 3 . L.sortBy (comparing Down) . catMaybes <$> mapM maybeSize [0..n-1]
+
+folder :: IOVector Int -> IOVector Int -> IOVector Int -> FoldState -> Word8 -> IO FoldState
+folder xs _ _(ReadX x i) w
+  | w == _comma = MV.unsafeWrite xs i x >> pure (ReadY 0 i)
+  | isDigit w = pure $ ReadX (10 * x + digit w) i
+  | otherwise = undefined
+folder _ ys _ (ReadY y i) w
+  | w == _comma = MV.unsafeWrite ys i y >> pure (ReadZ 0 i)
+  | isDigit w = pure $ ReadY (10 * y + digit w) i
+  | otherwise = undefined
+folder _ _ zs (ReadZ z i) w
+  | w == _lf = MV.unsafeWrite zs i z >> pure (ReadX 0  (i + 1))
+  | isDigit w = pure $ ReadZ (10 * z + digit w) i
+  | otherwise = undefined
+
+getBoxes :: Stream IO Word8 -> IO (IOVector Int, IOVector Int, IOVector Int)
+getBoxes s = do
+  xsm <- MV.unsafeNew 1000
+  ysm <- MV.unsafeNew 1000
+  zsm <- MV.unsafeNew 1000
+  fs <- S.fold (F.foldlM' (folder xsm ysm zsm) (pure $ ReadX 0 0)) s
+  case fs of
+    ReadX 0 i -> do
+      let xs = MV.unsafeTake i xsm
+          ys = MV.unsafeTake i ysm
+          zs = MV.unsafeTake i zsm
+      pure (xs, ys, zs)
+    _ -> error "failed to properly get the boxes"
+
+makeEdges :: IOVector Int -> IOVector Int -> IOVector Int -> IO (IOVector Int)
+makeEdges xs ys zs = do
+  let n = MV.length xs
+  edges <- MV.unsafeNew (n * (n - 1) `div` 2)
+  forM_ [0.. n - 2] $ \i -> do
+      xi <- MV.unsafeRead xs i
+      yi <- MV.unsafeRead ys i
+      zi <- MV.unsafeRead zs i
+      forM_ [i + 1 .. n - 1] $ \j -> do
+        xj <- MV.unsafeRead xs j
+        yj <- MV.unsafeRead ys j
+        zj <- MV.unsafeRead zs j
+        let d = (xi - xj)^(2 :: Int) + (yi - yj)^(2 :: Int) + (zi -zj)^(2 :: Int)
+            key = (d `shiftL` 20) .|. (i `shiftL` 10) .|. j
+            p = i * (2 * n - i -1) `div` 2 + j - i - 1
+        MV.unsafeWrite edges p key
+  pure edges
+
+getShortest :: Bool -> IOVector Int -> IO (IOVector Int)
+getShortest isBool edges = do
+    let k = if isBool then 10 else 1000
+    select edges k
+    pure $ MV.unsafeTake k edges
+
+initTree :: IOVector Int -> IOVector Int -> IOVector Int -> IO (IOVector Word8, IOVector Int, IOVector Int)
+initTree xs ys zs = do
+  let n = MV.length xs
+  inTree <- MV.replicate n 0
+  MV.unsafeWrite inTree 0 1
+  best <- MV.unsafeNew n
+  x0 <- MV.unsafeRead xs 0
+  y0 <- MV.unsafeRead ys 0
+  z0 <- MV.unsafeRead zs 0
+  MV.unsafeWrite best 0 0
+  forM_ [1 .. n-1] $ \i -> do
+    xi <- MV.unsafeRead xs i
+    yi <- MV.unsafeRead ys i
+    zi <- MV.unsafeRead zs i
+    MV.unsafeWrite best i ((xi - x0)^(2 :: Int) + (yi - y0)^(2 :: Int) + (zi -z0)^(2 :: Int))
+  from <- MV.replicate n 0
+  pure (inTree, best, from)
+
+findClosest :: IOVector Word8 -> IOVector Int -> IO Int
+findClosest inTree best = do
+  let n = MV.length best
+      isBest j (i, dist) = do
+        isIn <- MV.unsafeRead inTree j
+        if isIn == 0
+           then do
+             distj <- MV.unsafeRead best j
+             if distj < dist then pure (j, distj)
+                             else pure (i, dist)
+           else pure (i, dist)
+  (closest, _) <- foldrM isBest (undefined, maxBound) [0 .. n - 1]
+  pure closest
+
+primRound :: IOVector Int -> IOVector Int -> IOVector Int -> IOVector Word8 -> IOVector Int -> IOVector Int -> IO (Int, Int, Int)
+primRound xs ys zs inTree best from = do
+  let n = MV.length xs
+  j <- findClosest inTree best
+  d <- MV.unsafeRead best j
+  f <- MV.unsafeRead from j
+  MV.unsafeWrite inTree j 1
+  xj <- MV.unsafeRead xs j
+  yj <- MV.unsafeRead ys j
+  zj <- MV.unsafeRead zs j
+  forM_ [0 .. n-1] $ \t -> do
+    it <- MV.unsafeRead inTree t
+    when (it == 0) $ do
+         xt <- MV.unsafeRead xs t
+         yt <- MV.unsafeRead ys t
+         zt <- MV.unsafeRead zs t
+         bt <- MV.unsafeRead best t
+         let djt = (xj - xt)^(2 :: Int) + (yj - yt)^(2 :: Int) + (zj - zt)^(2 :: Int)
+         when (djt < bt) $ do
+              MV.unsafeWrite best t djt
+              MV.unsafeWrite from t j
+  pure (d, f, j)
+
+prim :: IOVector Int -> IOVector Int -> IOVector Int -> IOVector Word8 -> IOVector Int -> IOVector Int -> IO (Int, Int, Int)
+prim xs ys zs inTree best from = foldrM doRound (0, 0, 0) [1 .. n - 1]
+  where
+    n = MV.length xs
+    doRound _ (d, f, j) = do
+      (d', f', j') <- primRound xs ys zs inTree best from
+      if d < d' then pure (d', f', j')
+                else pure (d, f, j)
 
 -- | Solve part 1: compute product of sizes of the three largest connected components.
 part1 :: Bool -> Stream IO Word8 -> IO ()
